@@ -321,3 +321,28 @@ label.inline input { width: 20px; height: 20px; accent-color: var(--accent); }
 .versions { display: flex; flex-wrap: wrap; gap: 0 16px; }
 .versions label.inline { margin: 4px 0; }
 details summary { cursor: pointer; }
+
+/* ---------- 동기화 표시 · 휴대폰 화면 ---------- */
+
+.top-badges { display: flex; gap: 8px; align-items: center; }
+.sync { font-size: 13px; padding: 3px 10px; border-radius: 999px; background: var(--line); color: var(--muted); white-space: nowrap; }
+.sync.synced { background: var(--accent-soft); color: var(--ok); }
+.sync.error { background: var(--warn-soft); color: var(--warn); }
+
+@media (max-width: 560px) {
+  body { font-size: 16px; }
+  main { padding: 12px 12px 64px; }
+  .top-inner { padding: 10px 12px 2px; }
+  h1 { font-size: 18px; }
+  .tabs { padding: 4px 8px 8px; }
+  .tabs button { flex: 0 0 auto; font-size: 15px; padding: 8px 10px; }
+  .card { padding: 14px; }
+  .row.between { flex-wrap: wrap; }
+  .rate { text-align: left; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .task.first { padding-left: 10px; }
+  .task-head .actions { width: 100%; }
+  .task-head .actions .btn { flex: 1; }
+  .hero-title { font-size: 19px; }
+  .bar .name { flex-basis: 96px; }
+}
