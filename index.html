@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>공부 루틴</title>
-  <meta name="description" content="고1 진도 기록, 간격 복습, 수학 오답 재출제, 시험 모드">
+  <meta name="description" content="과목별 상태와 실제 공부 속도로 오늘 할 공부를 정하고 자동으로 다시 계획하는 학습 관리">
   <meta name="theme-color" content="#2f5d50">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -22,15 +22,19 @@
     </div>
     <nav class="tabs" role="tablist">
       <button data-tab="today" class="active">오늘</button>
-      <button data-tab="log">진도 기록</button>
-      <button data-tab="math">수학</button>
-      <button data-tab="exam">시험 모드</button>
+      <button data-tab="subjects">과목</button>
+      <button data-tab="exam">시험</button>
+      <button data-tab="review">복습·오답</button>
+      <button data-tab="projects">수행평가</button>
+      <button data-tab="analysis">분석</button>
       <button data-tab="settings">설정</button>
     </nav>
   </header>
 
   <main id="view"></main>
 
+  <script src="planner.js"></script>
+  <script src="seed.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
