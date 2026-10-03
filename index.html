@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>공부 루틴</title>
+  <meta name="description" content="과목별 상태와 실제 공부 속도로 오늘 할 공부를 정하고 자동으로 다시 계획하는 학습 관리">
+  <meta name="theme-color" content="#2f5d50">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="공부 루틴">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="top-inner">
+      <h1>공부 루틴</h1>
+      <div id="dday" class="dday" hidden></div>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button data-tab="today" class="active">오늘</button>
+      <button data-tab="subjects">과목</button>
+      <button data-tab="exam">시험</button>
+      <button data-tab="review">복습·오답</button>
+      <button data-tab="projects">수행평가</button>
+      <button data-tab="analysis">분석</button>
+      <button data-tab="settings">설정</button>
+    </nav>
+  </header>
+
+  <main id="view"></main>
+
+  <script src="planner.js"></script>
+  <script src="seed.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

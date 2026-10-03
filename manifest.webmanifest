@@ -1,0 +1,9 @@
+{
+  "name": "공부 루틴",
+  "short_name": "공부 루틴",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f6f5f1",
+  "theme_color": "#2f5d50",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}
