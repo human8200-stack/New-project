@@ -16,9 +16,11 @@ const SEED_SUBJECTS = [
 // mode: 'range' = 끝이 있는 분량, 'weekly' = 매주 해야 하는 할당량
 // activeBeforeExam: 시험 N일 전부터만 계획에 넣음 (0이면 항상)
 const SEED_MATERIALS = [
+  { s: 'kor', name: '교과서·학습지', kind: '교과서', unit: '쪽', minPerUnit: 5 },
   { s: 'kor', name: '모의고사', kind: '모의고사', unit: '회', mode: 'weekly', weekly: 2, minPerUnit: 80 },
   { s: 'kor', name: '학원 숙제', kind: '숙제', unit: '문제', mode: 'weekly', weekly: 250, minPerUnit: 1.2 },
 
+  { s: 'math', name: '교과서 개념', kind: '교과서', unit: '쪽', minPerUnit: 6 },
   { s: 'math', name: '쎈 (좋은책신사고)', kind: '문제집', unit: '문제', minPerUnit: 3 },
   { s: 'math', name: '마플시너지 (오답만)', kind: '오답', unit: '문제', minPerUnit: 6 },
   { s: 'math', name: '고쟁이 (이투스북)', kind: '문제집', unit: '문제', minPerUnit: 6 },
