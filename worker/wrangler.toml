@@ -1,0 +1,8 @@
+name = "study-ai"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+# 앱 주소만 허용 (GitHub Pages)
+ALLOWED_ORIGIN = "https://human8200-stack.github.io"

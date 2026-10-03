@@ -45,7 +45,7 @@ function freshState() {
     version: 2,
     setupDone: false,
     updatedAt: 0, // 마지막으로 사람이 바꾼 시각. 기기 간 동기화에서 더 최근 쪽이 이긴다
-    settings: { examDate: '', weekdayMinutes: [360, 180, 180, 180, 180, 180, 360] },
+    settings: { examDate: '', weekdayMinutes: [360, 180, 180, 180, 180, 180, 360], aiUrl: '', aiCode: '' },
     subjects,
     materials,
     sessions: [],
@@ -58,7 +58,7 @@ function freshState() {
 }
 
 let state;
-const ui = { revealed: null, tab: 'today', openForm: null, subjectId: null, editMaterial: null, wrongSubject: null };
+const ui = { revealed: null, tab: 'today', openForm: null, openBook: null, setup: false };
 
 async function load() {
   let saved = null;
@@ -472,61 +472,6 @@ function taskRow(task, index, isFirst) {
     </li>`;
 }
 
-function renderToday() {
-  if (!state.setupDone || ui.setup) return renderSetup();
-  const t = today();
-  const plan = state.plans[t];
-  const planned = plan.tasks.reduce((a, x) => a + x.minutes, 0);
-  const doneCount = plan.tasks.filter((x) => x.status !== 'todo').length;
-  const todo = plan.tasks.filter((x) => x.status === 'todo');
-  const rate = plan.tasks.length ? Math.round((doneCount / plan.tasks.length) * 100) : 0;
-  const firstTodo = todo[0];
-
-  const materialOptions = state.subjects.map((s) => {
-    const mats = state.materials.filter((m) => m.subjectId === s.id && !m.archived);
-    return `<optgroup label="${esc(s.name)}">${mats.map((m) => `<option value="${m.id}">${esc(m.name)} (${esc(m.unit)})</option>`).join('')}</optgroup>`;
-  }).join('');
-
-  return `
-    ${glanceCard()}
-    ${recallSection()}
-    ${lessonCard()}
-
-    <section class="card plan-card">
-      <div class="plan-top">
-        <h2>오늘 할 공부</h2>
-        <span class="meta">${doneCount}/${plan.tasks.length} · 약 ${hm(planned)}</span>
-      </div>
-      <div class="progress"><div style="width:${rate}%"></div></div>
-      <p class="sub">다 하면 그냥 두셔도 돼요. 하루가 지나면 다 한 것으로 자동 기록해요. <strong>못 한 것만</strong> 알려 주세요.</p>
-      <ol class="todo">${plan.tasks.map((x, i) => taskRow(x, i, x === firstTodo)).join('') || '<li class="empty">오늘 배정할 공부가 없어요.</li>'}</ol>
-    </section>
-
-    <details class="card fold">
-      <summary>시간이 부족해요 · 계획 다시 짜기</summary>
-      <form data-form="replan" class="inline-form">
-        <div class="row">
-          <div><label>지금부터 쓸 수 있는 시간(분)</label><input type="number" name="minutes" min="0" value="${Math.max(0, todo.reduce((a, x) => a + x.minutes, 0))}" required></div>
-          <div><label>컨디션</label><select name="condition">${options(['좋음', '보통', '피곤'], plan.condition)}</select></div>
-        </div>
-        <button class="btn primary" type="submit">다시 짜기</button>
-      </form>
-    </details>
-
-    <details class="card fold">
-      <summary>계획에 없던 공부 기록 (학원 숙제 등)</summary>
-      <form data-form="extra" class="inline-form">
-        <label>교재</label><select name="materialId">${materialOptions}</select>
-        <div class="row">
-          <div><label>한 양</label><input type="number" name="amount" min="0" step="any" required></div>
-          <div><label>걸린 시간(분)</label><input type="number" name="minutes" min="0" required></div>
-          <div><label>틀린 개수 (선택)</label><input type="number" name="wrong" min="0"></div>
-        </div>
-        <div style="margin-top:12px"><button class="btn primary" type="submit">기록</button></div>
-      </form>
-    </details>`;
-}
-
 // ---------- 한눈에 보기 ----------
 // 시험까지 남은 날, 전체 진도와 계획상 와 있어야 할 진도, 걱정되는 과목만 보여준다
 
@@ -563,261 +508,15 @@ function glanceCard() {
   let pace = '';
   if (overall) {
     const gap = Math.round((overall.progress - overall.target) * 100);
-    pace = gap >= 0 ? `<span class="good-text">계획보다 ${gap}% 앞서요</span>` : `<span class="warn-text">계획보다 ${-gap}% 늦어요</span>`;
+    pace = Math.abs(gap) <= 2 ? '<span class="good-text">계획대로 가고 있어요</span>'
+      : gap > 0 ? `<span class="good-text">계획보다 ${gap}% 앞서요</span>` : `<span class="warn-text">계획보다 ${-gap}% 늦어요</span>`;
   }
   return `
     <section class="glance">
       <div class="glance-item"><span>시험까지</span><strong>${left != null && left >= 0 ? `D-${left || 'Day'}` : '미정'}</strong></div>
       <div class="glance-item"><span>전체 진도</span><strong>${overall ? pct(overall.progress) : '-'}</strong>${overall ? `<small>${pace}</small>` : ''}</div>
       <div class="glance-item"><span>최근 7일</span><strong>${hm(week)}</strong></div>
-      ${worry.length ? `<button class="glance-worry" data-action="go-tab" data-id="exam">신경 쓸 과목: ${esc(worry.join(', '))} →</button>` : ''}
-    </section>`;
-}
-
-// ---------- 처음 한 번만: 교재와 시작 위치 ----------
-
-function renderSetup() {
-  const groups = state.subjects.map((s) => {
-    const mats = state.materials.filter((m) => m.subjectId === s.id && !m.archived);
-    const rows = mats.map((m) => {
-      if (m.mode === 'weekly') {
-        return `
-          <div class="setup-row">
-            <div class="setup-name">${esc(m.name)}</div>
-            <div class="setup-inputs"><label>매주<input type="number" min="0" name="weekly-${m.id}" value="${m.weekly || ''}"></label><span>${esc(m.unit)}</span></div>
-          </div>`;
-      }
-      return `
-        <div class="setup-row">
-          <div class="setup-name">${esc(m.name)}${m.activeBeforeExam ? `<span class="meta"> · 시험 ${m.activeBeforeExam}일 전부터</span>` : ''}</div>
-          <div class="setup-inputs">
-            <label>전체<input type="number" min="0" name="total-${m.id}" value="${m.total ?? ''}" placeholder="?"></label>
-            <label>지금까지<input type="number" min="0" name="done-${m.id}" value="${m.done || ''}" placeholder="0"></label>
-            <span>${esc(m.unit)}</span>
-          </div>
-        </div>`;
-    }).join('');
-    return `<fieldset class="setup-group"><legend>${esc(s.name)}</legend>${rows}</fieldset>`;
-  }).join('');
-  const wd = state.settings.weekdayMinutes;
-  return `
-    <section class="card setup">
-      <h2>처음 한 번만 알려 주세요</h2>
-      <p class="sub">공부할 책과 지금 어디까지 했는지만 넣으면, 그다음부터는 매일 할 양을 자동으로 정하고 진도도 알아서 따라가요. 모르는 칸은 비워 두세요. 나중에 채워도 돼요.</p>
-      <form data-form="setup">
-        <fieldset class="setup-group">
-          <legend>시험과 시간</legend>
-          <div class="setup-row">
-            <div class="setup-name">다음 시험 첫날</div>
-            <div class="setup-inputs"><input type="date" name="examDate" value="${esc(state.settings.examDate)}"></div>
-          </div>
-          <div class="setup-row">
-            <div class="setup-name">하루 공부할 수 있는 시간 (학교·학원 빼고)</div>
-            <div class="setup-inputs">
-              <label>평일<input type="number" min="0" step="10" name="weekday" value="${wd[1]}"></label>
-              <label>주말<input type="number" min="0" step="10" name="weekend" value="${wd[0]}"></label><span>분</span>
-            </div>
-          </div>
-        </fieldset>
-        ${groups}
-        <button class="btn big primary wide" type="submit">다 됐어요 · 계획 만들기</button>
-      </form>
-    </section>`;
-}
-
-// ---------- 사진으로 자동 기록 ----------
-// Claude 안에서 연 화면(claude.ai)에서만 동작한다. 그 밖에서는 버튼이 보이지 않는다.
-
-const ai = { sample: null, maxImages: 0, mediaTypes: '', busy: null, lesson: null, exam: null, error: '' };
-
-async function initAi() {
-  if (!window.claude || typeof window.claude.use !== 'function') return;
-  const sample = await window.claude.use('sample').catch(() => null);
-  if (!sample) return;
-  const limits = await sample.limits().catch(() => null);
-  if (!limits || !limits.images) return;
-  ai.sample = sample;
-  ai.maxImages = limits.images.maxCount;
-  ai.mediaTypes = limits.images.mediaTypes.join(',');
-  renderWhenIdle();
-}
-
-const AI_ERRORS = {
-  not_granted: 'Claude 사용을 허용하지 않아서 사진을 읽지 못했어요.',
-  rate_limited: '지금은 요청이 많아요. 잠시 뒤에 다시 올려 주세요.',
-  image_rejected: '이 사진은 읽을 수 없어요. 다른 사진으로 올려 주세요.',
-  invalid_json: '정리 결과를 읽지 못했어요. 한 번 더 올려 주세요.',
-  session_expired: 'Claude에 다시 로그인해 주세요.',
-};
-
-function subjectNames() {
-  return state.subjects.map((s) => s.name);
-}
-
-function lessonPrompt() {
-  return `당신은 고등학교 1학년 학생의 공부 도우미입니다. 첨부한 사진은 학생이 오늘(${today()}) 학교 수업에서 배운 교과서 페이지, 필기, 학습지입니다.
-과목 목록: ${subjectNames().join(', ')}
-
-같은 과목·같은 범위의 사진은 하나로 합쳐서, 다음을 뽑으세요.
-- subject: 위 과목 목록 중 하나 (글자 그대로)
-- pages: 사진에 보이는 쪽 번호 범위, 예 "p.58~61". 쪽 번호가 안 보이면 ""
-- startPage, endPage: 쪽 번호 숫자 (모르면 null)
-- topic: 단원·주제 한 줄
-- cards: 시험에 나올 만한 복습 질문 2~3개. 각 {"q": 질문, "a": 답}. 질문은 책을 덮고 답할 수 있게 구체적으로, 답은 1~2문장. 사진에 있는 내용만 근거로 씁니다.
-
-JSON 배열로만 답하세요. 예:
-[{"subject":"수학","pages":"p.58~61","startPage":58,"endPage":61,"topic":"원과 직선의 위치 관계","cards":[{"q":"원과 직선이 서로 다른 두 점에서 만나는 조건은?","a":"원의 중심과 직선 사이의 거리가 반지름보다 작을 때 (판별식 D > 0)"}]}]
-사진을 읽을 수 없으면 [] 로 답하세요.`;
-}
-
-function examPrompt() {
-  return `첨부한 사진은 고등학교 1학년 정기고사(중간·기말) 시험 범위 공지입니다. 오늘은 ${today()}입니다.
-과목 목록: ${subjectNames().join(', ')}
-
-다음 JSON 하나로만 답하세요.
-{"examDate": 시험 첫날 "YYYY-MM-DD" (안 보이면 null),
- "subjects": [{"subject": 위 과목 목록 중 하나 (글자 그대로, 해당 없으면 빼기), "range": 범위를 한 줄로 (예: "교과서 p.12~118, 학습지 1~6"), "endPage": 교과서 마지막 쪽 숫자 (모르면 null)}]}
-예: {"examDate":"2026-12-08","subjects":[{"subject":"수학","range":"교과서 p.10~96","endPage":96}]}`;
-}
-
-async function runAi(kind, files) {
-  const list = Array.from(files).slice(0, ai.maxImages);
-  if (!list.length || !ai.sample) return;
-  ai.busy = kind;
-  ai.error = '';
-  render();
-  try {
-    const data = await ai.sample.json(kind === 'lesson' ? lessonPrompt() : examPrompt(), { images: list });
-    if (kind === 'lesson') {
-      const names = subjectNames();
-      ai.lesson = (Array.isArray(data) ? data : [])
-        .filter((x) => x && names.includes(x.subject))
-        .map((x) => ({
-          subject: x.subject,
-          pages: String(x.pages || ''),
-          startPage: Number.isFinite(Number(x.startPage)) && x.startPage !== null ? Number(x.startPage) : null,
-          endPage: Number.isFinite(Number(x.endPage)) && x.endPage !== null ? Number(x.endPage) : null,
-          topic: String(x.topic || ''),
-          cards: (Array.isArray(x.cards) ? x.cards : []).filter((c) => c && c.q).slice(0, 3).map((c) => ({ q: String(c.q), a: String(c.a || '') })),
-        }));
-      if (!ai.lesson.length) ai.error = '사진에서 과목이나 내용을 찾지 못했어요. 쪽 번호와 글자가 잘 보이게 다시 찍어 주세요.';
-    } else {
-      const names = subjectNames();
-      const subjects = (data && Array.isArray(data.subjects) ? data.subjects : []).filter((x) => x && names.includes(x.subject));
-      const date = data && /^\d{4}-\d{2}-\d{2}$/.test(String(data.examDate)) ? data.examDate : null;
-      ai.exam = { examDate: date, subjects: subjects.map((x) => ({ subject: x.subject, range: String(x.range || ''), endPage: Number(x.endPage) || null })) };
-      if (!subjects.length && !date) {
-        ai.exam = null;
-        ai.error = '사진에서 시험 범위를 찾지 못했어요. 공지 전체가 보이게 다시 찍어 주세요.';
-      }
-    }
-  } catch (e) {
-    ai.error = AI_ERRORS[e && e.code] || '사진을 정리하지 못했어요. 잠시 뒤에 다시 올려 주세요.';
-    if (e && ['not_granted', 'sampling_disabled', 'images_unavailable', 'capability_disabled'].includes(e.code)) ai.sample = null;
-  }
-  ai.busy = null;
-  render();
-}
-
-// 교과서 쪽수로 진도를 세는 교재 (교과서·암기 중 단위가 쪽인 것)
-function pageMaterial(subjectId) {
-  return state.materials.find((m) => m.subjectId === subjectId && !m.archived && m.unit === '쪽' && ['교과서', '암기'].includes(m.kind));
-}
-
-function saveLesson() {
-  const t = today();
-  ai.lesson.forEach((x) => {
-    const s = state.subjects.find((y) => y.name === x.subject);
-    if (!s) return;
-    const label = [x.topic, x.pages].filter(Boolean).join(' ');
-    x.cards.forEach((c) => {
-      state.logs.push({
-        id: uid(), created: Date.now(), date: t, subject: s.name, kind: '수업', text: label,
-        q: c.q, a: c.a, step: 0, due: addDays(t, LOG_INTERVALS[0]), history: [],
-      });
-    });
-    if (!x.cards.length) {
-      state.logs.push({ id: uid(), created: Date.now(), date: t, subject: s.name, kind: '수업', text: label, step: 0, due: addDays(t, LOG_INTERVALS[0]), history: [] });
-    }
-    const m = pageMaterial(s.id);
-    if (m && x.endPage) {
-      m.done = Math.max(m.done || 0, x.endPage);
-      m.nextRange = `p.${x.endPage + 1}`;
-    }
-    s.lastStudied = t;
-  });
-  const n = ai.lesson.reduce((a, x) => a + Math.max(1, x.cards.length), 0);
-  ai.lesson = null;
-  return `복습 카드 ${n}장을 만들었어요. 내일 "오늘 떠올릴 것"에 나와요.`;
-}
-
-function saveExam() {
-  if (ai.exam.examDate) state.settings.examDate = ai.exam.examDate;
-  ai.exam.subjects.forEach((x) => {
-    const s = state.subjects.find((y) => y.name === x.subject);
-    if (!s) return;
-    s.examRange = x.range;
-    const m = pageMaterial(s.id);
-    if (m && x.endPage) m.total = x.endPage;
-  });
-  ai.exam = null;
-  refreshUntouchedPlan();
-  return '시험 범위를 넣었어요. 오늘 계획부터 반영돼요.';
-}
-
-function photoPicker(kind, label) {
-  return `<label class="btn big primary wide photo-pick">${label}<input type="file" accept="${esc(ai.mediaTypes)}" multiple hidden data-action="ai-${kind}"></label>`;
-}
-
-function lessonCard() {
-  if (!ai.sample && !ai.lesson) return '';
-  if (ai.busy === 'lesson') return '<section class="card ai-card"><p class="ai-busy">사진을 읽고 정리하는 중이에요… (30초쯤 걸려요)</p></section>';
-  if (ai.lesson) {
-    const rows = ai.lesson.map((x) => `
-      <li class="ai-row">
-        <div><strong>${esc(x.subject)}</strong> ${esc(x.pages)}</div>
-        <div class="meta">${esc(x.topic)}</div>
-        <ul class="ai-cards">${x.cards.map((c) => `<li>${esc(c.q)}</li>`).join('')}</ul>
-      </li>`).join('');
-    return `
-      <section class="card ai-card">
-        <h2>이렇게 정리했어요</h2>
-        <ul class="list">${rows}</ul>
-        <div class="recall-buttons">
-          <button class="btn big primary" data-action="ai-save-lesson">이대로 저장</button>
-          <button class="btn big" data-action="ai-discard">버리기</button>
-        </div>
-      </section>`;
-  }
-  return `
-    <section class="card ai-card">
-      ${photoPicker('lesson', '오늘 배운 곳 사진 올리기')}
-      <p class="sub" style="margin:8px 0 0">교과서, 필기, 학습지를 찍어 올리면 과목, 페이지, 복습 질문을 자동으로 만들어요. 따로 쓸 건 없어요.</p>
-      ${ai.error && ui.tab === 'today' ? `<p class="warn-text" style="margin:8px 0 0">${esc(ai.error)}</p>` : ''}
-    </section>`;
-}
-
-function examPhotoCard() {
-  if (!ai.sample && !ai.exam) return '';
-  if (ai.busy === 'exam') return '<section class="card ai-card"><p class="ai-busy">시험 범위 공지를 읽는 중이에요…</p></section>';
-  if (ai.exam) {
-    const rows = ai.exam.subjects.map((x) => `<li class="ai-row"><strong>${esc(x.subject)}</strong> ${esc(x.range)}</li>`).join('');
-    return `
-      <section class="card ai-card">
-        <h2>이렇게 읽었어요</h2>
-        <p>시험 첫날: <strong>${ai.exam.examDate ? prettyDate(ai.exam.examDate) : '공지에 없음'}</strong></p>
-        <ul class="list">${rows}</ul>
-        <div class="recall-buttons">
-          <button class="btn big primary" data-action="ai-save-exam">이대로 넣기</button>
-          <button class="btn big" data-action="ai-discard">버리기</button>
-        </div>
-      </section>`;
-  }
-  return `
-    <section class="card ai-card">
-      ${photoPicker('exam', '시험 범위 공지 사진 올리기')}
-      <p class="sub" style="margin:8px 0 0">범위가 나오면 공지를 찍어 올려 주세요. 시험일과 과목별 범위를 자동으로 넣어요.</p>
-      ${ai.error && ui.tab === 'exam' ? `<p class="warn-text" style="margin:8px 0 0">${esc(ai.error)}</p>` : ''}
+      ${worry.length ? `<button class="glance-worry" data-action="go-tab" data-id="plan">신경 쓸 과목: ${esc(worry.join(', '))} →</button>` : ''}
     </section>`;
 }
 
@@ -847,275 +546,647 @@ function autoDiagnose() {
   });
 }
 
-// ---------- 화면: 과목 ----------
+// ---------- 사진 한 장으로 알아서 정리 ----------
+// 배운 곳, 푼 문제, 틀린 문제, 시험 공지, 책 표지·목차 무엇이든 올리면 종류를 알아서 나눠 기록한다.
+// Claude 안에서 열면 Claude가 읽고, 그 밖에서는 설정의 "AI 연결" 주소(우리 집 전용 서버)로 보낸다.
 
-function needText(snap) {
-  if (!snap.need && snap.unknown) return '<span class="warn-text">총량 미입력</span>';
-  return `${hm(snap.need)}${snap.unknown ? '+' : ''}`;
+const ai = { sample: null, maxImages: 6, busy: false, report: null, undo: null, error: '' };
+
+async function initAi() {
+  if (!window.claude || typeof window.claude.use !== 'function') return;
+  const sample = await window.claude.use('sample').catch(() => null);
+  if (!sample) return;
+  const limits = await sample.limits().catch(() => null);
+  if (!limits || !limits.images) return;
+  ai.sample = sample;
+  ai.maxImages = limits.images.maxCount;
+  renderWhenIdle();
 }
 
-const STATUS_CLASS = { 위험: 'risk', 주의: 'caution', 안정: 'stable' };
-
-function rating(subject, field, label) {
-  return `<div><label>${label}</label><select data-action="subj-field" data-id="${subject.id}" data-field="${field}">${options([1, 2, 3, 4, 5].map((n) => [n, `${n} / 5`]), subject[field])}</select></div>`;
+function aiReady() {
+  return !!ai.sample || !!(state.settings.aiUrl && state.settings.aiCode);
 }
 
-function materialRow(m) {
-  const t = today();
-  const rem = remaining(state, m, t);
-  const active = isActive(state, m, t);
-  let amount;
-  if (m.mode === 'weekly') amount = `매주 ${m.weekly}${m.unit} · 이번 주 남은 ${rem}${m.unit}`;
-  else if (m.total == null) amount = `<span class="warn-text">총량 미입력</span> · 한 양 ${m.done}${m.unit}`;
-  else amount = `${m.done}/${m.total}${m.unit} (${Math.round((Math.min(m.done, m.total) / m.total) * 100)}%)`;
-  const editing = ui.editMaterial === m.id;
-  return `
-    <li class="item${m.archived ? ' muted' : ''}">
-      <div>
-        <div><strong>${esc(m.name)}</strong> <span class="tag">${esc(m.kind)}</span>${!active && !m.archived ? `<span class="tag">시험 ${m.activeBeforeExam}일 전부터</span>` : ''}${m.archived ? '<span class="tag">보관</span>' : ''}</div>
-        <div class="meta">${amount} · ${m.unit}당 ${m.minPerUnit}분${m.accuracy != null ? ` · 정확도 ${pct(m.accuracy)}` : ''}${m.nextRange ? ` · 다음: ${esc(m.nextRange)}` : ''}</div>
-      </div>
-      <div class="actions"><button class="btn small" data-action="edit-material" data-id="${m.id}">${editing ? '닫기' : '수정'}</button></div>
-      ${editing ? materialForm(m) : ''}
-    </li>`;
+const AI_ERRORS = {
+  not_granted: 'Claude 사용을 허용하지 않아서 사진을 읽지 못했어요.',
+  rate_limited: '지금은 요청이 많아요. 잠시 뒤에 다시 올려 주세요.',
+  image_rejected: '이 사진은 읽을 수 없어요. 다른 사진으로 올려 주세요.',
+  invalid_json: '정리 결과를 읽지 못했어요. 한 번 더 올려 주세요.',
+  session_expired: 'Claude에 다시 로그인해 주세요.',
+  bad_code: 'AI 연결의 가족 코드가 맞지 않아요. 설정에서 확인해 주세요.',
+  network: 'AI 서버에 연결하지 못했어요. 인터넷과 설정의 AI 연결 주소를 확인해 주세요.',
+};
+
+function photoPrompt(count) {
+  const books = state.subjects.map((s) => {
+    const names = state.materials.filter((m) => m.subjectId === s.id && !m.archived).map((m) => m.name);
+    return `- ${s.name}: ${names.join(', ') || '(없음)'}`;
+  }).join('\n');
+  return `당신은 고등학교 1학년 학생의 공부를 도와주는 과외 선생님입니다. 학생이 사진 ${count}장을 올렸습니다. 오늘은 ${today()}입니다.
+사진마다 무엇인지 판단해서 정리해 주세요. 사진 번호는 1부터 셉니다.
+
+과목 목록: ${state.subjects.map((s) => s.name).join(', ')}
+과목별 책:
+${books}
+
+사진 종류와 뽑을 내용:
+1. "lesson" 교과서·필기·학습지 내용 (오늘 배운 곳)
+   {"type":"lesson","photo":번호,"subject":과목,"pages":"p.58~61","endPage":61,"topic":"단원·주제 한 줄","cards":[{"q":"책을 덮고 답할 수 있는 구체적인 복습 질문","a":"1~2문장 답"}]}  (cards 2~3개, 사진 내용만 근거로)
+2. "solved" 학생이 풀고 채점한 문제집·학습지 쪽
+   {"type":"solved","photo":번호,"subject":과목,"book":"위 책 목록에서 가장 가까운 이름 (없으면 표지에 보이는 이름)","solved":푼 문제 수,"wrong":틀린 문제 수,"last":마지막 문제 번호 숫자}
+3. "wrong" 틀린 문제 하나를 크게 찍은 것
+   {"type":"wrong","photo":번호,"subject":과목,"unit":"단원","why":"이 문제에서 놓치기 쉬운 점 한 줄"}
+4. "exam" 시험 범위·시험 시간표 공지
+   {"type":"exam","photo":번호,"exams":[{"subject":과목,"date":"YYYY-MM-DD 또는 null","range":"범위 한 줄","endPage":교과서 마지막 쪽 숫자 또는 null}]}
+5. "book" 책 표지·목차·맨 뒤쪽
+   {"type":"book","photo":번호,"subject":과목,"book":"책 이름","unit":"문제" 또는 "쪽","total":전체 문제 수 또는 쪽 수 (모르면 null)}
+6. 알 수 없으면 {"type":"other","photo":번호}
+
+과목은 반드시 위 과목 목록의 글자 그대로 씁니다. 숫자를 읽을 수 없으면 null로 둡니다.
+JSON 하나로만 답하세요: {"items":[...]}`;
 }
 
-function materialForm(m) {
-  const isNew = !m.id;
-  return `
-    <form class="inline-form full" data-form="material" data-id="${m.id || ''}">
-      <div class="row">
-        <div><label>이름</label><input name="name" value="${esc(m.name)}" required></div>
-        <div><label>종류</label><select name="kind">${options(KINDS, m.kind)}</select></div>
-        <div><label>단위</label><input name="unit" value="${esc(m.unit)}" placeholder="문제, 쪽, 회, 지문" required></div>
-      </div>
-      <div class="row">
-        <div><label>방식</label><select name="mode">${options([['range', '끝이 있는 분량'], ['weekly', '매주 할당량']], m.mode)}</select></div>
-        <div><label>총량 (끝이 있는 분량)</label><input type="number" name="total" min="0" value="${m.total ?? ''}" placeholder="모르면 비워 두기"></div>
-        <div><label>이미 한 양</label><input type="number" name="done" min="0" step="any" value="${m.done || 0}"></div>
-        <div><label>주간 할당량</label><input type="number" name="weekly" min="0" value="${m.weekly || 0}"></div>
-      </div>
-      <div class="row">
-        <div><label>${esc(m.unit || '단위')}당 예상 시간(분)</label><input type="number" name="minPerUnit" min="0.1" step="0.1" value="${m.minPerUnit}" required></div>
-        <div><label>시험 며칠 전부터 (0 = 항상)</label><input type="number" name="activeBeforeExam" min="0" value="${m.activeBeforeExam || 0}"></div>
-        <div><label>다음에 시작할 곳</label><input name="nextRange" value="${esc(m.nextRange)}"></div>
-      </div>
-      <div class="row" style="margin-top:12px">
-        <button class="btn primary" type="submit">${isNew ? '추가' : '저장'}</button>
-        ${isNew ? '' : `<button class="btn" type="button" data-action="archive-material" data-id="${m.id}">${m.archived ? '보관 해제' : '보관 (계획에서 빼기)'}</button>`}
-      </div>
-    </form>`;
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result).split(',')[1]);
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(blob);
+  });
 }
 
-function subjectDetail(s) {
-  const t = today();
-  const snap = subjectSnapshot(state, s, t);
-  const mats = state.materials.filter((m) => m.subjectId === s.id);
-  const tips = recommend(state, s, t).map((x) => `<li>${esc(x)}</li>`).join('');
-  const newMat = { id: '', subjectId: s.id, name: '', kind: '문제집', unit: '문제', mode: 'range', total: null, done: 0, weekly: 0, minPerUnit: 2, activeBeforeExam: 0, nextRange: '' };
-  return `
-    <button class="btn small" data-action="subject-back">← 전체 과목</button>
-    <div class="card" style="margin-top:12px">
-      <div class="row between">
-        <h2>${esc(s.name)}</h2>
-        <span class="badge ${STATUS_CLASS[snap.status]}">${snap.status}</span>
-      </div>
-      <div class="stats">
-        <div><span>정확도</span><strong>${pct(s.accuracy)}</strong></div>
-        <div><span>쌓인 오답</span><strong>${s.wrongPending || 0}</strong></div>
-        <div><span>최근 학습</span><strong>${s.lastStudied ? prettyDate(s.lastStudied) : '-'}</strong></div>
-        <div><span>남은 예상 시간</span><strong>${needText(snap)}</strong></div>
-        <div><span>시험까지</span><strong>${snap.daysLeft != null ? `D-${snap.daysLeft}` : '-'}</strong></div>
-        <div><span>가장 부족한 단계</span><strong>${snap.weakest}</strong></div>
-      </div>
-      <h3>지금 이렇게 공부하세요</h3>
-      <ul class="tips">${tips}</ul>
-    </div>
-
-    <div class="card">
-      <h2>현재 상태 진단</h2>
-      <p class="sub">이해도와 암기 상태는 복습 카드 결과와 문제 정답률로 자동으로 매겨져요. 따로 고치지 않아도 돼요. 직접 바꾸면 2주 동안은 바꾼 값을 써요.</p>
-      <div class="row">
-        ${rating(s, 'concept', '개념 이해도')}
-        ${rating(s, 'memory', '암기 상태')}
-        ${rating(s, 'importance', '중요도')}
-        <div><label>현재 학습 단계</label><select data-action="subj-field" data-id="${s.id}" data-field="stage">${options(STAGES, s.stage)}</select></div>
-      </div>
-      <div class="row">
-        <div><label>쌓인 오답 수</label><input type="number" min="0" data-action="subj-field" data-id="${s.id}" data-field="wrongPending" value="${s.wrongPending || 0}"></div>
-        <div><label>이 과목 시험일 (비우면 전체 시험일)</label><input type="date" data-action="subj-field" data-id="${s.id}" data-field="examDate" value="${esc(s.examDate)}"></div>
-      </div>
-      <label>취약 개념 메모</label>
-      <textarea data-action="subj-field" data-id="${s.id}" data-field="weakNotes" placeholder="${s.name.includes('수학') ? '예: 원의 접선, 점대칭, 부등식 영역' : '예: 어법 변형, 시대 흐름'}">${esc(s.weakNotes)}</textarea>
-    </div>
-
-    <div class="card">
-      <h2>교재와 범위</h2>
-      <ul class="list">${mats.map(materialRow).join('')}</ul>
-      <h3>교재 추가</h3>
-      ${materialForm(newMat)}
-    </div>`;
+function dataUrlToBlob(dataUrl) {
+  const [head, body] = dataUrl.split(',');
+  const bin = atob(body);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new Blob([bytes], { type: head.slice(5).split(';')[0] });
 }
 
-function renderSubjects() {
-  if (ui.subjectId) {
-    const s = subjectById(ui.subjectId);
-    if (s) return subjectDetail(s);
+// 우리 집 전용 AI 서버(worker/)로 보낸다
+async function askEndpoint(prompt, jpegs) {
+  const images = await Promise.all(jpegs.map(async (d) => ({ media_type: 'image/jpeg', data: await blobToBase64(dataUrlToBlob(d)) })));
+  let res;
+  try {
+    res = await fetch(state.settings.aiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Family-Code': state.settings.aiCode },
+      body: JSON.stringify({ prompt, images }),
+    });
+  } catch (e) {
+    throw { code: 'network' };
   }
+  if (res.status === 401) throw { code: 'bad_code' };
+  if (!res.ok) throw { code: 'upstream_error' };
+  const body = await res.json();
+  const text = String(body.text || '');
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start < 0 || end < start) throw { code: 'invalid_json' };
+  try {
+    return JSON.parse(text.slice(start, end + 1));
+  } catch (e) {
+    throw { code: 'invalid_json' };
+  }
+}
+
+async function runPhotos(files) {
+  const list = Array.from(files).slice(0, ai.maxImages);
+  if (!list.length || !aiReady()) return;
+  ai.busy = true;
+  ai.error = '';
+  ai.report = null;
+  render();
+  try {
+    const jpegs = await Promise.all(list.map((f) => compressImage(f)));
+    const prompt = photoPrompt(list.length);
+    const data = ai.sample ? await ai.sample.json(prompt, { images: list }) : await askEndpoint(prompt, jpegs);
+    const items = data && Array.isArray(data.items) ? data.items : [];
+    ai.undo = JSON.stringify(state);
+    ai.report = applyPhotoItems(items, jpegs);
+    if (!ai.report.length) {
+      ai.undo = null;
+      ai.error = '사진에서 정리할 내용을 찾지 못했어요. 글자와 쪽 번호가 잘 보이게 다시 찍어 주세요.';
+    } else {
+      await save();
+    }
+  } catch (e) {
+    ai.error = AI_ERRORS[e && e.code] || '사진을 정리하지 못했어요. 잠시 뒤에 다시 올려 주세요.';
+    if (e && ['not_granted', 'sampling_disabled', 'images_unavailable', 'capability_disabled'].includes(e.code)) ai.sample = null;
+  }
+  ai.busy = false;
+  render();
+}
+
+function subjectByName(name) {
+  return state.subjects.find((s) => s.name === name);
+}
+
+// 책 이름이 조금 달라도 같은 책으로 찾는다 (공백·괄호 무시, 앞부분 일치)
+function findBook(subject, name) {
+  if (!name) return null;
+  const norm = (x) => String(x).replace(/\(.*?\)|\s/g, '').toLowerCase();
+  const n = norm(name);
+  const mats = state.materials.filter((m) => m.subjectId === subject.id && !m.archived);
+  return mats.find((m) => norm(m.name) === n) || mats.find((m) => norm(m.name).includes(n) || n.includes(norm(m.name))) || null;
+}
+
+function pageMaterial(subjectId) {
+  return state.materials.find((m) => m.subjectId === subjectId && !m.archived && m.unit === '쪽' && ['교과서', '암기'].includes(m.kind));
+}
+
+function guessKind(name) {
+  if (/교과서|ppt|빈칸|단권화/i.test(name)) return /교과서/.test(name) && !/빈칸|암기/.test(name) ? '교과서' : '암기';
+  if (/단어|워드|voca/i.test(name)) return '단어';
+  if (/기출|족보/.test(name)) return '기출';
+  if (/모의/.test(name)) return '모의고사';
+  if (/지문/.test(name)) return '지문';
+  return '문제집';
+}
+
+const DEFAULT_TOTAL = { 문제: 500, 쪽: 150, 회: 5, Day: 40, 단원: 6, 지문: 20 };
+const DEFAULT_SPEED = { 문제집: 3, 오답: 5, 기출: 50, 교과서: 5, 암기: 4, 단어: 20, 모의고사: 80, 지문: 20, 숙제: 1.5 };
+
+function addBook(subject, name, unit, total) {
+  const kind = guessKind(name);
+  const u = unit || (['교과서', '암기'].includes(kind) ? '쪽' : kind === '기출' || kind === '모의고사' ? '회' : kind === '단어' ? 'Day' : '문제');
+  const m = {
+    id: uid(), subjectId: subject.id, name, kind, unit: u, mode: 'range',
+    total: total || DEFAULT_TOTAL[u] || 100, approxTotal: !total, done: 0, startDone: 0, weekly: 0,
+    minPerUnit: DEFAULT_SPEED[kind] || 3, activeBeforeExam: kind === '기출' ? 21 : 0,
+    nextRange: '', accuracy: null, archived: false, created: today(),
+  };
+  state.materials.push(m);
+  return m;
+}
+
+function applyPhotoItems(items, jpegs) {
   const t = today();
-  const cards = state.subjects.map((s) => {
-    const snap = subjectSnapshot(state, s, t);
+  const lines = [];
+  const plan = state.plans[t];
+  items.forEach((x) => {
+    if (!x || typeof x !== 'object') return;
+    const s = subjectByName(x.subject);
+    if (x.type === 'lesson' && s) {
+      const label = [x.topic, x.pages].filter(Boolean).join(' ');
+      const cards = (Array.isArray(x.cards) ? x.cards : []).filter((c) => c && c.q).slice(0, 3);
+      (cards.length ? cards : [{ q: '', a: '' }]).forEach((c) => {
+        state.logs.push({ id: uid(), created: Date.now(), date: t, subject: s.name, kind: '수업', text: label, q: String(c.q || ''), a: String(c.a || ''), step: 0, due: addDays(t, LOG_INTERVALS[0]), history: [] });
+      });
+      const m = pageMaterial(s.id);
+      const end = Number(x.endPage);
+      if (m && end > 0) {
+        m.done = Math.max(m.done || 0, end);
+        m.nextRange = `p.${end + 1}`;
+        if (m.total && m.done > m.total) m.total = m.done;
+      }
+      s.lastStudied = t;
+      lines.push(`${s.name} · ${label || '오늘 배운 곳'} → 복습 카드 ${Math.max(1, cards.length)}장`);
+    } else if (x.type === 'solved' && s) {
+      const solved = Math.max(0, Math.round(Number(x.solved) || 0));
+      if (!solved) return;
+      const wrong = x.wrong == null ? null : Math.max(0, Math.min(solved, Math.round(Number(x.wrong) || 0)));
+      const m = findBook(s, x.book) || addBook(s, String(x.book || `${s.name} 문제집`), '문제', null);
+      const task = plan && plan.tasks.find((k) => k.materialId === m.id && k.status === 'todo');
+      if (task) {
+        completeTask(task, { amount: solved, minutes: Math.round(solved * m.minPerUnit), wrong, auto: true });
+      } else {
+        recordSession({ materialId: m.id, subjectId: s.id, amount: solved, minutes: Math.round(solved * m.minPerUnit), wrong, auto: true });
+      }
+      if (Number(x.last) > 0) m.nextRange = `${Math.round(Number(x.last)) + 1}번`;
+      lines.push(`${s.name} · ${m.name} ${solved}문제${wrong != null ? ` (틀림 ${wrong})` : ''} → 진도에 반영`);
+    } else if (x.type === 'wrong' && s) {
+      const img = jpegs[(Number(x.photo) || 1) - 1] || '';
+      state.wrongs.push({ id: uid(), date: t, subject: s.name, unit: String(x.unit || ''), trap: '', note: String(x.why || ''), img, step: 0, due: addDays(t, WRONG_INTERVALS[0]), history: [] });
+      lines.push(`${s.name} · 틀린 문제 → 2일 뒤 다시 풀기로 저장`);
+    } else if (x.type === 'exam') {
+      const exams = Array.isArray(x.exams) ? x.exams : [];
+      const dates = [];
+      exams.forEach((e) => {
+        const es = subjectByName(e && e.subject);
+        if (!es) return;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(String(e.date))) {
+          es.examDate = e.date;
+          dates.push(e.date);
+        }
+        if (e.range) es.examRange = String(e.range);
+        const m = pageMaterial(es.id);
+        if (m && Number(e.endPage) > 0) {
+          m.total = Number(e.endPage);
+          m.approxTotal = false;
+        }
+        lines.push(`시험 · ${es.name}${es.examDate ? ` ${prettyDate(es.examDate)}` : ''}${e.range ? ` · ${e.range}` : ''}`);
+      });
+      if (dates.length) state.settings.examDate = dates.sort()[0];
+    } else if (x.type === 'book' && s && x.book) {
+      const total = Number(x.total) > 0 ? Math.round(Number(x.total)) : null;
+      let m = findBook(s, x.book);
+      if (m) {
+        if (total) {
+          m.total = total;
+          m.approxTotal = false;
+        }
+      } else {
+        m = addBook(s, String(x.book), x.unit === '쪽' ? '쪽' : x.unit === '문제' ? '문제' : null, total);
+      }
+      lines.push(`${s.name} · ${m.name}${total ? ` 전체 ${total}${m.unit}` : ''} → 내 책에 반영`);
+    }
+  });
+  if (lines.length) refreshUntouchedPlan();
+  return lines;
+}
+
+// 어느 화면에서나 같은 사진 버튼
+function photoCard(compact) {
+  if (ai.busy) return '<section class="card photo-card"><p class="ai-busy">사진을 읽고 정리하는 중이에요… (30초쯤 걸려요)</p></section>';
+  if (ai.report) {
     return `
-      <button class="card subject-card" data-action="open-subject" data-id="${s.id}">
-        <div class="row between"><strong>${esc(s.name)}</strong><span class="badge ${STATUS_CLASS[snap.status]}">${snap.status}</span></div>
-        <div class="mini">
-          <span>개념 ${s.concept}/5</span><span>암기 ${s.memory}/5</span><span>정확도 ${pct(s.accuracy)}</span><span>오답 ${s.wrongPending || 0}</span>
+      <section class="card photo-card done">
+        <h2>이렇게 정리했어요</h2>
+        <ul class="report">${ai.report.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>
+        <div class="recall-buttons">
+          <button class="btn big primary" data-action="ai-ok">좋아요</button>
+          <button class="btn big" data-action="ai-undo">되돌리기</button>
         </div>
-        <div class="meta">단계: ${esc(s.stage)} · 부족: ${snap.weakest} · 남은 ${needText(snap)}</div>
-      </button>`;
+      </section>`;
+  }
+  if (!aiReady()) {
+    return compact ? '' : `
+      <section class="card photo-card off">
+        <strong>사진으로 자동 기록</strong>
+        <p class="sub" style="margin:4px 0 0">사진을 읽으려면 AI 연결이 필요해요. Claude 안에서 열거나, 더보기 → 설정 → AI 연결을 해 주세요.</p>
+      </section>`;
+  }
+  return `
+    <section class="card photo-card">
+      <label class="btn big primary wide photo-pick">사진 올리기<input type="file" accept="image/*" multiple hidden data-action="ai-photos"></label>
+      <p class="sub" style="margin:8px 0 0">${compact ? '책 표지나 목차, 시험 공지를 찍어 올리면 알아서 채워져요.' : '오늘 배운 곳 · 채점한 문제 · 틀린 문제 · 시험 공지, 뭐든 찍어서 한 번에 올리세요. 알아서 나눠서 기록해요.'}</p>
+      ${ai.error ? `<p class="warn-text" style="margin:8px 0 0">${esc(ai.error)}</p>` : ''}
+    </section>`;
+}
+
+// ---------- 처음 한 번: 버튼만 눌러서 끝내기 ----------
+
+const PROGRESS_CHOICES = [[0, '아직 안 함'], [0.2, '조금 했어요'], [0.5, '절반쯤'], [0.85, '거의 다']];
+const WEEKDAY_CHOICES = [[60, '1시간'], [120, '2시간'], [180, '3시간'], [240, '4시간 이상']];
+const WEEKEND_CHOICES = [[120, '2시간'], [240, '4시간'], [360, '6시간'], [480, '8시간 이상']];
+
+function chips(name, choices, selected) {
+  return `<div class="chips">${choices.map(([v, label]) => `
+    <label class="chip"><input type="radio" name="${name}" value="${v}"${String(v) === String(selected) ? ' checked' : ''}><span>${esc(label)}</span></label>`).join('')}</div>`;
+}
+
+function nearest(choices, value) {
+  return choices.reduce((best, [v]) => (Math.abs(v - value) < Math.abs(best - value) ? v : best), choices[0][0]);
+}
+
+function renderSetup() {
+  const wd = state.settings.weekdayMinutes;
+  const groups = state.subjects.map((s) => {
+    const mats = state.materials.filter((m) => m.subjectId === s.id);
+    const books = mats.map((m) => {
+      const ratio = m.mode === 'weekly' || !m.total ? 0 : (m.done || 0) / m.total;
+      return `
+        <div class="setup-book">
+          <label class="book-toggle"><input type="checkbox" name="use-${m.id}"${m.archived ? '' : ' checked'}><span>${esc(m.name)}</span></label>
+          ${m.mode === 'weekly'
+    ? `<span class="meta">매주 ${m.weekly}${esc(m.unit)}</span>`
+    : chips(`prog-${m.id}`, PROGRESS_CHOICES, nearest(PROGRESS_CHOICES, ratio))}
+        </div>`;
+    }).join('');
+    return `
+      <fieldset class="setup-group">
+        <legend>${esc(s.name)}</legend>
+        ${books}
+        <input class="add-book" name="add-${s.id}" placeholder="+ 다른 책 이름 (있으면)">
+      </fieldset>`;
   }).join('');
   return `
-    <p class="sub">과목을 눌러 상태를 진단하고 교재 분량을 입력하세요. 총량을 넣은 교재부터 계획이 정확해져요.</p>
-    <div class="grid2">${cards}</div>`;
+    <section class="card setup">
+      <h2>처음 한 번만 골라 주세요</h2>
+      <p class="sub">숫자를 쓸 필요는 없어요. 버튼만 고르면 시험까지의 공부 계획을 바로 만들어요. 쓰지 않는 책은 체크를 끄세요.</p>
+      <form data-form="setup">
+        <fieldset class="setup-group">
+          <legend>다음 시험</legend>
+          <div class="setup-row"><input type="date" name="examDate" value="${esc(state.settings.examDate)}"><span class="meta">시험 첫날. 과목별 날짜는 나중에 시간표 사진으로 넣어도 돼요.</span></div>
+        </fieldset>
+        <fieldset class="setup-group">
+          <legend>학교·학원 끝나고 공부할 수 있는 시간</legend>
+          <div class="setup-row"><span class="setup-label">평일</span>${chips('weekday', WEEKDAY_CHOICES, nearest(WEEKDAY_CHOICES, wd[1]))}</div>
+          <div class="setup-row"><span class="setup-label">주말</span>${chips('weekend', WEEKEND_CHOICES, nearest(WEEKEND_CHOICES, wd[0]))}</div>
+        </fieldset>
+        <p class="sub">공부하는 책과, 지금 어디까지 했는지 골라 주세요.</p>
+        ${groups}
+        <button class="btn big primary wide" type="submit">계획 만들기</button>
+      </form>
+    </section>`;
 }
 
-// ---------- 화면: 시험 ----------
+// ---------- 오늘 ----------
 
-function renderExam() {
+function renderToday() {
+  if (!state.setupDone || ui.setup) return renderSetup();
+  const t = today();
+  const plan = state.plans[t];
+  const planned = plan.tasks.reduce((a, x) => a + x.minutes, 0);
+  const doneCount = plan.tasks.filter((x) => x.status !== 'todo').length;
+  const todo = plan.tasks.filter((x) => x.status === 'todo');
+  const rate = plan.tasks.length ? Math.round((doneCount / plan.tasks.length) * 100) : 0;
+  const firstTodo = todo[0];
+
+  return `
+    ${glanceCard()}
+    ${photoCard(false)}
+    ${recallSection()}
+
+    <section class="card plan-card">
+      <div class="plan-top">
+        <h2>오늘 할 공부</h2>
+        <span class="meta">${doneCount}/${plan.tasks.length} · 약 ${hm(planned)}</span>
+      </div>
+      <div class="progress"><div style="width:${rate}%"></div></div>
+      <p class="sub">다 하면 그냥 두세요. 하루가 지나면 다 한 것으로 자동 기록해요. <strong>못 한 것만</strong> 알려 주세요. 채점한 쪽을 사진으로 올리면 맞은 개수까지 알아서 기록돼요.</p>
+      <ol class="todo">${plan.tasks.map((x, i) => taskRow(x, i, x === firstTodo)).join('') || '<li class="empty">오늘 배정할 공부가 없어요.</li>'}</ol>
+    </section>
+
+    <details class="card fold">
+      <summary>오늘 시간이 부족해요</summary>
+      <form data-form="replan" class="inline-form">
+        <label>지금부터 쓸 수 있는 시간</label>
+        ${chips('minutes', [[30, '30분'], [60, '1시간'], [90, '1시간 30분'], [120, '2시간'], [180, '3시간']], 60)}
+        <button class="btn primary" type="submit" style="margin-top:8px">남은 시간에 맞춰 다시 짜기</button>
+      </form>
+    </details>`;
+}
+
+// ---------- 계획: 과외 선생님이 짜 준 이번 시험 계획 ----------
+
+function phasesFor(examDate) {
+  const t = today();
+  const left = diffDays(t, examDate);
+  const at = (n) => addDays(examDate, -n);
+  const phases = [
+    { name: '1단계 · 진도 끝내기', from: t, to: at(22), desc: '교과서 개념을 끝내고, 문제집을 한 번 다 풀어요. 틀린 문제는 사진으로 올려 두세요.' },
+    { name: '2단계 · 기출과 약점', from: at(21), to: at(8), desc: '족보닷컴 군포고 기출을 풀고, 자주 틀리는 유형만 다시 봐요. 영어는 시험 범위 지문 전체를 분석해요.' },
+    { name: '3단계 · 마무리', from: at(7), to: at(1), desc: '새 문제집은 시작하지 않아요. 오답과 암기만 반복하고, 시험 시간에 맞춰 기출을 한 번 더 풀어요.' },
+  ];
+  return phases.filter((p) => p.to >= p.from || p === phases[phases.length - 1]).map((p) => ({
+    ...p,
+    now: t >= p.from && t <= p.to,
+    past: t > p.to,
+    from: p.from < t ? t : p.from,
+  })).filter((p) => !p.past || left < 0);
+}
+
+// 이번 주(7일)에 이 책을 얼마나 하면 되는지
+function weeklyGoal(m, subject) {
+  const t = today();
+  if (m.mode === 'weekly') return { text: `매주 ${m.weekly}${m.unit}` };
+  const rem = remaining(state, m, t);
+  if (!rem) return { text: '다 했어요', done: true };
+  const left = daysLeftFor(state, subject, t);
+  const days = left == null ? 28 : deadlineDays(m, left);
+  const perWeek = Math.min(rem, Math.ceil((rem / days) * 7));
+  const from = m.done || 0;
+  return { text: `${perWeek}${m.unit}`, sub: m.approxTotal ? '' : `${from} → ${from + perWeek} / ${m.total}` };
+}
+
+// 과목별 선생님 한마디: 기록에서 보이는 가장 중요한 한 가지
+function teacherNote(s) {
+  const t = today();
+  const mats = state.materials.filter((m) => m.subjectId === s.id && !m.archived);
+  if (s.accuracy != null && s.accuracy < 0.7) return `정답률이 ${pct(s.accuracy)}예요. 새 문제를 늘리기보다 틀린 문제를 다시 푸는 게 먼저예요.`;
+  if ((s.wrongPending || 0) >= 15) return `다시 볼 틀린 문제가 ${s.wrongPending}개 쌓였어요. 이번 주는 오답부터 줄여요.`;
+  const problemBooks = mats.filter((m) => ['문제집', '숙제'].includes(m.kind) && m.mode === 'range');
+  if (problemBooks.length && problemBooks.every((m) => remaining(state, m, t) === 0)) return '문제집을 다 풀었어요. 이제 틀린 유형과 기출 위주로 바꿔요.';
+  const since = s.lastStudied ? diffDays(s.lastStudied, t) : null;
+  if (since != null && since >= 5) return `${since}일째 안 봤어요. 이번 주에 꼭 한 번은 봐요.`;
+  return guideFor(s.name) || '';
+}
+
+function renderPlan() {
   const t = today();
   const exam = state.settings.examDate;
   const left = exam ? diffDays(t, exam) : null;
-  const factor = completionFactor(state, t);
+
+  const examRows = state.subjects.map((s) => `
+    <div class="exam-row">
+      <span class="exam-subject">${esc(s.name)}</span>
+      <input type="date" value="${esc(s.examDate || exam || '')}" data-action="exam-date" data-id="${s.id}" aria-label="${esc(s.name)} 시험일">
+      ${s.examRange ? `<span class="meta exam-range">${esc(s.examRange)}</span>` : ''}
+    </div>`).join('');
+
+  const phases = exam && left >= 0 ? phasesFor(exam).map((p) => `
+    <li class="phase-item${p.now ? ' now' : ''}">
+      <div class="phase-name">${esc(p.name)}${p.now ? ' <span class="tag">지금</span>' : ''}</div>
+      <div class="meta">${prettyDate(p.from)} ~ ${prettyDate(p.to)}</div>
+      <div>${esc(p.desc)}</div>
+    </li>`).join('') : '';
+
+  const subjects = state.subjects.map((s) => {
+    const mats = state.materials.filter((m) => m.subjectId === s.id && !m.archived && isActive(state, m, t));
+    if (!mats.length) return '';
+    const goals = mats.map((m) => {
+      const g = weeklyGoal(m, s);
+      return `<li><span>${esc(m.name)}</span><strong>${esc(g.text)}</strong>${g.sub ? `<span class="meta">${esc(g.sub)}</span>` : ''}</li>`;
+    }).join('');
+    const note = teacherNote(s);
+    const snap = subjectSnapshot(state, s, t);
+    return `
+      <div class="subject-plan">
+        <div class="subject-plan-head"><strong>${esc(s.name)}</strong>${snap.status !== '안정' ? `<span class="badge ${snap.status === '위험' ? 'risk' : 'caution'}">${snap.status === '위험' ? '신경 쓰기' : '조금 주의'}</span>` : ''}</div>
+        <ul class="goals">${goals}</ul>
+        ${note ? `<p class="teacher-note">${esc(note)}</p>` : ''}
+      </div>`;
+  }).join('');
+
+  const totalNeed = state.subjects.reduce((a, s) => a + subjectSnapshot(state, s, t).need, 0);
   let avail = 0;
   if (left != null && left > 0) {
-    for (let i = 0; i < left; i++) {
-      avail += defaultAvailable(state, addDays(t, i)) * factor;
-    }
+    const f = completionFactor(state, t);
+    for (let i = 0; i < left; i++) avail += defaultAvailable(state, addDays(t, i)) * f;
   }
-  const rows = state.subjects.map((s) => ({ s, snap: subjectSnapshot(state, s, t) }));
-  const order = { 위험: 0, 주의: 1, 안정: 2 };
-  rows.sort((a, b) => order[a.snap.status] - order[b.snap.status]);
-  const totalNeed = rows.reduce((a, r) => a + r.snap.need, 0);
-
-  const table = rows.map(({ s, snap }) => `
-    <tr>
-      <td><button class="linklike" data-action="open-subject-tab" data-id="${s.id}">${esc(s.name)}</button></td>
-      <td><span class="badge ${STATUS_CLASS[snap.status]}">${snap.status}</span></td>
-      <td>${snap.progress == null ? '-' : `${pct(snap.progress)}${snap.targetProgress != null ? ` <span class="meta">/ 목표 ${pct(snap.targetProgress)}</span>` : ''}`}</td>
-      <td>${needText(snap)}</td>
-      <td>${snap.recentDaily ? hm(snap.recentDaily) : '<span class="meta">기록 없음</span>'}</td>
-      <td>${snap.daysLeft != null ? `D-${snap.daysLeft}` : '-'}</td>
-    </tr>`).join('');
+  const enough = left != null && left > 0
+    ? (totalNeed <= avail
+      ? `<p class="good-text">지금 계획대로 하면 시험 전에 다 끝낼 수 있어요. (남은 공부 약 ${hm(totalNeed)}, 쓸 수 있는 시간 약 ${hm(avail)})</p>`
+      : `<p class="warn-text">시간이 약 ${hm(totalNeed - avail)} 모자라요. 매일 계획은 중요한 과목과 약한 부분부터 채워요.</p>`)
+    : '';
 
   return `
-    ${examPhotoCard()}
-    <div class="card">
-      <h2>시험 일정</h2>
-      <form data-form="exam" class="row">
-        <div><label>시험 첫날</label><input type="date" name="examDate" value="${esc(exam)}"></div>
-        <div style="align-self:end"><button class="btn primary" type="submit">저장</button></div>
-      </form>
-      <p class="sub" style="margin-top:8px">과목별로 시험일이 다르면 과목 탭에서 따로 넣을 수 있어요. 시험 범위가 공지되면 각 교재의 총량을 범위에 맞게 고쳐 주세요.</p>
-    </div>
-    ${left != null && left >= 0 ? `
-    <div class="card">
-      <div class="row between">
-        <h2>D-${left || 'Day'}</h2>
-        <div class="rate"><strong>${hm(totalNeed)}</strong><span>남은 예상 학습량</span></div>
-      </div>
-      <p class="sub">시험 전까지 쓸 수 있는 시간(최근 수행률 반영): <strong>${hm(avail)}</strong>${totalNeed > avail ? ' · <span class="warn-text">시간이 부족해요. 위험 과목부터, 중요도가 낮은 교재는 보관을 고려하세요.</span>' : ''}</p>
-      <div class="table-wrap">
-        <table class="dash">
-          <thead><tr><th>과목</th><th>상태</th><th>진도</th><th>남은 시간</th><th>최근 하루 평균</th><th>시험</th></tr></thead>
-          <tbody>${table}</tbody>
-        </table>
-      </div>
-      <p class="meta">위험: 최근 7일 공부 속도로는 시험 전에 남은 양을 못 끝내거나 정확도가 60% 미만. 주의: 빠듯하거나, 오답·암기가 쌓였거나, 최근 기록이 없어 속도를 아직 모름. "+"는 총량을 입력하지 않은 교재가 더 있다는 뜻이에요.</p>
-    </div>` : ''}`;
+    <section class="card">
+      <h2>${left != null && left >= 0 ? `이번 시험까지 ${left}일` : '이번 시험 공부 계획'}</h2>
+      ${enough}
+      ${phases ? `<ol class="phases">${phases}</ol>` : '<p class="sub">시험 날짜를 넣으면 시험까지 단계별 계획을 보여드려요.</p>'}
+    </section>
+
+    <section class="card">
+      <h2>이번 주 목표</h2>
+      <p class="sub">매일 할 양은 오늘 화면에 알아서 나눠져요. 여기서는 큰 그림만 보세요.</p>
+      ${subjects}
+    </section>
+
+    <section class="card">
+      <h2>시험 날짜</h2>
+      <p class="sub">과목마다 날짜가 다르면 고쳐 주세요. 시험 시간표나 범위 공지를 사진으로 올리면 알아서 채워져요.</p>
+      ${examRows}
+    </section>
+    ${photoCard(true)}`;
 }
 
-// ---------- 화면: 복습·오답 ----------
+// ---------- 내 책 ----------
 
-function renderReview() {
-  const subjectNames = state.subjects.map((s) => s.name);
-  const ws = ui.wrongSubject || subjectNames.find((n) => n.includes('수학')) || subjectNames[0];
-  const traps = trapsFor(ws);
-
-  const counts = {};
-  state.wrongs.filter((w) => w.subject === ws).forEach((w) => { if (w.trap) counts[w.trap] = (counts[w.trap] || 0) + 1; });
-  const maxCount = Math.max(1, ...Object.values(counts));
-  const trapBars = Object.keys(counts).length
-    ? Object.keys(counts).sort((a, b) => counts[b] - counts[a]).map((k) => `
-      <div class="bar"><span class="name">${esc(k)}</span><span class="track"><span class="fill" style="width:${(counts[k] / maxCount) * 100}%"></span></span><span class="num">${counts[k]}</span></div>`).join('')
-    : '<div class="empty">오답을 등록하면 어디서 자주 틀리는지 보여 줘요.</div>';
-
-  const recentLogs = state.logs.slice().sort((a, b) => b.created - a.created).slice(0, 15).map((l) => `
-    <li class="item">
-      <div><span class="tag">${esc(l.subject)}</span>${esc(l.text)}<div class="meta">${prettyDate(l.date)} · ${l.due ? `다음 복습 ${prettyDate(l.due)}` : '복습 완료'}</div></div>
-      <div class="actions"><button class="btn small" data-action="log-del" data-id="${l.id}">삭제</button></div>
-    </li>`).join('') || '<li class="empty">아직 기록이 없어요.</li>';
-
-  const recentDrills = state.drills.slice(-5).reverse().map((d) => `
-    <li class="item"><div><span class="tag">${esc(d.unit)}</span> 조건 ${esc(d.conds)}개 · 숨은 조건: ${esc(d.hidden || '없음')}<div class="meta">${prettyDate(d.date)}</div></div></li>`).join('');
-  const drillsToday = state.drills.filter((d) => d.date === today()).length;
-
+function bookRow(m) {
+  const t = today();
+  const open = ui.openBook === m.id;
+  let bar = '';
+  let line;
+  if (m.mode === 'weekly') {
+    const doneW = m.weekly - remaining(state, m, t);
+    bar = `<div class="progress thin"><div style="width:${m.weekly ? Math.min(100, (doneW / m.weekly) * 100) : 0}%"></div></div>`;
+    line = `이번 주 ${doneW}/${m.weekly}${m.unit}`;
+  } else {
+    const ratio = m.total ? Math.min(1, (m.done || 0) / m.total) : 0;
+    bar = `<div class="progress thin"><div style="width:${ratio * 100}%"></div></div>`;
+    line = `${pct(ratio)}${m.nextRange ? ` · 다음: ${esc(m.nextRange)}` : ''}`;
+  }
+  const controls = open ? `
+    <div class="book-controls">
+      ${m.mode === 'weekly' ? '' : `
+      <div class="meta">지금 어디까지 했어요?</div>
+      <div class="chips">${[[0, '처음'], [0.2, '조금'], [0.5, '절반'], [0.85, '거의 다'], [1, '다 함']].map(([v, l]) => `<button class="chip-btn" data-action="book-progress" data-id="${m.id}" data-v="${v}">${l}</button>`).join('')}</div>
+      <form data-form="book-exact" data-id="${m.id}" class="exact">
+        <label>정확히 알면: 지금까지 <input type="number" name="done" min="0" value="${m.done || 0}"></label>
+        <label>/ 전체 <input type="number" name="total" min="1" value="${m.total || ''}"></label>
+        <span class="meta">${esc(m.unit)}</span>
+        <button class="btn small" type="submit">저장</button>
+      </form>`}
+      <button class="linklike small" data-action="book-remove" data-id="${m.id}">이 책은 안 써요</button>
+    </div>` : '';
   return `
-    <div class="card">
-      <h2>오답 사진 등록</h2>
-      <p class="sub">틀린 문제를 찍어 올리면 2일 → 7일 → 14일 → 30일 후에 아침 목록에 다시 나와요. 또 틀리면 처음부터.</p>
-      <form data-form="wrong">
-        <label>문제 사진</label>
-        <input type="file" name="img" accept="image/*">
-        <div class="row">
-          <div><label>과목</label><select name="subject" data-action="wrong-subject">${options(subjectNames, ws)}</select></div>
-          <div><label>단원</label><input name="unit" placeholder="예: 원의 방정식"></div>
-          <div><label>틀린 원인</label><select name="trap">${options(traps)}</select></div>
-        </div>
-        <label>어디서 꼬였나 (한 줄)</label>
-        <input name="note" placeholder="예: x가 정수라는 조건을 문제 끝에서 놓침">
-        <div style="margin-top:12px"><button class="btn primary" type="submit">오답 등록</button></div>
-      </form>
-    </div>
+    <li class="book${open ? ' open' : ''}">
+      <button class="book-head" data-action="book-open" data-id="${m.id}">
+        <span class="book-name">${esc(m.name)}${m.activeBeforeExam && !isActive(state, m, t) ? ` <span class="meta">· 시험 ${m.activeBeforeExam}일 전부터</span>` : ''}</span>
+        <span class="book-line">${line}</span>
+      </button>
+      ${bar}
+      ${controls}
+    </li>`;
+}
 
-    <div class="grid2">
-      <div class="card">
-        <h2>${esc(ws)} · 어디서 틀리나</h2>
-        <p class="sub">가장 긴 막대부터 대비하세요.</p>
-        ${trapBars}
-      </div>
-      <div class="card">
-        <h2>수학 조건 해석 훈련 (${drillsToday}/3)</h2>
-        <p class="sub">하루 3문제. 풀지 말고 읽기만 하고 칸을 채워요. 군포고식 꼬인 문제 대비.</p>
-        <form data-form="drill">
-          <div class="row">
-            <div><label>단원</label><input name="unit" placeholder="예: 명제" required></div>
-            <div><label>주어진 조건 수</label><input type="number" name="conds" min="0" max="20" required></div>
-          </div>
-          <label>숨은 조건 (정수, 양수, 정의역, "서로 다른" 등)</label>
-          <input name="hidden" placeholder="예: a, b는 자연수 / x ≠ 0">
-          <div style="margin-top:12px"><button class="btn primary" type="submit">기록</button></div>
+function renderBooks() {
+  const groups = state.subjects.map((s) => {
+    const mats = state.materials.filter((m) => m.subjectId === s.id && !m.archived);
+    return `
+      <section class="card">
+        <h2>${esc(s.name)}</h2>
+        <ul class="books">${mats.map(bookRow).join('') || '<li class="empty">책이 없어요.</li>'}</ul>
+        <form data-form="add-book" data-id="${s.id}" class="add-book-form">
+          <input name="name" placeholder="+ 책 추가 (이름만)" aria-label="${esc(s.name)} 책 추가">
+          <button class="btn small" type="submit">추가</button>
         </form>
-        <ul class="list" style="margin-top:8px">${recentDrills}</ul>
-      </div>
-    </div>
+      </section>`;
+  }).join('');
+  const approx = state.materials.some((m) => !m.archived && m.approxTotal);
+  return `
+    <p class="sub">진도는 공부를 끝낸 날과 사진으로 알아서 올라가요. 틀린 데가 있을 때만 책을 눌러 고쳐 주세요.${approx ? ' 전체 분량을 모르는 책은 보통 분량으로 잡아 두었어요. 목차나 맨 뒤쪽을 사진으로 올리면 정확해져요.' : ''}</p>
+    ${photoCard(true)}
+    ${groups}`;
+}
 
-    <div class="card">
-      <h2>진도 직접 기록</h2>
-      <p class="sub">수업에서 나간 범위를 남기면 1·3·7·14·30일 후 아침 목록에 나와요.</p>
+// ---------- 더보기 ----------
+
+function renderMore() {
+  const links = [
+    ['wrongs', '틀린 문제 모음', `다시 풀 문제 ${state.wrongs.filter((w) => w.due).length}개`],
+    ['cards', '복습 카드 모음', `카드 ${state.logs.length}장`],
+    ['projects', '수행평가', '마감 7일 전부터 오늘 할 공부에 자동으로 들어가요.'],
+    ['analysis', '공부 기록', '계획한 시간과 실제 시간, 과목별 기록'],
+    ['settings', '설정', '공부 시간, 기기 동기화, AI 연결, 백업'],
+  ];
+  return links.map(([tab, name, desc]) => `
+    <button class="card subject-card" data-action="go-tab" data-id="${tab}">
+      <strong>${name}</strong>
+      <div class="meta">${desc}</div>
+    </button>`).join('') + `
+    <button class="card subject-card" data-action="redo-setup">
+      <strong>책과 시작 위치 다시 고르기</strong>
+      <div class="meta">처음 화면을 다시 열어요. 지금까지 기록은 그대로예요.</div>
+    </button>`;
+}
+
+function renderWrongs() {
+  const list = state.wrongs.slice().sort((a, b) => (a.due || '9').localeCompare(b.due || '9'));
+  const items = list.map((w) => `
+    <li class="item" style="display:block">
+      <div><span class="tag">${esc(w.subject)}</span>${w.unit ? `<span class="tag">${esc(w.unit)}</span>` : ''}<span class="meta">${w.due ? `다시 풀 날 ${prettyDate(w.due)}` : '다 맞혀서 졸업'}</span></div>
+      ${w.img ? `<img class="wrong-img" src="${w.img}" alt="틀린 문제">` : ''}
+      ${w.note ? `<div class="meta">${esc(w.note)}</div>` : ''}
+    </li>`).join('');
+  return `
+    <section class="card">
+      <h2>틀린 문제 모음</h2>
+      <p class="sub">틀린 문제를 사진으로 올리면 여기에 모이고, 2일 → 7일 → 14일 → 30일 뒤 "오늘 떠올릴 것"에 다시 나와요.</p>
+      ${photoCard(true)}
+      <ul class="list">${items || '<li class="empty">아직 없어요.</li>'}</ul>
+    </section>`;
+}
+
+function renderCards() {
+  const list = state.logs.slice().sort((a, b) => b.created - a.created).slice(0, 60);
+  const items = list.map((l) => `
+    <li class="item">
+      <div><span class="tag">${esc(l.subject)}</span>${esc(l.q || l.text)}<div class="meta">${esc(l.q ? l.text : '')} · ${l.due ? `다음 복습 ${prettyDate(l.due)}` : '외웠어요'}</div></div>
+      <div class="actions"><button class="btn small" data-action="log-del" data-id="${l.id}">지우기</button></div>
+    </li>`).join('');
+  return `
+    <section class="card">
+      <h2>복습 카드 모음</h2>
+      <p class="sub">오늘 배운 곳을 사진으로 올리면 카드가 자동으로 만들어져요. 직접 만들고 싶을 때만 아래에 쓰세요.</p>
       <form data-form="log">
         <div class="row">
-          <div><label>과목</label><select name="subject">${options(subjectNames)}</select></div>
-          <div style="flex:3 1 260px"><label>범위 / 내용</label><input name="text" placeholder="예: 교과서 p.58~61 원과 직선의 위치 관계" required></div>
+          <div><label>과목</label><select name="subject">${options(state.subjects.map((s) => s.name))}</select></div>
+          <div style="flex:3 1 260px"><label>질문</label><input name="q" placeholder="예: 원과 직선이 두 점에서 만나는 조건은?" required></div>
         </div>
-        <label>떠올릴 질문 (선택)</label>
-        <input name="q" placeholder="예: 원과 직선이 두 점에서 만나는 조건은?">
-        <label>답 (선택)</label>
-        <input name="a" placeholder="예: 중심과 직선 사이 거리 < 반지름 (판별식 D > 0)">
-        <div style="margin-top:12px"><button class="btn primary" type="submit">기록</button></div>
+        <label>답</label><input name="a" placeholder="예: 중심과 직선 사이 거리 < 반지름">
+        <div style="margin-top:12px"><button class="btn primary" type="submit">카드 만들기</button></div>
       </form>
-      <h3>최근 복습 목록</h3>
-      <ul class="list">${recentLogs}</ul>
-    </div>`;
+      <ul class="list" style="margin-top:12px">${items || '<li class="empty">아직 없어요.</li>'}</ul>
+    </section>`;
+}
+
+function renderSettings() {
+  const wd = state.settings.weekdayMinutes;
+  return `
+    <section class="card">
+      <h2>공부할 수 있는 시간</h2>
+      <form data-form="time">
+        <div class="setup-row"><span class="setup-label">평일</span>${chips('weekday', WEEKDAY_CHOICES, nearest(WEEKDAY_CHOICES, wd[1]))}</div>
+        <div class="setup-row"><span class="setup-label">주말</span>${chips('weekend', WEEKEND_CHOICES, nearest(WEEKEND_CHOICES, wd[0]))}</div>
+        <button class="btn primary" type="submit">저장</button>
+      </form>
+    </section>
+    ${syncCard()}
+    <section class="card">
+      <h2>AI 연결 (사진 읽기)</h2>
+      <p class="sub">${ai.sample ? 'Claude 안에서 열어서 지금은 Claude가 사진을 읽어요. 따로 설정하지 않아도 돼요.' : 'Claude 밖에서 사진을 읽으려면 우리 집 전용 AI 서버 주소와 가족 코드가 필요해요. 저장소의 AI_SETUP.md 순서대로 만들 수 있어요.'}</p>
+      <form data-form="ai">
+        <label>AI 서버 주소</label><input name="aiUrl" value="${esc(state.settings.aiUrl || '')}" placeholder="https://study-ai.○○○.workers.dev">
+        <label>가족 코드</label><input name="aiCode" value="${esc(state.settings.aiCode || '')}" placeholder="서버를 만들 때 정한 코드">
+        <div style="margin-top:12px"><button class="btn primary" type="submit">저장</button></div>
+      </form>
+    </section>
+    <section class="card">
+      <h2>백업</h2>
+      <div class="row">
+        <button class="btn" data-action="export">백업 파일 받기</button>
+        <label class="btn" style="margin:0;text-align:center;color:var(--text)">백업 불러오기<input type="file" accept="application/json" data-action="import" hidden></label>
+      </div>
+    </section>
+    <section class="card">
+      <h2>처음부터 다시</h2>
+      <p class="sub">모든 기록을 지우고 처음 화면으로 돌아가요.</p>
+      <button class="btn bad" data-action="reset">모두 지우기</button>
+    </section>`;
 }
 
 // ---------- 화면: 수행평가 ----------
@@ -1257,35 +1328,7 @@ function renderAnalysis() {
     </div>`;
 }
 
-// ---------- 화면: 설정 ----------
-
-function renderSettings() {
-  const inputs = WEEKDAYS.map((w, i) => `<div><label>${w}요일</label><input type="number" name="d${i}" min="0" step="10" value="${state.settings.weekdayMinutes[i]}"></div>`).join('');
-  return `
-    ${syncCard()}
-    <div class="card">
-      <h2>요일별 공부 가능 시간 (분)</h2>
-      <p class="sub">학교·학원·이동 시간을 빼고 실제로 책상에 앉을 수 있는 시간이에요. 오늘 계획은 이 값에서 시작해요.</p>
-      <form data-form="weekdays"><div class="row seven">${inputs}</div><div style="margin-top:12px"><button class="btn primary" type="submit">저장</button></div></form>
-    </div>
-    <div class="card">
-      <h2>백업</h2>
-      <p class="sub">온라인 동기화를 쓰지 않으면 기록은 이 기기 브라우저 안에만 있어요. 가끔 백업 파일을 받아 두세요.</p>
-      <div class="row">
-        <button class="btn" data-action="export">백업 파일 받기</button>
-        <label class="btn" style="margin:0;text-align:center;color:var(--text)">백업 불러오기<input type="file" accept="application/json" data-action="import" hidden></label>
-      </div>
-    </div>
-    <div class="card">
-      <h2>홈 화면에 추가</h2>
-      <p class="sub" style="margin:0">Safari 공유 버튼 → "홈 화면에 추가"를 누르면 앱처럼 열려요.</p>
-    </div>
-    <div class="card">
-      <h2>처음부터 다시</h2>
-      <p class="sub">모든 기록을 지우고 기본 교재 목록으로 되돌려요.</p>
-      <button class="btn bad" data-action="reset">초기화</button>
-    </div>`;
-}
+// ---------- 기기 동기화 카드 ----------
 
 function syncCard() {
   const c = window.cloud;
@@ -1323,33 +1366,16 @@ function syncCard() {
 
 // ---------- 렌더링 ----------
 
-function renderMore() {
-  const links = [
-    ['projects', '수행평가', '마감일과 단계 관리. 마감 7일 전부터 오늘 할 공부에 자동으로 들어가요.'],
-    ['analysis', '분석', '계획한 시간과 실제 시간, 과목별 달성률, 교재별 실제 속도'],
-    ['settings', '설정', '요일별 공부 시간, 동기화, 백업'],
-  ];
-  const setup = `
-    <button class="card subject-card" data-action="redo-setup">
-      <strong>교재와 시작 위치 다시 넣기</strong>
-      <div class="meta">처음 설정 화면을 다시 열어요. 지금까지 기록은 그대로예요.</div>
-    </button>`;
-  return links.map(([tab, name, desc]) => `
-    <button class="card subject-card" data-action="go-tab" data-id="${tab}">
-      <strong>${name}</strong>
-      <div class="meta">${desc}</div>
-    </button>`).join('') + setup;
-}
-
 const VIEWS = {
-  today: renderToday, subjects: renderSubjects, exam: renderExam, review: renderReview, more: renderMore,
-  projects: renderProjects, analysis: renderAnalysis, settings: renderSettings,
+  today: renderToday, plan: renderPlan, books: renderBooks, more: renderMore,
+  wrongs: renderWrongs, cards: renderCards, projects: renderProjects, analysis: renderAnalysis, settings: renderSettings,
 };
-const MORE_TABS = ['projects', 'analysis', 'settings'];
+const MORE_TABS = ['wrongs', 'cards', 'projects', 'analysis', 'settings'];
 
 async function render() {
   if (!state) return; // 아직 불러오는 중
   if (ensurePlan()) await save({ touch: false });
+  if (!VIEWS[ui.tab]) ui.tab = 'today';
   document.getElementById('view').innerHTML = VIEWS[ui.tab]();
   const navTab = MORE_TABS.includes(ui.tab) ? 'more' : ui.tab;
   document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('active', b.dataset.tab === navTab));
@@ -1406,6 +1432,7 @@ document.addEventListener('click', async (e) => {
   if (tab) {
     ui.tab = tab.dataset.tab;
     ui.openForm = null;
+    ui.setup = false;
     await render();
     window.scrollTo(0, 0);
     return;
@@ -1417,10 +1444,32 @@ document.addEventListener('click', async (e) => {
   let changed = true;
 
   switch (action) {
+    case 'go-tab':
+      ui.tab = id;
+      changed = false;
+      window.scrollTo(0, 0);
+      break;
+    case 'redo-setup':
+      ui.setup = true;
+      ui.tab = 'today';
+      changed = false;
+      window.scrollTo(0, 0);
+      break;
+    case 'reveal':
+      ui.revealed = id;
+      changed = false;
+      break;
     case 'open-task':
       ui.openForm = ui.openForm === id ? null : id;
       changed = false;
       break;
+    case 'done-task': {
+      const task = findTask(id);
+      if (!task) return;
+      completeTask(task, { amount: task.amount, minutes: task.minutes });
+      toast('잘했어요!');
+      break;
+    }
     case 'miss-task': {
       const task = findTask(id);
       if (!task) return;
@@ -1431,46 +1480,10 @@ document.addEventListener('click', async (e) => {
     case 'half-task': {
       const task = findTask(id);
       if (!task) return;
-      const half = Math.max(1, Math.floor(task.amount / 2));
-      completeTask(task, { amount: half, minutes: Math.round(task.minutes / 2), auto: true });
+      completeTask(task, { amount: Math.max(1, Math.floor(task.amount / 2)), minutes: Math.round(task.minutes / 2), auto: true });
       toast('절반만 기록했어요. 나머지는 다음 계획에 다시 들어가요.');
       break;
     }
-    case 'redo-setup':
-      ui.setup = true;
-      ui.tab = 'today';
-      changed = false;
-      window.scrollTo(0, 0);
-      break;
-    case 'done-task': {
-      const task = findTask(id);
-      if (!task) return;
-      completeTask(task, { amount: task.amount, minutes: task.minutes });
-      toast('잘했어요!');
-      break;
-    }
-    case 'ai-save-lesson':
-      if (!ai.lesson) return;
-      toast(saveLesson());
-      break;
-    case 'ai-save-exam':
-      if (!ai.exam) return;
-      toast(saveExam());
-      break;
-    case 'ai-discard':
-      ai.lesson = null;
-      ai.exam = null;
-      changed = false;
-      break;
-    case 'go-tab':
-      ui.tab = id;
-      changed = false;
-      window.scrollTo(0, 0);
-      break;
-    case 'reveal':
-      ui.revealed = id;
-      changed = false;
-      break;
     case 'log-ok':
     case 'log-miss': {
       const l = state.logs.find((x) => x.id === id);
@@ -1481,41 +1494,45 @@ document.addEventListener('click', async (e) => {
     case 'wrong-ok':
     case 'wrong-miss': {
       const w = state.wrongs.find((x) => x.id === id);
-      if (w) {
-        advance(w, WRONG_INTERVALS, action === 'wrong-ok');
-      }
+      if (w) advance(w, WRONG_INTERVALS, action === 'wrong-ok');
       ui.revealed = null;
-      toast(action === 'wrong-ok' ? '좋아요! 간격을 늘렸어요.' : '2일 후에 다시 나와요.');
+      toast(action === 'wrong-ok' ? '좋아요! 다음엔 더 나중에 나와요.' : '2일 뒤에 다시 나와요.');
       break;
     }
     case 'log-del':
-      if (!confirm('이 복습 기록을 삭제할까요?')) return;
+      if (!confirm('이 카드를 지울까요?')) return;
       state.logs = state.logs.filter((x) => x.id !== id);
       break;
-    case 'open-subject':
-      ui.subjectId = id;
-      ui.editMaterial = null;
-      changed = false;
-      window.scrollTo(0, 0);
-      break;
-    case 'open-subject-tab':
-      ui.tab = 'subjects';
-      ui.subjectId = id;
-      changed = false;
-      window.scrollTo(0, 0);
-      break;
-    case 'subject-back':
-      ui.subjectId = null;
+    case 'ai-ok':
+      ai.report = null;
+      ai.undo = null;
       changed = false;
       break;
-    case 'edit-material':
-      ui.editMaterial = ui.editMaterial === id ? null : id;
+    case 'ai-undo':
+      if (ai.undo) state = Object.assign(freshState(), JSON.parse(ai.undo));
+      ai.report = null;
+      ai.undo = null;
+      toast('사진으로 정리한 내용을 되돌렸어요.');
+      break;
+    case 'book-open':
+      ui.openBook = ui.openBook === id ? null : id;
       changed = false;
       break;
-    case 'archive-material': {
+    case 'book-progress': {
       const m = materialById(id);
-      if (m) m.archived = !m.archived;
-      ui.editMaterial = null;
+      if (!m) return;
+      m.done = Math.round((m.total || 0) * Number(el.dataset.v));
+      ui.openBook = null;
+      refreshUntouchedPlan();
+      toast('진도를 고쳤어요.');
+      break;
+    }
+    case 'book-remove': {
+      const m = materialById(id);
+      if (!m || !confirm(`${m.name}을(를) 목록에서 뺄까요? 기록은 남아요.`)) return;
+      m.archived = true;
+      ui.openBook = null;
+      refreshUntouchedPlan();
       break;
     }
     case 'proj-stage': {
@@ -1527,15 +1544,6 @@ document.addEventListener('click', async (e) => {
       if (!confirm('이 수행평가를 삭제할까요?')) return;
       state.projects = state.projects.filter((x) => x.id !== id);
       break;
-    case 'export': {
-      const blob = new Blob([JSON.stringify(state)], { type: 'application/json' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `공부루틴-백업-${today()}.json`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-      return;
-    }
     case 'cloud-signin':
       if (window.cloud) window.cloud.signIn();
       return;
@@ -1545,9 +1553,19 @@ document.addEventListener('click', async (e) => {
     case 'cloud-remove':
       if (window.cloud && confirm(`${el.dataset.email}을(를) 가족에서 뺄까요?`)) window.cloud.removeMember(el.dataset.email);
       return;
+    case 'export': {
+      const blob = new Blob([JSON.stringify(state)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `공부루틴-백업-${today()}.json`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      return;
+    }
     case 'reset':
       if (!confirm('정말 모든 기록을 지울까요? 먼저 백업 파일을 받아 두는 걸 권해요.')) return;
       state = freshState();
+      ui.tab = 'today';
       break;
     default:
       return;
@@ -1561,15 +1579,19 @@ document.addEventListener('change', async (e) => {
   const action = el.dataset.action;
   if (!action) return;
 
-  if (action === 'subj-field') {
+  if (action === 'ai-photos') {
+    if (el.files && el.files.length) runPhotos(el.files);
+    return;
+  }
+  if (action === 'exam-date') {
     const s = subjectById(el.dataset.id);
     if (!s) return;
-    const f = el.dataset.field;
-    s[f] = ['concept', 'memory', 'importance', 'wrongPending'].includes(f) ? num(el.value) : el.value;
-    if (f === 'concept' || f === 'memory') s.manualUntil = addDays(today(), 14);
-    if (f !== 'weakNotes') refreshUntouchedPlan();
+    s.examDate = el.value;
+    const dates = state.subjects.map((x) => x.examDate).filter(Boolean).sort();
+    if (dates.length) state.settings.examDate = dates[0];
+    refreshUntouchedPlan();
     await save();
-    if (f !== 'weakNotes') await render();
+    renderWhenIdle();
     return;
   }
   if (action === 'proj-field') {
@@ -1584,16 +1606,6 @@ document.addEventListener('change', async (e) => {
     await save();
     return;
   }
-  if (action === 'wrong-subject') {
-    ui.wrongSubject = el.value;
-    await render();
-    return;
-  }
-  if (action === 'ai-lesson' || action === 'ai-exam') {
-    const files = el.files;
-    if (files && files.length) runAi(action === 'ai-lesson' ? 'lesson' : 'exam', files);
-    return;
-  }
   if (action === 'import') {
     const file = el.files[0];
     if (!file) return;
@@ -1601,14 +1613,7 @@ document.addEventListener('change', async (e) => {
       const data = JSON.parse(await file.text());
       if (!data || !Array.isArray(data.logs)) throw new Error('형식 오류');
       if (!confirm('지금 기록을 백업 파일 내용으로 바꿀까요?')) return;
-      if (data.version === 2) {
-        state = Object.assign(freshState(), data);
-      } else {
-        state = freshState();
-        state.logs = data.logs || [];
-        state.wrongs = data.wrongs || [];
-        state.drills = data.drills || [];
-      }
+      state = Object.assign(freshState(), data);
       await save();
       toast('불러왔어요.');
     } catch (err) {
@@ -1628,27 +1633,32 @@ document.addEventListener('submit', async (e) => {
   let msg = '저장했어요.';
 
   if (kind === 'setup') {
-    state.settings.examDate = f.get('examDate') || '';
+    state.settings.examDate = f.get('examDate') || state.settings.examDate || '';
     const wdMin = num(f.get('weekday'), 180);
     const weMin = num(f.get('weekend'), 360);
     state.settings.weekdayMinutes = [weMin, wdMin, wdMin, wdMin, wdMin, wdMin, weMin];
     state.materials.forEach((m) => {
-      if (m.mode === 'weekly') {
-        const w = f.get(`weekly-${m.id}`);
-        if (w !== null && w !== '') m.weekly = num(w);
-        return;
+      m.archived = !f.get(`use-${m.id}`);
+      if (m.mode === 'weekly') return;
+      if (!m.total) {
+        m.total = DEFAULT_TOTAL[m.unit] || 100;
+        m.approxTotal = true;
       }
-      const total = f.get(`total-${m.id}`);
-      const done = f.get(`done-${m.id}`);
-      if (total !== null) m.total = total === '' ? null : num(total);
-      if (done !== null) m.done = done === '' ? 0 : num(done);
-      m.created = t;
+      const prog = f.get(`prog-${m.id}`);
+      if (prog !== null) m.done = Math.round(m.total * num(prog));
       m.startDone = m.done || 0;
+      m.created = t;
+    });
+    state.subjects.forEach((s) => {
+      const name = (f.get(`add-${s.id}`) || '').trim();
+      if (name) addBook(s, name, null, null);
     });
     state.setupDone = true;
     ui.setup = false;
     delete state.plans[t];
-    msg = '계획을 만들었어요.';
+    ui.tab = 'plan';
+    msg = '계획을 만들었어요. 이번 시험은 이렇게 공부하면 돼요.';
+    window.scrollTo(0, 0);
   } else if (kind === 'task') {
     const task = findTask(form.dataset.id);
     if (!task) return;
@@ -1662,90 +1672,53 @@ document.addEventListener('submit', async (e) => {
     });
     ui.openForm = null;
   } else if (kind === 'replan') {
-    replan(num(f.get('minutes')), f.get('condition'));
-    msg = '남은 시간에 맞춰 다시 계획했어요.';
-  } else if (kind === 'extra') {
-    const m = materialById(f.get('materialId'));
+    replan(num(f.get('minutes'), 60), state.plans[t].condition || '보통');
+    msg = '남은 시간에 맞춰 다시 짰어요.';
+  } else if (kind === 'book-exact') {
+    const m = materialById(form.dataset.id);
     if (!m) return;
-    const wrongRaw = f.get('wrong');
-    msg = recordSession({
-      materialId: m.id, subjectId: m.subjectId, amount: num(f.get('amount')), minutes: num(f.get('minutes')),
-      wrong: wrongRaw === '' ? null : num(wrongRaw),
-    }).msg;
-  } else if (kind === 'material') {
-    const id = form.dataset.id;
-    const totalRaw = f.get('total');
-    const data = {
-      name: f.get('name').trim(),
-      kind: f.get('kind'),
-      unit: f.get('unit').trim(),
-      mode: f.get('mode'),
-      total: totalRaw === '' ? null : num(totalRaw),
-      done: num(f.get('done')),
-      weekly: num(f.get('weekly')),
-      minPerUnit: Math.max(0.1, num(f.get('minPerUnit'), 1)),
-      activeBeforeExam: num(f.get('activeBeforeExam')),
-      nextRange: f.get('nextRange').trim(),
-    };
-    if (id) {
-      Object.assign(materialById(id), data);
-    } else {
-      state.materials.push(Object.assign({ id: uid(), subjectId: ui.subjectId, accuracy: null, archived: false, created: t }, data));
-      msg = '교재를 추가했어요.';
+    const total = num(f.get('total'), 0);
+    if (total > 0) {
+      m.total = total;
+      m.approxTotal = false;
     }
-    ui.editMaterial = null;
-  } else if (kind === 'exam') {
-    state.settings.examDate = f.get('examDate');
-  } else if (kind === 'wrong') {
-    const file = f.get('img');
-    let img = '';
-    if (file && file.size) {
-      try {
-        img = await compressImage(file);
-      } catch (err) {
-        toast(err.message);
-        return;
-      }
-    }
-    const note = f.get('note').trim();
-    if (!img && !note) {
-      toast('사진이나 메모 중 하나는 있어야 해요.');
-      return;
-    }
-    const subjectName = f.get('subject');
-    state.wrongs.push({
-      id: uid(), date: t, subject: subjectName, unit: f.get('unit').trim(), trap: f.get('trap'),
-      note, img, step: 0, due: addDays(t, WRONG_INTERVALS[0]), history: [],
-    });
-    msg = '오답을 등록했어요. 2일 후에 다시 나와요.';
-  } else if (kind === 'drill') {
-    state.drills.push({ id: uid(), date: t, unit: f.get('unit').trim(), conds: f.get('conds'), hidden: f.get('hidden').trim() });
-    const n = state.drills.filter((d) => d.date === t).length;
-    msg = n >= 3 ? '오늘 훈련 완료!' : `오늘 ${n}/3`;
+    m.done = Math.max(0, num(f.get('done')));
+    ui.openBook = null;
+    refreshUntouchedPlan();
+  } else if (kind === 'add-book') {
+    const name = (f.get('name') || '').trim();
+    const s = subjectById(form.dataset.id);
+    if (!name || !s) return;
+    addBook(s, name, null, null);
+    refreshUntouchedPlan();
+    msg = `${name}을(를) 추가했어요. 표지나 목차를 사진으로 올리면 분량도 맞춰져요.`;
   } else if (kind === 'log') {
     state.logs.push({
-      id: uid(), created: Date.now(), date: t, subject: f.get('subject'), kind: '수업',
-      text: f.get('text').trim(), q: (f.get('q') || '').trim(), a: (f.get('a') || '').trim(),
-      step: 0, due: addDays(t, LOG_INTERVALS[0]),
+      id: uid(), created: Date.now(), date: t, subject: f.get('subject'), kind: '수업', text: '',
+      q: (f.get('q') || '').trim(), a: (f.get('a') || '').trim(), step: 0, due: addDays(t, LOG_INTERVALS[0]), history: [],
     });
-    msg = '기록했어요. 내일 "오늘 떠올릴 것"에 나와요.';
+    msg = '카드를 만들었어요. 내일 "오늘 떠올릴 것"에 나와요.';
   } else if (kind === 'project') {
     state.projects.push({
       id: uid(), title: f.get('title').trim(), subjectId: f.get('subjectId'), due: f.get('due'), stage: 0,
       versions: {}, question: '', role: '', limits: '', nextQuestion: '', memo: '',
     });
+    refreshUntouchedPlan();
     msg = '추가했어요.';
+  } else if (kind === 'time') {
+    const wdMin = num(f.get('weekday'), 180);
+    const weMin = num(f.get('weekend'), 360);
+    state.settings.weekdayMinutes = [weMin, wdMin, wdMin, wdMin, wdMin, wdMin, weMin];
+    refreshUntouchedPlan();
+  } else if (kind === 'ai') {
+    state.settings.aiUrl = (f.get('aiUrl') || '').trim();
+    state.settings.aiCode = (f.get('aiCode') || '').trim();
   } else if (kind === 'member') {
     if (window.cloud) await window.cloud.addMember(f.get('email'));
     return;
-  } else if (kind === 'weekdays') {
-    state.settings.weekdayMinutes = WEEKDAYS.map((_, i) => num(f.get(`d${i}`)));
-    const plan = state.plans[t];
-    if (plan && plan.tasks.every((x) => x.status === 'todo')) delete state.plans[t];
   } else {
     return;
   }
-  if (['material', 'exam', 'project'].includes(kind)) refreshUntouchedPlan();
   await save();
   toast(msg);
   await render();

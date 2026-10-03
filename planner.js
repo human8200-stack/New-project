@@ -170,6 +170,13 @@ function makeId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
+// 이 책을 며칠 안에 끝내야 하나. 문제집·교과서 1회독은 시험 22일 전까지(1단계),
+// 기출·오답·암기는 시험 전날까지. 시험이 가까우면 이틀은 여유로 남긴다.
+function deadlineDays(m, left) {
+  if (['기출', '오답', '암기', '단어', '지문'].includes(m.kind) || m.activeBeforeExam) return Math.max(1, left - 1);
+  return left > 25 ? left - 22 : Math.max(1, left - 2);
+}
+
 function materialCandidate(state, m, subject, today) {
   const rem = remaining(state, m, today);
   if (rem === 0) return null;
@@ -183,7 +190,7 @@ function materialCandidate(state, m, subject, today) {
     const daysInWeek = 7 - dayIndexMon(today);
     units = Math.ceil(rem / daysInWeek);
   } else if (rem != null && left != null) {
-    units = Math.ceil(rem / Math.max(1, left - 2)); // 시험 전 이틀은 여유로 남긴다
+    units = Math.ceil(rem / deadlineDays(m, left));
   } else {
     units = Math.round(45 / mpu); // 총량이나 시험일을 모르면 45분 분량
   }
@@ -438,7 +445,8 @@ function subjectSnapshot(state, subject, today) {
 
   let status = '안정';
   let ratio = null;
-  if (left != null && need > 0) {
+  // 기록이 3일 미만이면 속도를 아직 모르니 판단하지 않는다
+  if (left != null && need > 0 && spanDays >= 3) {
     if (recent > 0) {
       ratio = need / (recent * Math.max(1, left));
       if (ratio > 1.2) status = '위험';
@@ -508,7 +516,7 @@ if (typeof module !== 'undefined') {
   module.exports = {
     STAGES, KINDS, PROJECT_STAGES, LOG_INTERVALS, WRONG_INTERVALS,
     toKey, addDays, diffDays, weekStart, dayIndexMon,
-    remaining, needMinutes, recallMinutes, KIND_METHOD, completionFactor, effectiveBudget, defaultAvailable,
+    remaining, needMinutes, recallMinutes, deadlineDays, daysLeftFor, guideFor, KIND_METHOD, completionFactor, effectiveBudget, defaultAvailable,
     generatePlan, applySession, subjectSnapshot, recommend, trapsFor, isActive,
   };
 }

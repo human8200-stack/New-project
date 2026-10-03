@@ -1,0 +1,14 @@
+{
+  "name": "study-ai",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0"
+  },
+  "devDependencies": {
+    "wrangler": "^4.147.0"
+  }
+}
