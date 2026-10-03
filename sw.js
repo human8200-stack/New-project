@@ -1,5 +1,5 @@
 // 오프라인에서도 열리도록 앱 파일을 캐시한다 (네트워크 우선)
-const CACHE = 'study-routine-v7';
+const CACHE = 'study-routine-v8';
 const FILES = ['./', 'index.html', 'style.css', 'planner.js', 'seed.js', 'app.js', 'firebase-config.js', 'sync.js', 'manifest.webmanifest', 'icon.svg'];
 
 self.addEventListener('install', (e) => {
