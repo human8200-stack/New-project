@@ -278,24 +278,15 @@ function wrongPendingCandidate(state, subject, today) {
   };
 }
 
+// "오늘 떠올릴 것" 카드(복습·오답 사진)에 쓸 시간. 할 공부 목록에는 따로 넣지 않고 시간만 비워 둔다
+function recallMinutes(state, today) {
+  const logs = state.logs.filter((l) => l.due && l.due <= today).length;
+  const wrongs = state.wrongs.filter((w) => w.due && w.due <= today).length;
+  return Math.min(30, logs * 2 + wrongs * 5);
+}
+
 function fixedTasks(state, today) {
   const tasks = [];
-  const dueLogs = state.logs.filter((l) => l.due && l.due <= today).length;
-  if (dueLogs) {
-    tasks.push({
-      id: makeId(), type: 'review', title: '간격 복습', amount: dueLogs, unit: '개',
-      minutes: Math.min(30, dueLogs * 3), detail: '아침 10분 목록의 진도를 책 덮고 떠올리기',
-      reasons: ['잊어버리기 전에'], status: 'todo',
-    });
-  }
-  const dueWrongs = state.wrongs.filter((w) => w.due && w.due <= today).length;
-  if (dueWrongs) {
-    tasks.push({
-      id: makeId(), type: 'wrongPhoto', title: '오답 사진 다시 풀기', amount: dueWrongs, unit: '문제',
-      minutes: Math.min(30, dueWrongs * 5), detail: '아침 10분 목록의 오답 사진 문제',
-      reasons: ['재출제 날짜'], status: 'todo',
-    });
-  }
   state.projects.forEach((p) => {
     if (p.stage >= PROJECT_STAGES.length - 1 || !p.due) return;
     const left = diffDays(today, p.due);
@@ -316,7 +307,7 @@ function fixedTasks(state, today) {
 function generatePlan(state, today, budget, opts = {}) {
   const exclude = new Set(opts.exclude || []);
   const tasks = [];
-  let left = budget;
+  let left = budget - (opts.skipFixed ? 0 : recallMinutes(state, today));
 
   const fixed = opts.skipFixed ? [] : fixedTasks(state, today);
   for (const t of fixed) {
@@ -371,9 +362,10 @@ function applySession(state, session) {
   if (m) {
     if (m.mode === 'range') m.done = (m.done || 0) + (session.amount || 0);
     if (session.amount > 0 && session.minutes > 0) {
-      const observed = session.minutes / session.amount;
+      // 한 번의 기록으로 너무 크게 흔들리지 않게 이전 값의 0.5~2배로 제한
+      const observed = clamp(session.minutes / session.amount, m.minPerUnit * 0.5, m.minPerUnit * 2);
       const before = m.minPerUnit;
-      m.minPerUnit = Math.round((0.7 * before + 0.3 * observed) * 100) / 100;
+      m.minPerUnit = Math.round((0.7 * before + 0.3 * observed) * 10) / 10;
       out.speed = { before, after: m.minPerUnit, unit: m.unit };
     }
   }
@@ -510,7 +502,7 @@ if (typeof module !== 'undefined') {
   module.exports = {
     STAGES, KINDS, PROJECT_STAGES, LOG_INTERVALS, WRONG_INTERVALS,
     toKey, addDays, diffDays, weekStart, dayIndexMon,
-    remaining, needMinutes, completionFactor, effectiveBudget, defaultAvailable,
+    remaining, needMinutes, recallMinutes, KIND_METHOD, completionFactor, effectiveBudget, defaultAvailable,
     generatePlan, applySession, subjectSnapshot, recommend, trapsFor, isActive,
   };
 }
