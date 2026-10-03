@@ -43,6 +43,7 @@ function freshState() {
   const { subjects, materials } = seedState(today(), uid);
   return {
     version: 2,
+    setupDone: false,
     updatedAt: 0, // 마지막으로 사람이 바꾼 시각. 기기 간 동기화에서 더 최근 쪽이 이긴다
     settings: { examDate: '', weekdayMinutes: [360, 180, 180, 180, 180, 180, 360] },
     subjects,
@@ -68,6 +69,7 @@ async function load() {
   }
   if (saved && saved.version === 2) {
     state = Object.assign(freshState(), saved);
+    if (saved.setupDone === undefined) state.setupDone = (saved.sessions || []).length > 0;
   } else {
     state = freshState();
     if (saved) {
@@ -219,9 +221,26 @@ function compressImage(file) {
 
 // ---------- 계획 ----------
 
+// 지난 날 계획에서 "못 했어요"를 누르지 않은 공부는 다 한 것으로 기록한다 (최근 7일)
+function autoClosePastDays() {
+  const t = today();
+  let closed = 0;
+  Object.keys(state.plans).filter((d) => d < t && d >= addDays(t, -7)).sort().forEach((d) => {
+    state.plans[d].tasks.forEach((task) => {
+      if (task.status !== 'todo' || task.type === 'project') return;
+      completeTask(task, { amount: task.amount, minutes: task.minutes, auto: true, date: d });
+      task.auto = true;
+      closed += 1;
+    });
+  });
+  return closed;
+}
+
 function ensurePlan() {
   const t = today();
-  if (state.plans[t]) return false;
+  if (state.plans[t] || !state.setupDone) return false;
+  autoClosePastDays();
+  autoDiagnose();
   const available = defaultAvailable(state, t);
   const condition = '보통';
   const { minutes, factor } = effectiveBudget(state, t, available, condition);
@@ -262,7 +281,8 @@ function replan(remainingMinutes, condition) {
 function recordSession(data) {
   const session = {
     id: uid(),
-    date: today(),
+    date: data.date || today(),
+    auto: !!data.auto,
     slot: data.slot || currentSlot(),
     type: data.type || 'material',
     materialId: data.materialId || null,
@@ -282,9 +302,9 @@ function recordSession(data) {
   if (data.addReview) {
     const subject = subjectById(session.subjectId);
     state.logs.push({
-      id: uid(), created: Date.now(), date: today(), subject: subject ? subject.name : '',
+      id: uid(), created: Date.now(), date: session.date, subject: subject ? subject.name : '',
       kind: m ? m.kind : '공부', text: (data.reviewText || `${m ? m.name : ''} ${data.note || ''}`).trim(),
-      step: 0, due: addDays(today(), LOG_INTERVALS[0]),
+      step: 0, due: addDays(session.date, LOG_INTERVALS[0]),
     });
   }
 
@@ -295,7 +315,7 @@ function recordSession(data) {
 }
 
 // 할 공부 하나를 끝냈을 때. 교과서·암기·지문은 복습 카드도 자동으로 만든다
-function completeTask(task, { amount, minutes, wrong = null, nextRange = '', advance: advanceStage = true }) {
+function completeTask(task, { amount, minutes, wrong = null, nextRange = '', advance: advanceStage = true, auto = false, date }) {
   if (task.type === 'project') {
     recordSession({ type: 'project', subjectId: task.subjectId, minutes, amount: 0, taskId: task.id });
     task.actual = { amount: null, minutes };
@@ -316,6 +336,8 @@ function completeTask(task, { amount, minutes, wrong = null, nextRange = '', adv
     minutes,
     wrong,
     nextRange,
+    auto,
+    date,
     addReview: !!m && ['교과서', '암기', '지문'].includes(m.kind) && amount > 0,
     reviewText: m ? `${m.name} ${what}` : '',
   });
@@ -429,7 +451,7 @@ function taskRow(task, index, isFirst) {
   const { what, how } = taskLines(task);
   const done = task.status !== 'todo';
   const actual = done && task.actual && task.actual.amount != null && task.actual.amount < task.amount
-    ? ` · ${task.actual.amount}${esc(task.unit)}만 함 (남은 건 다음에 다시 나와요)` : '';
+    ? ` · ${task.actual.amount}${esc(task.unit)}만 함 (남은 건 다음에 다시 나와요)` : task.auto ? ' · 자동 완료' : '';
   const why = isFirst && task.reasons && task.reasons.length ? `<div class="todo-why">먼저 하는 이유: ${esc(task.reasons.slice(0, 2).join(', '))}</div>` : '';
   return `
     <li class="todo-item ${task.status}${isFirst ? ' first' : ''}">
@@ -440,13 +462,18 @@ function taskRow(task, index, isFirst) {
         <div class="todo-title"><span class="todo-num">${index + 1}</span>${esc(task.title)}</div>
         <div class="todo-what">${esc(what)}${task.status === 'skipped' ? ' · 못 함 (다음에 다시 나와요)' : actual}</div>
         ${!done ? `<div class="todo-how">${how ? `${esc(how)} · ` : ''}${hm(task.minutes)}</div>${why}
-        <button class="linklike small" data-action="open-task" data-id="${task.id}">${ui.openForm === task.id ? '닫기' : '계획과 다르게 했어요'}</button>` : ''}
+        <div class="todo-miss">
+          <button class="miss-btn" data-action="miss-task" data-id="${task.id}">못 했어요</button>
+          ${task.type !== 'project' ? `<button class="miss-btn" data-action="half-task" data-id="${task.id}">절반쯤 했어요</button>` : ''}
+          <button class="linklike small" data-action="open-task" data-id="${task.id}">${ui.openForm === task.id ? '닫기' : '직접 입력'}</button>
+        </div>` : ''}
         ${ui.openForm === task.id ? taskForm(task) : ''}
       </div>
     </li>`;
 }
 
 function renderToday() {
+  if (!state.setupDone || ui.setup) return renderSetup();
   const t = today();
   const plan = state.plans[t];
   const planned = plan.tasks.reduce((a, x) => a + x.minutes, 0);
@@ -461,7 +488,9 @@ function renderToday() {
   }).join('');
 
   return `
+    ${glanceCard()}
     ${recallSection()}
+    ${lessonCard()}
 
     <section class="card plan-card">
       <div class="plan-top">
@@ -469,7 +498,7 @@ function renderToday() {
         <span class="meta">${doneCount}/${plan.tasks.length} · 약 ${hm(planned)}</span>
       </div>
       <div class="progress"><div style="width:${rate}%"></div></div>
-      <p class="sub">끝나면 동그라미만 누르세요. 못 한 건 그냥 두면 내일 계획에 자동으로 다시 들어가요.</p>
+      <p class="sub">다 하면 그냥 두셔도 돼요. 하루가 지나면 다 한 것으로 자동 기록해요. <strong>못 한 것만</strong> 알려 주세요.</p>
       <ol class="todo">${plan.tasks.map((x, i) => taskRow(x, i, x === firstTodo)).join('') || '<li class="empty">오늘 배정할 공부가 없어요.</li>'}</ol>
     </section>
 
@@ -496,6 +525,326 @@ function renderToday() {
         <div style="margin-top:12px"><button class="btn primary" type="submit">기록</button></div>
       </form>
     </details>`;
+}
+
+// ---------- 한눈에 보기 ----------
+// 시험까지 남은 날, 전체 진도와 계획상 와 있어야 할 진도, 걱정되는 과목만 보여준다
+
+function overallProgress() {
+  let total = 0;
+  let done = 0;
+  let target = 0;
+  const t = today();
+  state.subjects.forEach((s) => {
+    const snap = subjectSnapshot(state, s, t);
+    if (snap.progress == null) return;
+    const mats = state.materials.filter((m) => m.subjectId === s.id && !m.archived && m.mode === 'range' && m.total && isActive(state, m, t));
+    const w = mats.reduce((a, m) => a + m.total * m.minPerUnit, 0);
+    total += w;
+    done += w * snap.progress;
+    target += w * (snap.targetProgress ?? snap.progress);
+  });
+  if (!total) return null;
+  return { progress: done / total, target: target / total };
+}
+
+function glanceCard() {
+  const t = today();
+  const exam = state.settings.examDate;
+  const left = exam ? diffDays(t, exam) : null;
+  const overall = overallProgress();
+  const worry = state.subjects
+    .map((s) => ({ s, snap: subjectSnapshot(state, s, t) }))
+    .filter((x) => x.snap.status === '위험')
+    .map((x) => x.s.name);
+  const weekStartKey = addDays(t, -6);
+  const week = state.sessions.filter((x) => x.date >= weekStartKey && x.date <= t).reduce((a, x) => a + (x.minutes || 0), 0);
+
+  let pace = '';
+  if (overall) {
+    const gap = Math.round((overall.progress - overall.target) * 100);
+    pace = gap >= 0 ? `<span class="good-text">계획보다 ${gap}% 앞서요</span>` : `<span class="warn-text">계획보다 ${-gap}% 늦어요</span>`;
+  }
+  return `
+    <section class="glance">
+      <div class="glance-item"><span>시험까지</span><strong>${left != null && left >= 0 ? `D-${left || 'Day'}` : '미정'}</strong></div>
+      <div class="glance-item"><span>전체 진도</span><strong>${overall ? pct(overall.progress) : '-'}</strong>${overall ? `<small>${pace}</small>` : ''}</div>
+      <div class="glance-item"><span>최근 7일</span><strong>${hm(week)}</strong></div>
+      ${worry.length ? `<button class="glance-worry" data-action="go-tab" data-id="exam">신경 쓸 과목: ${esc(worry.join(', '))} →</button>` : ''}
+    </section>`;
+}
+
+// ---------- 처음 한 번만: 교재와 시작 위치 ----------
+
+function renderSetup() {
+  const groups = state.subjects.map((s) => {
+    const mats = state.materials.filter((m) => m.subjectId === s.id && !m.archived);
+    const rows = mats.map((m) => {
+      if (m.mode === 'weekly') {
+        return `
+          <div class="setup-row">
+            <div class="setup-name">${esc(m.name)}</div>
+            <div class="setup-inputs"><label>매주<input type="number" min="0" name="weekly-${m.id}" value="${m.weekly || ''}"></label><span>${esc(m.unit)}</span></div>
+          </div>`;
+      }
+      return `
+        <div class="setup-row">
+          <div class="setup-name">${esc(m.name)}${m.activeBeforeExam ? `<span class="meta"> · 시험 ${m.activeBeforeExam}일 전부터</span>` : ''}</div>
+          <div class="setup-inputs">
+            <label>전체<input type="number" min="0" name="total-${m.id}" value="${m.total ?? ''}" placeholder="?"></label>
+            <label>지금까지<input type="number" min="0" name="done-${m.id}" value="${m.done || ''}" placeholder="0"></label>
+            <span>${esc(m.unit)}</span>
+          </div>
+        </div>`;
+    }).join('');
+    return `<fieldset class="setup-group"><legend>${esc(s.name)}</legend>${rows}</fieldset>`;
+  }).join('');
+  const wd = state.settings.weekdayMinutes;
+  return `
+    <section class="card setup">
+      <h2>처음 한 번만 알려 주세요</h2>
+      <p class="sub">공부할 책과 지금 어디까지 했는지만 넣으면, 그다음부터는 매일 할 양을 자동으로 정하고 진도도 알아서 따라가요. 모르는 칸은 비워 두세요. 나중에 채워도 돼요.</p>
+      <form data-form="setup">
+        <fieldset class="setup-group">
+          <legend>시험과 시간</legend>
+          <div class="setup-row">
+            <div class="setup-name">다음 시험 첫날</div>
+            <div class="setup-inputs"><input type="date" name="examDate" value="${esc(state.settings.examDate)}"></div>
+          </div>
+          <div class="setup-row">
+            <div class="setup-name">하루 공부할 수 있는 시간 (학교·학원 빼고)</div>
+            <div class="setup-inputs">
+              <label>평일<input type="number" min="0" step="10" name="weekday" value="${wd[1]}"></label>
+              <label>주말<input type="number" min="0" step="10" name="weekend" value="${wd[0]}"></label><span>분</span>
+            </div>
+          </div>
+        </fieldset>
+        ${groups}
+        <button class="btn big primary wide" type="submit">다 됐어요 · 계획 만들기</button>
+      </form>
+    </section>`;
+}
+
+// ---------- 사진으로 자동 기록 ----------
+// Claude 안에서 연 화면(claude.ai)에서만 동작한다. 그 밖에서는 버튼이 보이지 않는다.
+
+const ai = { sample: null, maxImages: 0, mediaTypes: '', busy: null, lesson: null, exam: null, error: '' };
+
+async function initAi() {
+  if (!window.claude || typeof window.claude.use !== 'function') return;
+  const sample = await window.claude.use('sample').catch(() => null);
+  if (!sample) return;
+  const limits = await sample.limits().catch(() => null);
+  if (!limits || !limits.images) return;
+  ai.sample = sample;
+  ai.maxImages = limits.images.maxCount;
+  ai.mediaTypes = limits.images.mediaTypes.join(',');
+  renderWhenIdle();
+}
+
+const AI_ERRORS = {
+  not_granted: 'Claude 사용을 허용하지 않아서 사진을 읽지 못했어요.',
+  rate_limited: '지금은 요청이 많아요. 잠시 뒤에 다시 올려 주세요.',
+  image_rejected: '이 사진은 읽을 수 없어요. 다른 사진으로 올려 주세요.',
+  invalid_json: '정리 결과를 읽지 못했어요. 한 번 더 올려 주세요.',
+  session_expired: 'Claude에 다시 로그인해 주세요.',
+};
+
+function subjectNames() {
+  return state.subjects.map((s) => s.name);
+}
+
+function lessonPrompt() {
+  return `당신은 고등학교 1학년 학생의 공부 도우미입니다. 첨부한 사진은 학생이 오늘(${today()}) 학교 수업에서 배운 교과서 페이지, 필기, 학습지입니다.
+과목 목록: ${subjectNames().join(', ')}
+
+같은 과목·같은 범위의 사진은 하나로 합쳐서, 다음을 뽑으세요.
+- subject: 위 과목 목록 중 하나 (글자 그대로)
+- pages: 사진에 보이는 쪽 번호 범위, 예 "p.58~61". 쪽 번호가 안 보이면 ""
+- startPage, endPage: 쪽 번호 숫자 (모르면 null)
+- topic: 단원·주제 한 줄
+- cards: 시험에 나올 만한 복습 질문 2~3개. 각 {"q": 질문, "a": 답}. 질문은 책을 덮고 답할 수 있게 구체적으로, 답은 1~2문장. 사진에 있는 내용만 근거로 씁니다.
+
+JSON 배열로만 답하세요. 예:
+[{"subject":"수학","pages":"p.58~61","startPage":58,"endPage":61,"topic":"원과 직선의 위치 관계","cards":[{"q":"원과 직선이 서로 다른 두 점에서 만나는 조건은?","a":"원의 중심과 직선 사이의 거리가 반지름보다 작을 때 (판별식 D > 0)"}]}]
+사진을 읽을 수 없으면 [] 로 답하세요.`;
+}
+
+function examPrompt() {
+  return `첨부한 사진은 고등학교 1학년 정기고사(중간·기말) 시험 범위 공지입니다. 오늘은 ${today()}입니다.
+과목 목록: ${subjectNames().join(', ')}
+
+다음 JSON 하나로만 답하세요.
+{"examDate": 시험 첫날 "YYYY-MM-DD" (안 보이면 null),
+ "subjects": [{"subject": 위 과목 목록 중 하나 (글자 그대로, 해당 없으면 빼기), "range": 범위를 한 줄로 (예: "교과서 p.12~118, 학습지 1~6"), "endPage": 교과서 마지막 쪽 숫자 (모르면 null)}]}
+예: {"examDate":"2026-12-08","subjects":[{"subject":"수학","range":"교과서 p.10~96","endPage":96}]}`;
+}
+
+async function runAi(kind, files) {
+  const list = Array.from(files).slice(0, ai.maxImages);
+  if (!list.length || !ai.sample) return;
+  ai.busy = kind;
+  ai.error = '';
+  render();
+  try {
+    const data = await ai.sample.json(kind === 'lesson' ? lessonPrompt() : examPrompt(), { images: list });
+    if (kind === 'lesson') {
+      const names = subjectNames();
+      ai.lesson = (Array.isArray(data) ? data : [])
+        .filter((x) => x && names.includes(x.subject))
+        .map((x) => ({
+          subject: x.subject,
+          pages: String(x.pages || ''),
+          startPage: Number.isFinite(Number(x.startPage)) && x.startPage !== null ? Number(x.startPage) : null,
+          endPage: Number.isFinite(Number(x.endPage)) && x.endPage !== null ? Number(x.endPage) : null,
+          topic: String(x.topic || ''),
+          cards: (Array.isArray(x.cards) ? x.cards : []).filter((c) => c && c.q).slice(0, 3).map((c) => ({ q: String(c.q), a: String(c.a || '') })),
+        }));
+      if (!ai.lesson.length) ai.error = '사진에서 과목이나 내용을 찾지 못했어요. 쪽 번호와 글자가 잘 보이게 다시 찍어 주세요.';
+    } else {
+      const names = subjectNames();
+      const subjects = (data && Array.isArray(data.subjects) ? data.subjects : []).filter((x) => x && names.includes(x.subject));
+      const date = data && /^\d{4}-\d{2}-\d{2}$/.test(String(data.examDate)) ? data.examDate : null;
+      ai.exam = { examDate: date, subjects: subjects.map((x) => ({ subject: x.subject, range: String(x.range || ''), endPage: Number(x.endPage) || null })) };
+      if (!subjects.length && !date) {
+        ai.exam = null;
+        ai.error = '사진에서 시험 범위를 찾지 못했어요. 공지 전체가 보이게 다시 찍어 주세요.';
+      }
+    }
+  } catch (e) {
+    ai.error = AI_ERRORS[e && e.code] || '사진을 정리하지 못했어요. 잠시 뒤에 다시 올려 주세요.';
+    if (e && ['not_granted', 'sampling_disabled', 'images_unavailable', 'capability_disabled'].includes(e.code)) ai.sample = null;
+  }
+  ai.busy = null;
+  render();
+}
+
+// 교과서 쪽수로 진도를 세는 교재 (교과서·암기 중 단위가 쪽인 것)
+function pageMaterial(subjectId) {
+  return state.materials.find((m) => m.subjectId === subjectId && !m.archived && m.unit === '쪽' && ['교과서', '암기'].includes(m.kind));
+}
+
+function saveLesson() {
+  const t = today();
+  ai.lesson.forEach((x) => {
+    const s = state.subjects.find((y) => y.name === x.subject);
+    if (!s) return;
+    const label = [x.topic, x.pages].filter(Boolean).join(' ');
+    x.cards.forEach((c) => {
+      state.logs.push({
+        id: uid(), created: Date.now(), date: t, subject: s.name, kind: '수업', text: label,
+        q: c.q, a: c.a, step: 0, due: addDays(t, LOG_INTERVALS[0]), history: [],
+      });
+    });
+    if (!x.cards.length) {
+      state.logs.push({ id: uid(), created: Date.now(), date: t, subject: s.name, kind: '수업', text: label, step: 0, due: addDays(t, LOG_INTERVALS[0]), history: [] });
+    }
+    const m = pageMaterial(s.id);
+    if (m && x.endPage) {
+      m.done = Math.max(m.done || 0, x.endPage);
+      m.nextRange = `p.${x.endPage + 1}`;
+    }
+    s.lastStudied = t;
+  });
+  const n = ai.lesson.reduce((a, x) => a + Math.max(1, x.cards.length), 0);
+  ai.lesson = null;
+  return `복습 카드 ${n}장을 만들었어요. 내일 "오늘 떠올릴 것"에 나와요.`;
+}
+
+function saveExam() {
+  if (ai.exam.examDate) state.settings.examDate = ai.exam.examDate;
+  ai.exam.subjects.forEach((x) => {
+    const s = state.subjects.find((y) => y.name === x.subject);
+    if (!s) return;
+    s.examRange = x.range;
+    const m = pageMaterial(s.id);
+    if (m && x.endPage) m.total = x.endPage;
+  });
+  ai.exam = null;
+  refreshUntouchedPlan();
+  return '시험 범위를 넣었어요. 오늘 계획부터 반영돼요.';
+}
+
+function photoPicker(kind, label) {
+  return `<label class="btn big primary wide photo-pick">${label}<input type="file" accept="${esc(ai.mediaTypes)}" multiple hidden data-action="ai-${kind}"></label>`;
+}
+
+function lessonCard() {
+  if (!ai.sample && !ai.lesson) return '';
+  if (ai.busy === 'lesson') return '<section class="card ai-card"><p class="ai-busy">사진을 읽고 정리하는 중이에요… (30초쯤 걸려요)</p></section>';
+  if (ai.lesson) {
+    const rows = ai.lesson.map((x) => `
+      <li class="ai-row">
+        <div><strong>${esc(x.subject)}</strong> ${esc(x.pages)}</div>
+        <div class="meta">${esc(x.topic)}</div>
+        <ul class="ai-cards">${x.cards.map((c) => `<li>${esc(c.q)}</li>`).join('')}</ul>
+      </li>`).join('');
+    return `
+      <section class="card ai-card">
+        <h2>이렇게 정리했어요</h2>
+        <ul class="list">${rows}</ul>
+        <div class="recall-buttons">
+          <button class="btn big primary" data-action="ai-save-lesson">이대로 저장</button>
+          <button class="btn big" data-action="ai-discard">버리기</button>
+        </div>
+      </section>`;
+  }
+  return `
+    <section class="card ai-card">
+      ${photoPicker('lesson', '오늘 배운 곳 사진 올리기')}
+      <p class="sub" style="margin:8px 0 0">교과서, 필기, 학습지를 찍어 올리면 과목, 페이지, 복습 질문을 자동으로 만들어요. 따로 쓸 건 없어요.</p>
+      ${ai.error && ui.tab === 'today' ? `<p class="warn-text" style="margin:8px 0 0">${esc(ai.error)}</p>` : ''}
+    </section>`;
+}
+
+function examPhotoCard() {
+  if (!ai.sample && !ai.exam) return '';
+  if (ai.busy === 'exam') return '<section class="card ai-card"><p class="ai-busy">시험 범위 공지를 읽는 중이에요…</p></section>';
+  if (ai.exam) {
+    const rows = ai.exam.subjects.map((x) => `<li class="ai-row"><strong>${esc(x.subject)}</strong> ${esc(x.range)}</li>`).join('');
+    return `
+      <section class="card ai-card">
+        <h2>이렇게 읽었어요</h2>
+        <p>시험 첫날: <strong>${ai.exam.examDate ? prettyDate(ai.exam.examDate) : '공지에 없음'}</strong></p>
+        <ul class="list">${rows}</ul>
+        <div class="recall-buttons">
+          <button class="btn big primary" data-action="ai-save-exam">이대로 넣기</button>
+          <button class="btn big" data-action="ai-discard">버리기</button>
+        </div>
+      </section>`;
+  }
+  return `
+    <section class="card ai-card">
+      ${photoPicker('exam', '시험 범위 공지 사진 올리기')}
+      <p class="sub" style="margin:8px 0 0">범위가 나오면 공지를 찍어 올려 주세요. 시험일과 과목별 범위를 자동으로 넣어요.</p>
+      ${ai.error && ui.tab === 'exam' ? `<p class="warn-text" style="margin:8px 0 0">${esc(ai.error)}</p>` : ''}
+    </section>`;
+}
+
+// ---------- 자동 진단 ----------
+// 복습 카드 결과로 암기 상태를, 문제 정답률로 이해도를 매긴다. 직접 고친 과목은 2주 동안 손대지 않는다.
+
+function scoreOf(rate) {
+  if (rate >= 0.9) return 5;
+  if (rate >= 0.75) return 4;
+  if (rate >= 0.6) return 3;
+  if (rate >= 0.4) return 2;
+  return 1;
+}
+
+function autoDiagnose() {
+  const t = today();
+  const since = addDays(t, -30);
+  state.subjects.forEach((s) => {
+    if (s.manualUntil && s.manualUntil > t) return;
+    const recalls = [];
+    state.logs.concat(state.wrongs).filter((x) => x.subject === s.name).forEach((x) => {
+      (x.history || []).forEach((h) => { if (h.date >= since) recalls.push(h.ok); });
+    });
+    if (recalls.length >= 5) s.memory = scoreOf(recalls.filter(Boolean).length / recalls.length);
+    const graded = state.sessions.filter((x) => x.subjectId === s.id && x.date >= since && x.wrong != null).length;
+    if (graded >= 3 && s.accuracy != null) s.concept = scoreOf(s.accuracy);
+  });
 }
 
 // ---------- 화면: 과목 ----------
@@ -585,7 +934,7 @@ function subjectDetail(s) {
 
     <div class="card">
       <h2>현재 상태 진단</h2>
-      <p class="sub">일주일에 한 번, 또는 시험·단원평가 뒤에 솔직하게 고쳐 주세요. 계획 우선순위에 바로 반영돼요.</p>
+      <p class="sub">이해도와 암기 상태는 복습 카드 결과와 문제 정답률로 자동으로 매겨져요. 따로 고치지 않아도 돼요. 직접 바꾸면 2주 동안은 바꾼 값을 써요.</p>
       <div class="row">
         ${rating(s, 'concept', '개념 이해도')}
         ${rating(s, 'memory', '암기 상태')}
@@ -659,6 +1008,7 @@ function renderExam() {
     </tr>`).join('');
 
   return `
+    ${examPhotoCard()}
     <div class="card">
       <h2>시험 일정</h2>
       <form data-form="exam" class="row">
@@ -979,11 +1329,16 @@ function renderMore() {
     ['analysis', '분석', '계획한 시간과 실제 시간, 과목별 달성률, 교재별 실제 속도'],
     ['settings', '설정', '요일별 공부 시간, 동기화, 백업'],
   ];
+  const setup = `
+    <button class="card subject-card" data-action="redo-setup">
+      <strong>교재와 시작 위치 다시 넣기</strong>
+      <div class="meta">처음 설정 화면을 다시 열어요. 지금까지 기록은 그대로예요.</div>
+    </button>`;
   return links.map(([tab, name, desc]) => `
     <button class="card subject-card" data-action="go-tab" data-id="${tab}">
       <strong>${name}</strong>
       <div class="meta">${desc}</div>
-    </button>`).join('');
+    </button>`).join('') + setup;
 }
 
 const VIEWS = {
@@ -1032,6 +1387,7 @@ window.app = { getState: () => state, applyRemote, render, syncChanged, toast, r
 // ---------- 동작 ----------
 
 function advance(item, intervals, ok) {
+  item.history = (item.history || []).concat({ date: today(), ok });
   if (ok) {
     item.step += 1;
     item.due = item.step < intervals.length ? addDays(today(), intervals[item.step]) : null;
@@ -1065,6 +1421,27 @@ document.addEventListener('click', async (e) => {
       ui.openForm = ui.openForm === id ? null : id;
       changed = false;
       break;
+    case 'miss-task': {
+      const task = findTask(id);
+      if (!task) return;
+      task.status = 'skipped';
+      toast('괜찮아요. 내일 계획에 다시 넣을게요.');
+      break;
+    }
+    case 'half-task': {
+      const task = findTask(id);
+      if (!task) return;
+      const half = Math.max(1, Math.floor(task.amount / 2));
+      completeTask(task, { amount: half, minutes: Math.round(task.minutes / 2), auto: true });
+      toast('절반만 기록했어요. 나머지는 다음 계획에 다시 들어가요.');
+      break;
+    }
+    case 'redo-setup':
+      ui.setup = true;
+      ui.tab = 'today';
+      changed = false;
+      window.scrollTo(0, 0);
+      break;
     case 'done-task': {
       const task = findTask(id);
       if (!task) return;
@@ -1072,6 +1449,19 @@ document.addEventListener('click', async (e) => {
       toast('잘했어요!');
       break;
     }
+    case 'ai-save-lesson':
+      if (!ai.lesson) return;
+      toast(saveLesson());
+      break;
+    case 'ai-save-exam':
+      if (!ai.exam) return;
+      toast(saveExam());
+      break;
+    case 'ai-discard':
+      ai.lesson = null;
+      ai.exam = null;
+      changed = false;
+      break;
     case 'go-tab':
       ui.tab = id;
       changed = false;
@@ -1092,7 +1482,6 @@ document.addEventListener('click', async (e) => {
     case 'wrong-miss': {
       const w = state.wrongs.find((x) => x.id === id);
       if (w) {
-        w.history.push({ date: today(), ok: action === 'wrong-ok' });
         advance(w, WRONG_INTERVALS, action === 'wrong-ok');
       }
       ui.revealed = null;
@@ -1177,6 +1566,7 @@ document.addEventListener('change', async (e) => {
     if (!s) return;
     const f = el.dataset.field;
     s[f] = ['concept', 'memory', 'importance', 'wrongPending'].includes(f) ? num(el.value) : el.value;
+    if (f === 'concept' || f === 'memory') s.manualUntil = addDays(today(), 14);
     if (f !== 'weakNotes') refreshUntouchedPlan();
     await save();
     if (f !== 'weakNotes') await render();
@@ -1197,6 +1587,11 @@ document.addEventListener('change', async (e) => {
   if (action === 'wrong-subject') {
     ui.wrongSubject = el.value;
     await render();
+    return;
+  }
+  if (action === 'ai-lesson' || action === 'ai-exam') {
+    const files = el.files;
+    if (files && files.length) runAi(action === 'ai-lesson' ? 'lesson' : 'exam', files);
     return;
   }
   if (action === 'import') {
@@ -1232,7 +1627,29 @@ document.addEventListener('submit', async (e) => {
   const t = today();
   let msg = '저장했어요.';
 
-  if (kind === 'task') {
+  if (kind === 'setup') {
+    state.settings.examDate = f.get('examDate') || '';
+    const wdMin = num(f.get('weekday'), 180);
+    const weMin = num(f.get('weekend'), 360);
+    state.settings.weekdayMinutes = [weMin, wdMin, wdMin, wdMin, wdMin, wdMin, weMin];
+    state.materials.forEach((m) => {
+      if (m.mode === 'weekly') {
+        const w = f.get(`weekly-${m.id}`);
+        if (w !== null && w !== '') m.weekly = num(w);
+        return;
+      }
+      const total = f.get(`total-${m.id}`);
+      const done = f.get(`done-${m.id}`);
+      if (total !== null) m.total = total === '' ? null : num(total);
+      if (done !== null) m.done = done === '' ? 0 : num(done);
+      m.created = t;
+      m.startDone = m.done || 0;
+    });
+    state.setupDone = true;
+    ui.setup = false;
+    delete state.plans[t];
+    msg = '계획을 만들었어요.';
+  } else if (kind === 'task') {
     const task = findTask(form.dataset.id);
     if (!task) return;
     const wrongRaw = f.get('wrong');
@@ -1340,6 +1757,7 @@ document.addEventListener('submit', async (e) => {
   await load();
   markReady();
   await render();
+  initAi();
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
