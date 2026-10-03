@@ -612,3 +612,8 @@ details.subject-syl[open] > summary { margin-bottom: 4px; }
 .popup-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .popup .recall { margin-bottom: 0; }
 .popup .recall-top h2 { display: none; }
+.file-hidden { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+label.photo-pick { position: relative; }
+.custom-time { display: inline-flex; align-items: center; gap: 6px; margin: 6px 0 0; color: var(--text); font-size: 14px; }
+.custom-time input { width: 72px; padding: 6px 8px; }
+.goal-time { margin: 10px 0; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }

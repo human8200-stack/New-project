@@ -563,21 +563,26 @@ function autoDiagnose() {
 // 배운 곳, 푼 문제, 틀린 문제, 시험 공지, 책 표지·목차 무엇이든 올리면 종류를 알아서 나눠 기록한다.
 // Claude 안에서 열면 Claude가 읽고, 그 밖에서는 설정의 "AI 연결" 주소(우리 집 전용 서버)로 보낸다.
 
-const ai = { sample: null, maxImages: 6, busy: false, report: null, undo: null, error: '' };
+const ai = { sample: null, canImages: false, maxImages: 6, busy: false, report: null, undo: null, error: '', pending: null };
 
 async function initAi() {
   if (!window.claude || typeof window.claude.use !== 'function') return;
   const sample = await window.claude.use('sample').catch(() => null);
   if (!sample) return;
   const limits = await sample.limits().catch(() => null);
-  if (!limits || !limits.images) return;
   ai.sample = sample;
-  ai.maxImages = limits.images.maxCount;
+  ai.canImages = !!(limits && limits.images);
+  if (ai.canImages) ai.maxImages = limits.images.maxCount;
   renderWhenIdle();
 }
 
 function aiReady() {
   return !!ai.sample || !!(state.settings.aiUrl && state.settings.aiCode);
+}
+
+// 사진을 읽을 수 있는지 (Claude 화면이 사진을 지원하거나, 우리 집 AI 서버가 있을 때)
+function photoAiReady() {
+  return (!!ai.sample && ai.canImages) || !!(state.settings.aiUrl && state.settings.aiCode);
 }
 
 const AI_ERRORS = {
@@ -665,7 +670,13 @@ async function askEndpoint(prompt, jpegs) {
 
 async function runPhotos(files) {
   const list = Array.from(files).slice(0, ai.maxImages);
-  if (!list.length || !aiReady()) return;
+  if (!list.length) return;
+  if (!photoAiReady()) {
+    // AI가 없어도 틀린 문제 사진으로는 저장할 수 있게
+    ai.pending = await Promise.all(list.map((f) => compressImage(f)));
+    render();
+    return;
+  }
   ai.busy = true;
   ai.error = '';
   ai.report = null;
@@ -673,7 +684,7 @@ async function runPhotos(files) {
   try {
     const jpegs = await Promise.all(list.map((f) => compressImage(f)));
     const prompt = photoPrompt(list.length);
-    const data = ai.sample ? await ai.sample.json(prompt, { images: list }) : await askEndpoint(prompt, jpegs);
+    const data = ai.sample && ai.canImages ? await ai.sample.json(prompt, { images: list }) : await askEndpoint(prompt, jpegs);
     const items = data && Array.isArray(data.items) ? data.items : [];
     ai.undo = JSON.stringify(state);
     ai.report = applyPhotoItems(items, jpegs);
@@ -834,17 +845,19 @@ function photoCard(compact) {
         </div>
       </section>`;
   }
-  if (!aiReady()) {
-    return compact ? '' : `
-      <section class="card photo-card off">
-        <strong>사진으로 자동 기록</strong>
-        <p class="sub" style="margin:4px 0 0">사진을 읽으려면 AI 연결이 필요해요. Claude 안에서 열거나, 더보기 → 설정 → AI 연결을 해 주세요.</p>
+  if (ai.pending) {
+    return `
+      <section class="card photo-card done">
+        <h2>사진 ${ai.pending.length}장을 받았어요</h2>
+        <p class="sub">이 화면에는 사진을 읽는 AI가 연결되어 있지 않아서 자동으로 정리하지는 못해요. 틀린 문제 사진이면 과목을 골라 저장해 두세요. 2·7·14·30일 뒤에 다시 나와요.</p>
+        <div class="chips">${state.subjects.map((x) => `<button class="chip-btn" data-action="photo-as-wrong" data-id="${x.id}">${esc(x.name)} 틀린 문제로 저장</button>`).join('')}</div>
+        <div style="margin-top:10px"><button class="linklike small" data-action="photo-cancel">저장하지 않기</button></div>
       </section>`;
   }
   return `
     <section class="card photo-card">
-      <label class="btn big primary wide photo-pick">사진 올리기<input type="file" accept="image/*" multiple hidden data-action="ai-photos"></label>
-      <p class="sub" style="margin:8px 0 0">${compact ? '책 표지나 목차, 시험 공지를 찍어 올리면 알아서 채워져요.' : '오늘 배운 곳 · 채점한 문제 · 틀린 문제 · 시험 공지, 뭐든 찍어서 한 번에 올리세요. 알아서 나눠서 기록해요.'}</p>
+      <label class="btn big primary wide photo-pick">사진 찍기 · 올리기<input class="file-hidden" type="file" accept="image/*" multiple data-action="ai-photos"></label>
+      <p class="sub" style="margin:8px 0 0">${compact ? '책 표지나 목차, 시험 공지를 찍어 올리면 알아서 채워져요.' : '오늘 배운 곳 · 채점한 문제 · 틀린 문제 · 시험 공지, 뭐든 찍어서 한 번에 올리세요. 알아서 나눠서 기록해요.'}${photoAiReady() ? '' : ' <span class="warn-text">(지금은 AI 연결이 없어 틀린 문제 저장만 돼요. 설정 → AI 연결)</span>'}</p>
       ${ai.error ? `<p class="warn-text" style="margin:8px 0 0">${esc(ai.error)}</p>` : ''}
     </section>`;
 }
@@ -852,8 +865,22 @@ function photoCard(compact) {
 // ---------- 처음 한 번: 버튼만 눌러서 끝내기 ----------
 
 const PROGRESS_CHOICES = [[0, '아직 안 함'], [0.2, '조금 했어요'], [0.5, '절반쯤'], [0.85, '거의 다']];
-const WEEKDAY_CHOICES = [[60, '1시간'], [120, '2시간'], [180, '3시간'], [240, '4시간 이상']];
-const WEEKEND_CHOICES = [[120, '2시간'], [240, '4시간'], [360, '6시간'], [480, '8시간 이상']];
+const WEEKDAY_CHOICES = [[60, '1시간'], [120, '2시간'], [180, '3시간'], [240, '4시간'], [300, '5시간']];
+const WEEKEND_CHOICES = [[120, '2시간'], [240, '4시간'], [360, '6시간'], [480, '8시간'], [600, '10시간']];
+
+// 단추로 고르거나, 단추에 없는 시간은 직접 쓴다 (시간 단위)
+function timeChooser(name, choices, minutes) {
+  const exact = choices.some(([v]) => v === minutes);
+  return `${chips(name, choices, exact ? minutes : null)}
+    <label class="custom-time">직접 <input type="number" name="${name}-custom" min="0" max="16" step="0.5" value="${exact || !minutes ? '' : minutes / 60}" placeholder="예: 11"> 시간</label>`;
+}
+
+function readTime(f, name, fallback) {
+  const custom = f.get(`${name}-custom`);
+  if (custom !== null && custom !== '') return Math.round(Math.max(0, Math.min(16, num(custom))) * 60);
+  const v = f.get(name);
+  return v === null ? fallback : num(v, fallback);
+}
 
 function chips(name, choices, selected) {
   return `<div class="chips">${choices.map(([v, label]) => `
@@ -896,8 +923,8 @@ function renderSetup() {
         </fieldset>
         <fieldset class="setup-group">
           <legend>학교·학원 끝나고 공부할 수 있는 시간</legend>
-          <div class="setup-row"><span class="setup-label">평일</span>${chips('weekday', WEEKDAY_CHOICES, nearest(WEEKDAY_CHOICES, wd[1]))}</div>
-          <div class="setup-row"><span class="setup-label">주말</span>${chips('weekend', WEEKEND_CHOICES, nearest(WEEKEND_CHOICES, wd[0]))}</div>
+          <div class="setup-row"><span class="setup-label">평일</span>${timeChooser('weekday', WEEKDAY_CHOICES, wd[1])}</div>
+          <div class="setup-row"><span class="setup-label">주말</span>${timeChooser('weekend', WEEKEND_CHOICES, wd[0])}</div>
         </fieldset>
         <p class="sub">공부하는 책과, 지금 어디까지 했는지 골라 주세요.</p>
         ${groups}
@@ -1163,7 +1190,7 @@ function renderSyllabus() {
 
 // ---------- 선행·방학 계획 ----------
 
-const GOAL_MINUTES = [[0, '평소대로'], [240, '4시간'], [360, '6시간'], [480, '8시간']];
+const GOAL_MINUTES = [[0, '평소대로'], [360, '6시간'], [480, '8시간'], [600, '10시간'], [720, '12시간']];
 
 function goalCard(g) {
   const t = today();
@@ -1188,7 +1215,12 @@ function goalCard(g) {
         <h2>${esc(g.name)}</h2>
         <span class="meta">${prettyDate(g.start)} ~ ${prettyDate(g.end)}${left >= 0 ? ` · D-${left}` : ' · 끝남'}</span>
       </div>
-      ${total ? `<div class="progress thin"><div style="width:${(done / total) * 100}%"></div></div><div class="meta">전체 ${pct(done / total)}${g.minutes ? ` · 이 기간 하루 ${hm(g.minutes)}` : ''}</div>` : ''}
+      ${total ? `<div class="progress thin"><div style="width:${(done / total) * 100}%"></div></div><div class="meta">전체 ${pct(done / total)}</div>` : ''}
+      <form data-form="goal-time" data-id="${g.id}" class="goal-time">
+        <span class="meta">이 기간 하루 공부 시간</span>
+        ${timeChooser('minutes', GOAL_MINUTES, g.minutes || 0)}
+        <button class="btn small" type="submit">저장</button>
+      </form>
       ${bySubject || '<p class="sub">아래에서 이 기간에 끝낼 책을 넣어 주세요.</p>'}
       <form data-form="goal-book" data-id="${g.id}" class="goal-book-form">
         <div class="row">
@@ -1223,7 +1255,7 @@ function renderGoals() {
           <div><label>끝</label><input type="date" name="end" value="${esc(suggest.end)}" required></div>
         </div>
         <label>이 기간 하루 공부 시간</label>
-        ${chips('minutes', GOAL_MINUTES, 0)}
+        ${timeChooser('minutes', GOAL_MINUTES, 0)}
         <button class="btn primary" type="submit" style="margin-top:12px">만들기</button>
       </form>
     </details>`;
@@ -1373,8 +1405,8 @@ function renderSettings() {
     <section class="card">
       <h2>공부할 수 있는 시간</h2>
       <form data-form="time">
-        <div class="setup-row"><span class="setup-label">평일</span>${chips('weekday', WEEKDAY_CHOICES, nearest(WEEKDAY_CHOICES, wd[1]))}</div>
-        <div class="setup-row"><span class="setup-label">주말</span>${chips('weekend', WEEKEND_CHOICES, nearest(WEEKEND_CHOICES, wd[0]))}</div>
+        <div class="setup-row"><span class="setup-label">평일</span>${timeChooser('weekday', WEEKDAY_CHOICES, wd[1])}</div>
+        <div class="setup-row"><span class="setup-label">주말</span>${timeChooser('weekend', WEEKEND_CHOICES, wd[0])}</div>
         <button class="btn primary" type="submit">저장</button>
       </form>
     </section>
@@ -1672,6 +1704,18 @@ document.addEventListener('click', async (e) => {
       changed = false;
       window.scrollTo(0, 0);
       break;
+    case 'photo-as-wrong': {
+      const subj = subjectById(id);
+      if (!subj || !ai.pending) return;
+      ai.pending.forEach((img) => state.wrongs.push({ id: uid(), date: today(), subject: subj.name, unit: '', trap: '', note: '', img, step: 0, due: addDays(today(), WRONG_INTERVALS[0]), history: [] }));
+      toast(`${subj.name} 틀린 문제 ${ai.pending.length}개를 저장했어요. 2일 뒤에 다시 나와요.`);
+      ai.pending = null;
+      break;
+    }
+    case 'photo-cancel':
+      ai.pending = null;
+      changed = false;
+      break;
     case 'plan-view':
       ui.planView = id;
       changed = false;
@@ -1885,8 +1929,8 @@ document.addEventListener('submit', async (e) => {
 
   if (kind === 'setup') {
     state.settings.examDate = f.get('examDate') || state.settings.examDate || '';
-    const wdMin = num(f.get('weekday'), 180);
-    const weMin = num(f.get('weekend'), 360);
+    const wdMin = readTime(f, 'weekday', 180);
+    const weMin = readTime(f, 'weekend', 360);
     state.settings.weekdayMinutes = [weMin, wdMin, wdMin, wdMin, wdMin, wdMin, weMin];
     state.materials.forEach((m) => {
       m.archived = !f.get(`use-${m.id}`);
@@ -1952,8 +1996,15 @@ document.addEventListener('submit', async (e) => {
       return;
     }
     state.goals = state.goals || [];
-    state.goals.push({ id: uid(), name: (f.get('name') || '선행').trim(), start, end, minutes: num(f.get('minutes'), 0) });
+    state.goals.push({ id: uid(), name: (f.get('name') || '선행').trim(), start, end, minutes: readTime(f, 'minutes', 0) });
     msg = '계획을 만들었어요. 이제 이 기간에 끝낼 책을 넣어 주세요.';
+  } else if (kind === 'goal-time') {
+    const g = (state.goals || []).find((x) => x.id === form.dataset.id);
+    if (!g) return;
+    g.minutes = readTime(f, 'minutes', 0);
+    const plan = state.plans[t];
+    if (plan && plan.tasks.every((x) => x.status === 'todo')) delete state.plans[t];
+    msg = g.minutes ? `이 기간은 하루 ${hm(g.minutes)}로 계획할게요.` : '평소 시간대로 계획할게요.';
   } else if (kind === 'goal-book') {
     const g = (state.goals || []).find((x) => x.id === form.dataset.id);
     const s = subjectById(f.get('subjectId'));
@@ -1988,8 +2039,8 @@ document.addEventListener('submit', async (e) => {
     refreshUntouchedPlan();
     msg = '추가했어요.';
   } else if (kind === 'time') {
-    const wdMin = num(f.get('weekday'), 180);
-    const weMin = num(f.get('weekend'), 360);
+    const wdMin = readTime(f, 'weekday', 180);
+    const weMin = readTime(f, 'weekend', 360);
     state.settings.weekdayMinutes = [weMin, wdMin, wdMin, wdMin, wdMin, wdMin, weMin];
     refreshUntouchedPlan();
   } else if (kind === 'ai') {
