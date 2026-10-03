@@ -361,7 +361,8 @@ function applySession(state, session) {
 
   if (m) {
     if (m.mode === 'range') m.done = (m.done || 0) + (session.amount || 0);
-    if (session.amount > 0 && session.minutes > 0) {
+    // 자동으로 완료 처리한 기록은 실제 걸린 시간을 모르므로 속도 보정에 쓰지 않는다
+    if (!session.auto && session.amount > 0 && session.minutes > 0) {
       // 한 번의 기록으로 너무 크게 흔들리지 않게 이전 값의 0.5~2배로 제한
       const observed = clamp(session.minutes / session.amount, m.minPerUnit * 0.5, m.minPerUnit * 2);
       const before = m.minPerUnit;
@@ -421,14 +422,19 @@ function subjectSnapshot(state, subject, today) {
     const exam = examDateFor(state, subject);
     if (exam && m.created) {
       const span = Math.max(1, diffDays(m.created, exam));
-      target += m.total * clamp(diffDays(m.created, today) / span, 0, 1);
+      // 처음 넣었을 때 이미 해 둔 양(startDone)에서 시작해 시험 날 100%가 되는 직선
+      const start = Math.min(m.total, m.startDone || 0);
+      target += start + (m.total - start) * clamp(diffDays(m.created, today) / span, 0, 1);
     }
   });
 
   const left = daysLeftFor(state, subject, today);
+  // 기록을 시작한 지 7일이 안 됐으면 그 날수로 나눈다 (첫날부터 '위험'이 뜨지 않게)
+  const first = state.sessions.reduce((a, s) => (!a || s.date < a ? s.date : a), '');
+  const spanDays = first ? clamp(diffDays(first, today) + 1, 1, 7) : 7;
   const recent = state.sessions
     .filter((s) => s.subjectId === subject.id && s.date > addDays(today, -7) && s.date <= today)
-    .reduce((a, s) => a + (s.minutes || 0), 0) / 7;
+    .reduce((a, s) => a + (s.minutes || 0), 0) / spanDays;
 
   let status = '안정';
   let ratio = null;

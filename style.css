@@ -423,3 +423,37 @@ button.bad.big { background: var(--warn-soft); }
 .back { margin-bottom: 12px; }
 
 .toast { width: max-content; max-width: calc(100vw - 32px); text-align: center; border-radius: 14px; }
+
+/* ---------- 한눈에 · 못 했어요 · 처음 설정 ---------- */
+
+.glance { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
+.glance-item { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; min-width: 0; }
+.glance-item span { font-size: 13px; color: var(--muted); }
+.glance-item strong { font-size: 22px; font-variant-numeric: tabular-nums; }
+.glance-item small { font-size: 12px; }
+.glance-worry { grid-column: 1 / -1; font: inherit; font-size: 14px; text-align: left; border: 0; border-radius: 10px; padding: 8px 12px; background: var(--warn-soft); color: var(--warn); cursor: pointer; }
+.good-text { color: var(--ok); }
+
+.todo-miss { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+.miss-btn { font: inherit; font-size: 13px; border: 1px solid var(--line); background: var(--bg); color: var(--muted); border-radius: 999px; padding: 4px 12px; cursor: pointer; min-height: 32px; }
+.todo-miss .linklike.small { margin-top: 0; }
+
+.ai-card .ai-busy { margin: 0; color: var(--accent); font-weight: 600; }
+.ai-row { padding: 10px 0; border-top: 1px solid var(--line); list-style: none; }
+.ai-row:first-child { border-top: 0; }
+.ai-cards { margin: 6px 0 0; padding-left: 18px; color: var(--text); font-size: 15px; }
+.photo-pick { display: flex; align-items: center; justify-content: center; margin: 0; color: #fff; }
+
+.setup-group { border: 0; padding: 0; margin: 0 0 16px; }
+.setup-group legend { font-weight: 700; font-size: 16px; padding: 0; margin-bottom: 4px; color: var(--accent); }
+.setup-row { display: flex; justify-content: space-between; align-items: center; gap: 8px 12px; padding: 10px 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.setup-name { flex: 1 1 180px; min-width: 0; }
+.setup-inputs { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.setup-inputs label { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 14px; }
+.setup-inputs input[type="number"] { width: 84px; padding: 8px; }
+.setup-inputs input[type="date"] { width: auto; }
+.setup-inputs span { color: var(--muted); font-size: 14px; }
+
+@media (max-width: 560px) {
+  .glance-item strong { font-size: 18px; }
+}
