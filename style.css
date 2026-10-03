@@ -348,3 +348,78 @@ details summary { cursor: pointer; }
 }
 
 .dash th, .dash td { white-space: nowrap; }
+
+/* ---------- 오늘 화면: 떠올릴 것 카드 · 할 공부 목록 ---------- */
+
+.recall { margin-bottom: 16px; }
+.recall-top { display: flex; justify-content: space-between; align-items: baseline; margin: 4px 2px 8px; }
+.recall-top h2, .plan-top h2 { font-size: 19px; margin: 0; }
+.recall-count { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+.recall-card {
+  background: var(--card);
+  border: 2px solid var(--accent);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.recall-meta { color: var(--muted); font-size: 14px; }
+.recall-q { font-size: 22px; font-weight: 700; line-height: 1.4; text-wrap: balance; }
+.recall-hint { margin: 0; color: var(--muted); }
+.recall-a { background: var(--accent-soft); border-radius: 10px; padding: 12px 14px; font-size: 17px; }
+.recall-buttons { display: flex; gap: 8px; }
+.recall-buttons .btn { flex: 1; }
+.recall.done-all { background: var(--accent-soft); border-radius: 16px; padding: 16px 20px; }
+.recall.done-all h2 { font-size: 17px; margin: 0 0 4px; }
+.recall.done-all p { margin: 0; color: var(--muted); }
+
+button.big { min-height: 52px; font-size: 17px; font-weight: 700; border-radius: 12px; }
+button.wide { width: 100%; }
+button.good.big { background: var(--accent-soft); }
+button.bad.big { background: var(--warn-soft); }
+
+.plan-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.plan-card .progress { margin: 10px 0 8px; }
+
+.todo { list-style: none; margin: 0; padding: 0; }
+.todo-item { display: flex; gap: 14px; align-items: flex-start; padding: 14px 0; border-top: 1px solid var(--line); }
+.todo-item:first-child { border-top: 0; }
+.todo-check {
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: var(--card);
+  cursor: pointer;
+  margin-top: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: #fff;
+  font-size: 18px;
+}
+.todo-check.on { background: var(--accent); border-color: var(--accent); }
+.todo-check.on.partial { background: var(--warn-soft); border-color: var(--warn); color: var(--warn); }
+.todo-item.skipped .todo-check.on { background: var(--line); border-color: var(--line); color: var(--muted); }
+.todo-body { flex: 1; min-width: 0; }
+.todo-title { font-weight: 700; font-size: 17px; }
+.todo-num { display: inline-block; min-width: 20px; color: var(--accent); font-variant-numeric: tabular-nums; }
+.todo-what { font-size: 17px; margin-top: 2px; }
+.todo-how { color: var(--muted); font-size: 14px; margin-top: 2px; }
+.todo-why { color: var(--accent); font-size: 14px; margin-top: 2px; }
+.todo-item.first .todo-title { color: var(--accent); }
+.todo-item.done .todo-title, .todo-item.done .todo-what,
+.todo-item.partial .todo-title, .todo-item.skipped .todo-title { color: var(--muted); }
+.todo-item.done .todo-what { text-decoration: line-through; }
+.linklike.small { font-size: 13px; font-weight: 500; color: var(--muted); margin-top: 6px; text-decoration: underline; }
+
+.fold { padding: 12px 16px; }
+.fold summary { color: var(--muted); font-size: 15px; }
+.fold[open] summary { margin-bottom: 4px; }
+
+.back { margin-bottom: 12px; }
+
+.toast { width: max-content; max-width: calc(100vw - 32px); text-align: center; border-radius: 14px; }

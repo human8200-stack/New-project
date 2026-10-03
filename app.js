@@ -57,7 +57,7 @@ function freshState() {
 }
 
 let state;
-const ui = { tab: 'today', openForm: null, subjectId: null, editMaterial: null, wrongSubject: null };
+const ui = { revealed: null, tab: 'today', openForm: null, subjectId: null, editMaterial: null, wrongSubject: null };
 
 async function load() {
   let saved = null;
@@ -283,44 +283,134 @@ function recordSession(data) {
     const subject = subjectById(session.subjectId);
     state.logs.push({
       id: uid(), created: Date.now(), date: today(), subject: subject ? subject.name : '',
-      kind: m ? m.kind : '공부', text: `${m ? m.name : ''} ${data.note || ''}`.trim(),
+      kind: m ? m.kind : '공부', text: (data.reviewText || `${m ? m.name : ''} ${data.note || ''}`).trim(),
       step: 0, due: addDays(today(), LOG_INTERVALS[0]),
     });
   }
 
   let msg = '기록했어요.';
-  if (out.speed && Math.abs(out.speed.after - out.speed.before) >= 0.1) {
-    msg = `${m.unit}당 예상 시간을 ${out.speed.before}분 → ${out.speed.after}분으로 조정했어요.`;
-  }
+  if (out.speed && out.speed.after > out.speed.before * 1.05) msg = '생각보다 오래 걸렸네요. 다음엔 이 교재 양을 조금 줄일게요.';
+  else if (out.speed && out.speed.after < out.speed.before * 0.95) msg = '생각보다 빨랐어요. 다음엔 이 교재 양을 조금 늘릴게요.';
   return { session, msg };
+}
+
+// 할 공부 하나를 끝냈을 때. 교과서·암기·지문은 복습 카드도 자동으로 만든다
+function completeTask(task, { amount, minutes, wrong = null, nextRange = '', advance: advanceStage = true }) {
+  if (task.type === 'project') {
+    recordSession({ type: 'project', subjectId: task.subjectId, minutes, amount: 0, taskId: task.id });
+    task.actual = { amount: null, minutes };
+    task.status = 'done';
+    const p = state.projects.find((x) => x.id === task.projectId);
+    if (p && advanceStage) p.stage = Math.min(PROJECT_STAGES.length - 1, p.stage + 1);
+    return '기록했어요.';
+  }
+  const m = task.materialId ? materialById(task.materialId) : null;
+  const { what } = taskLines(task);
+  const res = recordSession({
+    type: task.type,
+    materialId: task.materialId,
+    subjectId: task.subjectId,
+    taskId: task.id,
+    planned: { amount: task.amount, minutes: task.minutes },
+    amount,
+    minutes,
+    wrong,
+    nextRange,
+    addReview: !!m && ['교과서', '암기', '지문'].includes(m.kind) && amount > 0,
+    reviewText: m ? `${m.name} ${what}` : '',
+  });
+  task.actual = { amount, minutes };
+  task.status = amount >= task.amount ? 'done' : amount > 0 ? 'partial' : 'skipped';
+  let msg = res.msg;
+  if (task.status === 'partial') msg += ' 남은 양은 다음 계획에 다시 들어가요.';
+  return msg;
 }
 
 // ---------- 화면: 오늘 ----------
 
-function taskForm(task) {
-  const m = task.materialId ? materialById(task.materialId) : null;
-  const isProblems = ['문제', '회', '지문'].includes(task.unit) && !['review', 'wrongPhoto', 'project'].includes(task.type);
-  const reviewDefault = m && ['교과서', '암기', '지문'].includes(m.kind);
-  if (task.type === 'review' || task.type === 'wrongPhoto') {
+// 오늘 떠올릴 것: 복습할 진도 → 다시 풀 오답 순서로 한 장씩
+function recallItems() {
+  const t = today();
+  const logs = state.logs.filter((l) => l.due && l.due <= t).sort((a, b) => a.due.localeCompare(b.due)).map((l) => ({ kind: 'log', item: l }));
+  const wrongs = state.wrongs.filter((w) => w.due && w.due <= t).sort((a, b) => a.due.localeCompare(b.due)).map((w) => ({ kind: 'wrong', item: w }));
+  return logs.concat(wrongs);
+}
+
+function daysAgoText(key) {
+  const n = diffDays(key, today());
+  if (n <= 0) return '오늘';
+  if (n === 1) return '어제';
+  return `${n}일 전`;
+}
+
+function recallSection() {
+  const items = recallItems();
+  if (!items.length) {
     return `
-      <form class="inline-form" data-form="task" data-id="${task.id}">
-        <div class="row">
-          <div><label>걸린 시간(분)</label><input type="number" name="minutes" min="0" value="${task.minutes}" required></div>
-          <div><label>시간대</label><select name="slot">${options(SLOTS, currentSlot())}</select></div>
-        </div>
-        <p class="sub">문제별 결과는 아래 "아침 10분" 목록에서 눌러 주세요.</p>
-        <button class="btn primary" type="submit">완료</button>
-      </form>`;
+    <section class="recall done-all">
+      <h2>오늘 떠올릴 것</h2>
+      <p>다 봤어요. 다음 복습 날짜가 되면 여기에 다시 나와요.</p>
+    </section>`;
   }
+  const { kind, item } = items[0];
+  const revealed = ui.revealed === item.id;
+  let meta;
+  let question;
+  let extra = '';
+  let answer;
+  let buttons;
+  if (kind === 'log') {
+    meta = `${esc(item.subject)} · ${daysAgoText(item.date)} 공부한 것 · ${item.step + 1}번째 복습`;
+    question = item.q ? esc(item.q) : esc(item.text);
+    if (!item.q) extra = '<p class="recall-hint">책을 덮고, 이 범위의 핵심 내용 3가지를 소리 내어 말해 보세요.</p>';
+    answer = item.a ? esc(item.a) : '책을 펴서 떠올린 내용이 맞는지 확인해 보세요.';
+    buttons = `
+      <button class="btn big good" data-action="log-ok" data-id="${item.id}">기억났어요</button>
+      <button class="btn big bad" data-action="log-miss" data-id="${item.id}">헷갈려요</button>`;
+  } else {
+    meta = `${esc(item.subject)}${item.unit ? ` · ${esc(item.unit)}` : ''} · ${daysAgoText(item.date)} 틀린 문제`;
+    question = '이 문제를 다시 풀어 보세요.';
+    extra = item.img ? `<img class="wrong-img" src="${item.img}" alt="다시 풀 오답 문제">` : '';
+    answer = item.note ? `지난번에 꼬인 곳: ${esc(item.note)}` : '풀이를 확인해 보세요.';
+    buttons = `
+      <button class="btn big good" data-action="wrong-ok" data-id="${item.id}">맞혔어요</button>
+      <button class="btn big bad" data-action="wrong-miss" data-id="${item.id}">또 틀렸어요</button>`;
+  }
+  return `
+    <section class="recall">
+      <div class="recall-top">
+        <h2>오늘 떠올릴 것</h2>
+        <span class="recall-count">${items.length}개 남음</span>
+      </div>
+      <div class="recall-card">
+        <div class="recall-meta">${meta}</div>
+        <div class="recall-q">${question}</div>
+        ${extra}
+        ${revealed
+    ? `<div class="recall-a">${answer}</div><div class="recall-buttons">${buttons}</div>`
+    : `<button class="btn big primary wide" data-action="reveal" data-id="${item.id}">${kind === 'log' ? '답 보기' : '다 풀었어요 · 확인하기'}</button>`}
+      </div>
+    </section>`;
+}
+
+// 할 공부 한 줄: 무엇을 얼마나 + 어떻게
+function taskLines(task) {
+  const m = task.materialId ? materialById(task.materialId) : null;
+  if (task.type === 'project') return { what: task.detail, how: '' };
+  if (task.type === 'wrongPending') return { what: `쌓인 오답 ${task.amount}문제`, how: '다시 풀기 → 또 틀리면 원인 한 줄' };
+  const start = m && m.nextRange ? `${m.nextRange}부터 ` : '';
+  return { what: `${start}${task.amount}${task.unit}`, how: m ? KIND_METHOD[m.kind] || '' : '' };
+}
+
+function taskForm(task) {
+  const isProblems = ['문제', '회', '지문'].includes(task.unit) && task.type !== 'project';
+  const m = task.materialId ? materialById(task.materialId) : null;
   if (task.type === 'project') {
     return `
       <form class="inline-form" data-form="task" data-id="${task.id}">
-        <div class="row">
-          <div><label>걸린 시간(분)</label><input type="number" name="minutes" min="0" value="${task.minutes}" required></div>
-          <div><label>시간대</label><select name="slot">${options(SLOTS, currentSlot())}</select></div>
-        </div>
+        <div class="row"><div><label>걸린 시간(분)</label><input type="number" name="minutes" min="0" value="${task.minutes}" required></div></div>
         <label class="inline"><input type="checkbox" name="advance" checked> 다음 단계로 넘기기</label>
-        <button class="btn primary" type="submit">기록</button>
+        <button class="btn primary" type="submit">저장</button>
       </form>`;
   }
   return `
@@ -328,98 +418,42 @@ function taskForm(task) {
       <div class="row">
         <div><label>실제로 한 양 (${esc(task.unit)})</label><input type="number" name="amount" min="0" step="any" value="${task.amount}" required></div>
         <div><label>걸린 시간(분)</label><input type="number" name="minutes" min="0" value="${task.minutes}" required></div>
-        ${isProblems ? '<div><label>틀린 개수</label><input type="number" name="wrong" min="0" placeholder="0"></div>' : ''}
-        <div><label>시간대</label><select name="slot">${options(SLOTS, currentSlot())}</select></div>
+        ${isProblems ? '<div><label>틀린 개수 (선택)</label><input type="number" name="wrong" min="0"></div>' : ''}
       </div>
       ${m ? `<label>다음에 시작할 곳 (선택)</label><input name="nextRange" value="${esc(m.nextRange)}" placeholder="예: 3-2 단원, 0431번, p.88">` : ''}
-      <label>메모 (선택)</label><input name="note" placeholder="예: 원의 접선 조건에서 계속 막힘">
-      <label class="inline"><input type="checkbox" name="addReview"${reviewDefault ? ' checked' : ''}> 간격 복습 목록에 넣기 (1·3·7·14·30일 후)</label>
-      <button class="btn primary" type="submit">기록</button>
+      <button class="btn primary" type="submit">저장</button>
     </form>`;
 }
 
-const STATUS_LABEL = { todo: '할 일', done: '완료', partial: '일부', skipped: '건너뜀' };
-
-function taskCard(task, highlight) {
-  const reasons = (task.reasons || []).map((r) => `<span class="tag">${esc(r)}</span>`).join('');
-  const actual = task.actual ? `<div class="meta">실제: ${task.actual.amount != null ? `${task.actual.amount}${esc(task.unit)} · ` : ''}${hm(task.actual.minutes)}${task.amount && task.actual.amount != null ? ` (계획의 ${Math.round((task.actual.amount / task.amount) * 100)}%)` : ''}</div>` : '';
+function taskRow(task, index, isFirst) {
+  const { what, how } = taskLines(task);
+  const done = task.status !== 'todo';
+  const actual = done && task.actual && task.actual.amount != null && task.actual.amount < task.amount
+    ? ` · ${task.actual.amount}${esc(task.unit)}만 함 (남은 건 다음에 다시 나와요)` : '';
+  const why = isFirst && task.reasons && task.reasons.length ? `<div class="todo-why">먼저 하는 이유: ${esc(task.reasons.slice(0, 2).join(', '))}</div>` : '';
   return `
-    <li class="task ${task.status}${highlight ? ' first' : ''}">
-      <div class="task-head">
-        <div>
-          <div class="task-title">${esc(task.title)} <span class="status s-${task.status}">${STATUS_LABEL[task.status]}</span></div>
-          <div>${esc(task.detail)}</div>
-          <div class="meta">예상 ${hm(task.minutes)}${task.unknownTotal ? ' · <span class="warn-text">총량 미입력 (과목 탭에서 입력하면 더 정확해져요)</span>' : ''}</div>
-          ${actual}
-          <div class="reasons">${reasons}</div>
-        </div>
-        ${task.status === 'todo' ? `
-        <div class="actions">
-          <button class="btn small primary" data-action="open-task" data-id="${task.id}">기록</button>
-          <button class="btn small" data-action="skip-task" data-id="${task.id}">건너뛰기</button>
-        </div>` : ''}
+    <li class="todo-item ${task.status}${isFirst ? ' first' : ''}">
+      ${done
+    ? `<span class="todo-check on ${task.status}" aria-label="${task.status === 'done' ? '완료' : '일부만 함'}">${task.status === 'done' ? '✓' : '−'}</span>`
+    : `<button class="todo-check" data-action="done-task" data-id="${task.id}" aria-label="다 했어요"></button>`}
+      <div class="todo-body">
+        <div class="todo-title"><span class="todo-num">${index + 1}</span>${esc(task.title)}</div>
+        <div class="todo-what">${esc(what)}${task.status === 'skipped' ? ' · 못 함 (다음에 다시 나와요)' : actual}</div>
+        ${!done ? `<div class="todo-how">${how ? `${esc(how)} · ` : ''}${hm(task.minutes)}</div>${why}
+        <button class="linklike small" data-action="open-task" data-id="${task.id}">${ui.openForm === task.id ? '닫기' : '계획과 다르게 했어요'}</button>` : ''}
+        ${ui.openForm === task.id ? taskForm(task) : ''}
       </div>
-      ${ui.openForm === task.id ? taskForm(task) : ''}
     </li>`;
-}
-
-function morningSection() {
-  const t = today();
-  const dueLogs = state.logs.filter((l) => l.due && l.due <= t).sort((a, b) => a.due.localeCompare(b.due));
-  const dueWrongs = state.wrongs.filter((w) => w.due && w.due <= t).sort((a, b) => a.due.localeCompare(b.due));
-
-  const logItems = dueLogs.length ? dueLogs.map((l) => `
-    <li class="item">
-      <div>
-        <span class="tag">${esc(l.subject)}</span>
-        <div>${esc(l.text)}</div>
-        <div class="meta">${prettyDate(l.date)}에 공부 · ${l.step + 1}번째 복습</div>
-      </div>
-      <div class="actions">
-        <button class="btn small good" data-action="log-ok" data-id="${l.id}">떠올렸어요</button>
-        <button class="btn small bad" data-action="log-miss" data-id="${l.id}">기억 안 나요</button>
-      </div>
-    </li>`).join('') : '<li class="empty">오늘 다시 볼 진도가 없어요.</li>';
-
-  const wrongItems = dueWrongs.length ? dueWrongs.map((w) => `
-    <li class="item" style="display:block">
-      <div><span class="tag">${esc(w.subject)}</span>${w.unit ? `<span class="tag">${esc(w.unit)}</span>` : ''}${w.trap ? `<span class="tag warn">${esc(w.trap)}</span>` : ''}</div>
-      ${w.img ? `<img class="wrong-img" src="${w.img}" alt="오답 문제 사진">` : ''}
-      ${w.note ? `<details><summary class="meta">지난번 꼬인 지점 (먼저 풀고 열기)</summary><div>${esc(w.note)}</div></details>` : ''}
-      <div class="actions" style="margin-top:8px">
-        <button class="btn small good" data-action="wrong-ok" data-id="${w.id}">맞혔어요</button>
-        <button class="btn small bad" data-action="wrong-miss" data-id="${w.id}">또 틀렸어요</button>
-      </div>
-    </li>`).join('') : '<li class="empty">오늘 다시 풀 오답 사진이 없어요.</li>';
-
-  return `
-    <div class="card">
-      <h2>아침 10분</h2>
-      <p class="sub">등교 전에 이 두 목록만 보고 가요. 책을 펴기 전에 먼저 떠올려 보고 버튼을 누르세요.</p>
-      <h3>다시 볼 진도 (${dueLogs.length})</h3>
-      <ul class="list">${logItems}</ul>
-      <h3>다시 풀 오답 (${dueWrongs.length})</h3>
-      <ul class="list">${wrongItems}</ul>
-    </div>`;
 }
 
 function renderToday() {
   const t = today();
   const plan = state.plans[t];
   const planned = plan.tasks.reduce((a, x) => a + x.minutes, 0);
-  const actual = state.sessions.filter((s) => s.date === t).reduce((a, s) => a + (s.minutes || 0), 0);
-  const doneCount = plan.tasks.filter((x) => x.status === 'done').length;
+  const doneCount = plan.tasks.filter((x) => x.status !== 'todo').length;
   const todo = plan.tasks.filter((x) => x.status === 'todo');
-  const first = todo[0];
-  const rate = planned ? Math.min(100, Math.round((actual / planned) * 100)) : 0;
-
-  const firstCard = first ? `
-    <div class="card hero">
-      <div class="sub" style="margin:0">지금 가장 먼저 할 공부</div>
-      <div class="hero-title">${esc(first.title)}</div>
-      <div>${esc(first.detail)} · ${hm(first.minutes)}</div>
-    </div>` : `
-    <div class="card hero"><div class="hero-title">오늘 계획을 모두 처리했어요</div><div class="sub" style="margin:0">시간이 남으면 "남은 시간으로 다시 계획"을 눌러요.</div></div>`;
+  const rate = plan.tasks.length ? Math.round((doneCount / plan.tasks.length) * 100) : 0;
+  const firstTodo = todo[0];
 
   const materialOptions = state.subjects.map((s) => {
     const mats = state.materials.filter((m) => m.subjectId === s.id && !m.archived);
@@ -427,45 +461,41 @@ function renderToday() {
   }).join('');
 
   return `
-    ${firstCard}
-    <div class="card">
-      <div class="row between">
-        <div>
-          <h2>오늘의 공부 ${prettyDate(t)}</h2>
-          <p class="sub" style="margin:0">확보 시간 ${hm(plan.available)} × 컨디션(${esc(plan.condition)}) × 최근 수행률 ${Math.round(plan.factor * 100)}% → 계획 ${hm(planned)}</p>
-        </div>
-        <div class="rate"><strong>${rate}%</strong><span>${hm(actual)} / ${hm(planned)} · 완료 ${doneCount}/${plan.tasks.length}</span></div>
+    ${recallSection()}
+
+    <section class="card plan-card">
+      <div class="plan-top">
+        <h2>오늘 할 공부</h2>
+        <span class="meta">${doneCount}/${plan.tasks.length} · 약 ${hm(planned)}</span>
       </div>
       <div class="progress"><div style="width:${rate}%"></div></div>
-      <ul class="tasks">${plan.tasks.map((x) => taskCard(x, x === first)).join('') || '<li class="empty">오늘 배정할 공부가 없어요. 과목 탭에서 교재 분량을 확인해 주세요.</li>'}</ul>
-      <details class="replan">
-        <summary>계획이 틀어졌어요 → 남은 시간으로 다시 계획</summary>
-        <form data-form="replan" class="inline-form">
-          <div class="row">
-            <div><label>지금부터 쓸 수 있는 시간(분)</label><input type="number" name="minutes" min="0" value="${Math.max(0, todo.reduce((a, x) => a + x.minutes, 0))}" required></div>
-            <div><label>컨디션</label><select name="condition">${options(['좋음', '보통', '피곤'], plan.condition)}</select></div>
-          </div>
-          <p class="sub">끝낸 과제는 그대로 두고, 나머지를 남은 양·시험일·취약도로 다시 배치해요. 못 한 분량은 내일 계획에 자동으로 넘어가요.</p>
-          <button class="btn primary" type="submit">다시 계획</button>
-        </form>
-      </details>
-    </div>
+      <p class="sub">끝나면 동그라미만 누르세요. 못 한 건 그냥 두면 내일 계획에 자동으로 다시 들어가요.</p>
+      <ol class="todo">${plan.tasks.map((x, i) => taskRow(x, i, x === firstTodo)).join('') || '<li class="empty">오늘 배정할 공부가 없어요.</li>'}</ol>
+    </section>
 
-    ${morningSection()}
+    <details class="card fold">
+      <summary>시간이 부족해요 · 계획 다시 짜기</summary>
+      <form data-form="replan" class="inline-form">
+        <div class="row">
+          <div><label>지금부터 쓸 수 있는 시간(분)</label><input type="number" name="minutes" min="0" value="${Math.max(0, todo.reduce((a, x) => a + x.minutes, 0))}" required></div>
+          <div><label>컨디션</label><select name="condition">${options(['좋음', '보통', '피곤'], plan.condition)}</select></div>
+        </div>
+        <button class="btn primary" type="submit">다시 짜기</button>
+      </form>
+    </details>
 
-    <div class="card">
-      <h2>계획에 없던 공부 기록</h2>
-      <p class="sub">학원 숙제처럼 따로 한 공부도 넣어야 실제 속도와 남은 양이 정확해져요.</p>
-      <form data-form="extra">
+    <details class="card fold">
+      <summary>계획에 없던 공부 기록 (학원 숙제 등)</summary>
+      <form data-form="extra" class="inline-form">
         <label>교재</label><select name="materialId">${materialOptions}</select>
         <div class="row">
           <div><label>한 양</label><input type="number" name="amount" min="0" step="any" required></div>
           <div><label>걸린 시간(분)</label><input type="number" name="minutes" min="0" required></div>
-          <div><label>틀린 개수</label><input type="number" name="wrong" min="0" placeholder="0"></div>
+          <div><label>틀린 개수 (선택)</label><input type="number" name="wrong" min="0"></div>
         </div>
         <div style="margin-top:12px"><button class="btn primary" type="submit">기록</button></div>
       </form>
-    </div>`;
+    </details>`;
 }
 
 // ---------- 화면: 과목 ----------
@@ -725,8 +755,12 @@ function renderReview() {
       <form data-form="log">
         <div class="row">
           <div><label>과목</label><select name="subject">${options(subjectNames)}</select></div>
-          <div style="flex:3 1 260px"><label>범위 / 내용</label><input name="text" placeholder="예: 교과서 p.58~61 원의 방정식" required></div>
+          <div style="flex:3 1 260px"><label>범위 / 내용</label><input name="text" placeholder="예: 교과서 p.58~61 원과 직선의 위치 관계" required></div>
         </div>
+        <label>떠올릴 질문 (선택)</label>
+        <input name="q" placeholder="예: 원과 직선이 두 점에서 만나는 조건은?">
+        <label>답 (선택)</label>
+        <input name="a" placeholder="예: 중심과 직선 사이 거리 < 반지름 (판별식 D > 0)">
         <div style="margin-top:12px"><button class="btn primary" type="submit">기록</button></div>
       </form>
       <h3>최근 복습 목록</h3>
@@ -939,16 +973,34 @@ function syncCard() {
 
 // ---------- 렌더링 ----------
 
+function renderMore() {
+  const links = [
+    ['projects', '수행평가', '마감일과 단계 관리. 마감 7일 전부터 오늘 할 공부에 자동으로 들어가요.'],
+    ['analysis', '분석', '계획한 시간과 실제 시간, 과목별 달성률, 교재별 실제 속도'],
+    ['settings', '설정', '요일별 공부 시간, 동기화, 백업'],
+  ];
+  return links.map(([tab, name, desc]) => `
+    <button class="card subject-card" data-action="go-tab" data-id="${tab}">
+      <strong>${name}</strong>
+      <div class="meta">${desc}</div>
+    </button>`).join('');
+}
+
 const VIEWS = {
-  today: renderToday, subjects: renderSubjects, exam: renderExam, review: renderReview,
+  today: renderToday, subjects: renderSubjects, exam: renderExam, review: renderReview, more: renderMore,
   projects: renderProjects, analysis: renderAnalysis, settings: renderSettings,
 };
+const MORE_TABS = ['projects', 'analysis', 'settings'];
 
 async function render() {
   if (!state) return; // 아직 불러오는 중
   if (ensurePlan()) await save({ touch: false });
   document.getElementById('view').innerHTML = VIEWS[ui.tab]();
-  document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('active', b.dataset.tab === ui.tab));
+  const navTab = MORE_TABS.includes(ui.tab) ? 'more' : ui.tab;
+  document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('active', b.dataset.tab === navTab));
+  if (MORE_TABS.includes(ui.tab)) {
+    document.getElementById('view').insertAdjacentHTML('afterbegin', '<button class="btn small back" data-action="go-tab" data-id="more">← 더보기</button>');
+  }
   const exam = state.settings.examDate;
   const left = exam ? diffDays(today(), exam) : null;
   const dday = document.getElementById('dday');
@@ -1013,16 +1065,27 @@ document.addEventListener('click', async (e) => {
       ui.openForm = ui.openForm === id ? null : id;
       changed = false;
       break;
-    case 'skip-task': {
+    case 'done-task': {
       const task = findTask(id);
-      if (task) task.status = 'skipped';
-      toast('건너뛰었어요. 남은 양은 다음 계획에 다시 배정돼요.');
+      if (!task) return;
+      completeTask(task, { amount: task.amount, minutes: task.minutes });
+      toast('잘했어요!');
       break;
     }
+    case 'go-tab':
+      ui.tab = id;
+      changed = false;
+      window.scrollTo(0, 0);
+      break;
+    case 'reveal':
+      ui.revealed = id;
+      changed = false;
+      break;
     case 'log-ok':
     case 'log-miss': {
       const l = state.logs.find((x) => x.id === id);
       if (l) advance(l, LOG_INTERVALS, action === 'log-ok');
+      ui.revealed = null;
       break;
     }
     case 'wrong-ok':
@@ -1032,6 +1095,7 @@ document.addEventListener('click', async (e) => {
         w.history.push({ date: today(), ok: action === 'wrong-ok' });
         advance(w, WRONG_INTERVALS, action === 'wrong-ok');
       }
+      ui.revealed = null;
       toast(action === 'wrong-ok' ? '좋아요! 간격을 늘렸어요.' : '2일 후에 다시 나와요.');
       break;
     }
@@ -1171,40 +1235,14 @@ document.addEventListener('submit', async (e) => {
   if (kind === 'task') {
     const task = findTask(form.dataset.id);
     if (!task) return;
-    const minutes = num(f.get('minutes'));
-    const slot = f.get('slot');
-    if (task.type === 'review' || task.type === 'wrongPhoto') {
-      recordSession({ type: task.type, minutes, amount: 0, slot, taskId: task.id });
-      task.actual = { amount: null, minutes };
-      task.status = 'done';
-    } else if (task.type === 'project') {
-      recordSession({ type: 'project', subjectId: task.subjectId, minutes, amount: 0, slot, taskId: task.id });
-      task.actual = { amount: null, minutes };
-      task.status = 'done';
-      const p = state.projects.find((x) => x.id === task.projectId);
-      if (p && f.get('advance')) p.stage = Math.min(PROJECT_STAGES.length - 1, p.stage + 1);
-    } else {
-      const amount = num(f.get('amount'));
-      const wrongRaw = f.get('wrong');
-      const res = recordSession({
-        type: task.type,
-        materialId: task.materialId,
-        subjectId: task.subjectId,
-        taskId: task.id,
-        planned: { amount: task.amount, minutes: task.minutes },
-        amount,
-        minutes,
-        wrong: wrongRaw === null || wrongRaw === '' ? null : num(wrongRaw),
-        slot,
-        note: (f.get('note') || '').trim(),
-        nextRange: (f.get('nextRange') || '').trim(),
-        addReview: !!f.get('addReview'),
-      });
-      task.actual = { amount, minutes };
-      task.status = amount >= task.amount ? 'done' : amount > 0 ? 'partial' : 'skipped';
-      msg = res.msg;
-      if (task.status === 'partial') msg += ` 계획의 ${Math.round((amount / task.amount) * 100)}%를 했어요. 남은 양은 다시 배정돼요.`;
-    }
+    const wrongRaw = f.get('wrong');
+    msg = completeTask(task, {
+      amount: task.type === 'project' ? 1 : num(f.get('amount')),
+      minutes: num(f.get('minutes')),
+      wrong: wrongRaw === null || wrongRaw === '' ? null : num(wrongRaw),
+      nextRange: (f.get('nextRange') || '').trim(),
+      advance: !!f.get('advance'),
+    });
     ui.openForm = null;
   } else if (kind === 'replan') {
     replan(num(f.get('minutes')), f.get('condition'));
@@ -1270,9 +1308,10 @@ document.addEventListener('submit', async (e) => {
   } else if (kind === 'log') {
     state.logs.push({
       id: uid(), created: Date.now(), date: t, subject: f.get('subject'), kind: '수업',
-      text: f.get('text').trim(), step: 0, due: addDays(t, LOG_INTERVALS[0]),
+      text: f.get('text').trim(), q: (f.get('q') || '').trim(), a: (f.get('a') || '').trim(),
+      step: 0, due: addDays(t, LOG_INTERVALS[0]),
     });
-    msg = '기록했어요. 내일 아침 목록에 나와요.';
+    msg = '기록했어요. 내일 "오늘 떠올릴 것"에 나와요.';
   } else if (kind === 'project') {
     state.projects.push({
       id: uid(), title: f.get('title').trim(), subjectId: f.get('subjectId'), due: f.get('due'), stage: 0,
