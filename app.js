@@ -58,7 +58,7 @@ function freshState() {
 }
 
 let state;
-const ui = { revealed: null, tab: 'today', openForm: null, openBook: null, setup: false };
+const ui = { revealed: null, tab: 'today', openForm: null, openBook: null, openSubject: null, setup: false };
 
 async function load() {
   let saved = null;
@@ -296,6 +296,7 @@ function recordSession(data) {
   };
   state.sessions.push(session);
   const out = applySession(state, session);
+  if (session.materialId) nextPassIfDone(materialById(session.materialId));
 
   const m = session.materialId ? materialById(session.materialId) : null;
   if (m && data.nextRange) m.nextRange = data.nextRange;
@@ -312,6 +313,17 @@ function recordSession(data) {
   if (out.speed && out.speed.after > out.speed.before * 1.05) msg = '생각보다 오래 걸렸네요. 다음엔 이 교재 양을 조금 줄일게요.';
   else if (out.speed && out.speed.after < out.speed.before * 0.95) msg = '생각보다 빨랐어요. 다음엔 이 교재 양을 조금 늘릴게요.';
   return { session, msg };
+}
+
+// 개념 책은 1회독을 끝내면 2회독, 3회독으로 넘어간다
+function nextPassIfDone(m) {
+  if (!m || m.mode === 'weekly' || !m.total || (m.done || 0) < m.total) return;
+  const s = subjectById(m.subjectId);
+  const wins = bookWindows(state, m, s, today());
+  if ((m.pass || 1) >= wins.length) return;
+  m.pass = (m.pass || 1) + 1;
+  m.done = 0;
+  m.passStarted = today();
 }
 
 // 할 공부 하나를 끝냈을 때. 교과서·암기·지문은 복습 카드도 자동으로 만든다
@@ -597,7 +609,7 @@ ${books}
 3. "wrong" 틀린 문제 하나를 크게 찍은 것
    {"type":"wrong","photo":번호,"subject":과목,"unit":"단원","why":"이 문제에서 놓치기 쉬운 점 한 줄"}
 4. "exam" 시험 범위·시험 시간표 공지
-   {"type":"exam","photo":번호,"exams":[{"subject":과목,"date":"YYYY-MM-DD 또는 null","range":"범위 한 줄","endPage":교과서 마지막 쪽 숫자 또는 null}]}
+   {"type":"exam","photo":번호,"exams":[{"subject":과목,"date":"YYYY-MM-DD 또는 null","range":"범위 한 줄","startPage":교과서 시작 쪽 숫자 또는 null,"endPage":교과서 마지막 쪽 숫자 또는 null}]}
 5. "book" 책 표지·목차·맨 뒤쪽
    {"type":"book","photo":번호,"subject":과목,"book":"책 이름","unit":"문제" 또는 "쪽","total":전체 문제 수 또는 쪽 수 (모르면 null)}
 6. 알 수 없으면 {"type":"other","photo":번호}
@@ -736,9 +748,11 @@ function applyPhotoItems(items, jpegs) {
       const m = pageMaterial(s.id);
       const end = Number(x.endPage);
       if (m && end > 0) {
-        m.done = Math.max(m.done || 0, end);
+        const from = m.rangeFrom || 1;
+        if (end > bookTo(m)) m.total = end - from + 1;
+        m.done = Math.max(m.done || 0, Math.min(m.total, end - from + 1));
         m.nextRange = `p.${end + 1}`;
-        if (m.total && m.done > m.total) m.total = m.done;
+        nextPassIfDone(m);
       }
       s.lastStudied = t;
       lines.push(`${s.name} · ${label || '오늘 배운 곳'} → 복습 카드 ${Math.max(1, cards.length)}장`);
@@ -753,7 +767,13 @@ function applyPhotoItems(items, jpegs) {
       } else {
         recordSession({ materialId: m.id, subjectId: s.id, amount: solved, minutes: Math.round(solved * m.minPerUnit), wrong, auto: true });
       }
-      if (Number(x.last) > 0) m.nextRange = `${Math.round(Number(x.last)) + 1}번`;
+      if (Number(x.last) > 0) {
+        const last = Math.round(Number(x.last));
+        m.nextRange = `${last + 1}번`;
+        // 문제 번호를 알면 진도를 번호에 맞춘다
+        if (m.unit === '문제' && last >= (m.rangeFrom || 1)) m.done = Math.min(m.total || last, Math.max(m.done || 0, last - (m.rangeFrom || 1) + 1));
+        nextPassIfDone(m);
+      }
       lines.push(`${s.name} · ${m.name} ${solved}문제${wrong != null ? ` (틀림 ${wrong})` : ''} → 진도에 반영`);
     } else if (x.type === 'wrong' && s) {
       const img = jpegs[(Number(x.photo) || 1) - 1] || '';
@@ -772,7 +792,9 @@ function applyPhotoItems(items, jpegs) {
         if (e.range) es.examRange = String(e.range);
         const m = pageMaterial(es.id);
         if (m && Number(e.endPage) > 0) {
-          m.total = Number(e.endPage);
+          const from = Number(e.startPage) > 0 ? Number(e.startPage) : (m.approxTotal ? 1 : m.rangeFrom || 1);
+          m.rangeFrom = from;
+          m.total = Math.max(1, Number(e.endPage) - from + 1);
           m.approxTotal = false;
         }
         lines.push(`시험 · ${es.name}${es.examDate ? ` ${prettyDate(es.examDate)}` : ''}${e.range ? ` · ${e.range}` : ''}`);
@@ -938,19 +960,6 @@ function phasesFor(examDate) {
   })).filter((p) => !p.past || left < 0);
 }
 
-// 이번 주(7일)에 이 책을 얼마나 하면 되는지
-function weeklyGoal(m, subject) {
-  const t = today();
-  if (m.mode === 'weekly') return { text: `매주 ${m.weekly}${m.unit}` };
-  const rem = remaining(state, m, t);
-  if (!rem) return { text: '다 했어요', done: true };
-  const left = daysLeftFor(state, subject, t);
-  const days = left == null ? 28 : deadlineDays(m, left);
-  const perWeek = Math.min(rem, Math.ceil((rem / days) * 7));
-  const from = m.done || 0;
-  return { text: `${perWeek}${m.unit}`, sub: m.approxTotal ? '' : `${from} → ${from + perWeek} / ${m.total}` };
-}
-
 // 과목별 선생님 한마디: 기록에서 보이는 가장 중요한 한 가지
 function teacherNote(s) {
   const t = today();
@@ -964,133 +973,175 @@ function teacherNote(s) {
   return guideFor(s.name) || '';
 }
 
-function renderPlan() {
-  const t = today();
-  const exam = state.settings.examDate;
-  const left = exam ? diffDays(t, exam) : null;
+// ---------- 계획표: 과외 선생님이 처음에 주는 공부 계획표 ----------
+// 시험 날짜 → 과목별 책 → 책마다 범위 · 순서 · 기간 · 하루 분량 · 방법
 
-  const examRows = state.subjects.map((s) => `
-    <div class="exam-row">
-      <span class="exam-subject">${esc(s.name)}</span>
-      <input type="date" value="${esc(s.examDate || exam || '')}" data-action="exam-date" data-id="${s.id}" aria-label="${esc(s.name)} 시험일">
-      ${s.examRange ? `<span class="meta exam-range">${esc(s.examRange)}</span>` : ''}
-    </div>`).join('');
-
-  const phases = exam && left >= 0 ? phasesFor(exam).map((p) => `
-    <li class="phase-item${p.now ? ' now' : ''}">
-      <div class="phase-name">${esc(p.name)}${p.now ? ' <span class="tag">지금</span>' : ''}</div>
-      <div class="meta">${prettyDate(p.from)} ~ ${prettyDate(p.to)}</div>
-      <div>${esc(p.desc)}</div>
-    </li>`).join('') : '';
-
-  const subjects = state.subjects.map((s) => {
-    const mats = state.materials.filter((m) => m.subjectId === s.id && !m.archived && isActive(state, m, t));
-    if (!mats.length) return '';
-    const goals = mats.map((m) => {
-      const g = weeklyGoal(m, s);
-      return `<li><span>${esc(m.name)}</span><strong>${esc(g.text)}</strong>${g.sub ? `<span class="meta">${esc(g.sub)}</span>` : ''}</li>`;
-    }).join('');
-    const note = teacherNote(s);
-    const snap = subjectSnapshot(state, s, t);
-    return `
-      <div class="subject-plan">
-        <div class="subject-plan-head"><strong>${esc(s.name)}</strong>${snap.status !== '안정' ? `<span class="badge ${snap.status === '위험' ? 'risk' : 'caution'}">${snap.status === '위험' ? '신경 쓰기' : '조금 주의'}</span>` : ''}</div>
-        <ul class="goals">${goals}</ul>
-        ${note ? `<p class="teacher-note">${esc(note)}</p>` : ''}
-      </div>`;
-  }).join('');
-
-  const totalNeed = state.subjects.reduce((a, s) => a + subjectSnapshot(state, s, t).need, 0);
-  let avail = 0;
-  if (left != null && left > 0) {
-    const f = completionFactor(state, t);
-    for (let i = 0; i < left; i++) avail += defaultAvailable(state, addDays(t, i)) * f;
-  }
-  const enough = left != null && left > 0
-    ? (totalNeed <= avail
-      ? `<p class="good-text">지금 계획대로 하면 시험 전에 다 끝낼 수 있어요. (남은 공부 약 ${hm(totalNeed)}, 쓸 수 있는 시간 약 ${hm(avail)})</p>`
-      : `<p class="warn-text">시간이 약 ${hm(totalNeed - avail)} 모자라요. 매일 계획은 중요한 과목과 약한 부분부터 채워요.</p>`)
-    : '';
-
-  return `
-    <section class="card">
-      <h2>${left != null && left >= 0 ? `이번 시험까지 ${left}일` : '이번 시험 공부 계획'}</h2>
-      ${enough}
-      ${phases ? `<ol class="phases">${phases}</ol>` : '<p class="sub">시험 날짜를 넣으면 시험까지 단계별 계획을 보여드려요.</p>'}
-    </section>
-
-    <section class="card">
-      <h2>이번 주 목표</h2>
-      <p class="sub">매일 할 양은 오늘 화면에 알아서 나눠져요. 여기서는 큰 그림만 보세요.</p>
-      ${subjects}
-    </section>
-
-    <section class="card">
-      <h2>시험 날짜</h2>
-      <p class="sub">과목마다 날짜가 다르면 고쳐 주세요. 시험 시간표나 범위 공지를 사진으로 올리면 알아서 채워져요.</p>
-      ${examRows}
-    </section>
-    ${photoCard(true)}`;
+function bookTo(m) {
+  return (m.rangeFrom || 1) + (m.total || 0) - 1;
 }
 
-// ---------- 내 책 ----------
+function rangeText(m) {
+  const from = m.rangeFrom || 1;
+  if (m.mode === 'weekly') return `매주 ${m.weekly}${m.unit}`;
+  if (m.unit === '쪽') return `p.${from}~${bookTo(m)}`;
+  if (m.unit === '문제') return `${from}~${bookTo(m)}번`;
+  if (m.unit === 'Day') return `Day ${from}~${bookTo(m)}`;
+  return `${m.total}${m.unit}`;
+}
 
-function bookRow(m) {
+function posText(m) {
+  if (m.mode === 'weekly') return '';
+  if (!m.done) return '시작 전';
+  const at = (m.rangeFrom || 1) + m.done - 1;
+  if (m.unit === '쪽') return `p.${at}까지`;
+  if (m.unit === '문제') return `${at}번까지`;
+  if (m.unit === 'Day') return `Day ${at}까지`;
+  return `${m.done}${m.unit} 함`;
+}
+
+function amountText(n, m) {
+  if (m.unit === '쪽') return `${n}쪽`;
+  if (m.unit === '문제') return `${n}문제`;
+  return `${n}${m.unit}`;
+}
+
+const PASS_LABEL = ['', '1회독', '2회독', '3회독'];
+const ROLE_ORDER = { concept: 0, basic: 1, advanced: 2, past: 3, review: 4, weekly: 5 };
+
+function syllabusRows(s) {
   const t = today();
-  const open = ui.openBook === m.id;
-  let bar = '';
-  let line;
-  if (m.mode === 'weekly') {
-    const doneW = m.weekly - remaining(state, m, t);
-    bar = `<div class="progress thin"><div style="width:${m.weekly ? Math.min(100, (doneW / m.weekly) * 100) : 0}%"></div></div>`;
-    line = `이번 주 ${doneW}/${m.weekly}${m.unit}`;
-  } else {
-    const ratio = m.total ? Math.min(1, (m.done || 0) / m.total) : 0;
-    bar = `<div class="progress thin"><div style="width:${ratio * 100}%"></div></div>`;
-    line = `${pct(ratio)}${m.nextRange ? ` · 다음: ${esc(m.nextRange)}` : ''}`;
-  }
-  const controls = open ? `
-    <div class="book-controls">
-      ${m.mode === 'weekly' ? '' : `
-      <div class="meta">지금 어디까지 했어요?</div>
-      <div class="chips">${[[0, '처음'], [0.2, '조금'], [0.5, '절반'], [0.85, '거의 다'], [1, '다 함']].map(([v, l]) => `<button class="chip-btn" data-action="book-progress" data-id="${m.id}" data-v="${v}">${l}</button>`).join('')}</div>
-      <form data-form="book-exact" data-id="${m.id}" class="exact">
-        <label>정확히 알면: 지금까지 <input type="number" name="done" min="0" value="${m.done || 0}"></label>
-        <label>/ 전체 <input type="number" name="total" min="1" value="${m.total || ''}"></label>
-        <span class="meta">${esc(m.unit)}</span>
-        <button class="btn small" type="submit">저장</button>
-      </form>`}
-      <button class="linklike small" data-action="book-remove" data-id="${m.id}">이 책은 안 써요</button>
-    </div>` : '';
+  const rows = [];
+  state.materials.filter((m) => m.subjectId === s.id && !m.archived).forEach((m) => {
+    const role = roleOf(m);
+    const wins = bookWindows(state, m, s, t);
+    const cur = m.pass || 1;
+    wins.forEach((w) => {
+      let status;
+      if (w.pass < cur) status = 'done';
+      else if (w.pass === cur) status = remaining(state, m, t) === 0 && m.mode !== 'weekly' ? 'done' : t >= currentWindow(state, m, s, t).start ? 'now' : 'next';
+      else status = 'next';
+      let perDay = '';
+      if (m.mode === 'weekly') perDay = `매주 ${m.weekly}${m.unit}`;
+      else if (status === 'now') perDay = `하루 ${amountText(Math.ceil((remaining(state, m, t) || 0) / deadlineDays(state, m, s, t)), m)}`;
+      else if (status === 'next') {
+        const left = w.pass === cur ? remaining(state, m, t) || 0 : m.total || 0;
+        perDay = `하루 ${amountText(Math.ceil(left / Math.max(1, diffDays(w.start, w.end) + 1)), m)}`;
+      }
+      rows.push({ m, w, role, status, perDay, start: status === 'now' ? currentWindow(state, m, s, t).start : w.start });
+    });
+  });
+  rows.sort((a, b) => a.start.localeCompare(b.start) || ROLE_ORDER[a.role] - ROLE_ORDER[b.role]);
+  return rows;
+}
+
+function syllabusRow(r, i) {
+  const { m, w, role, status, perDay } = r;
+  const open = ui.openBook === m.id && status !== 'done' && w.pass === (m.pass || 1);
+  const passText = role === 'concept' && m.mode !== 'weekly' ? ` ${PASS_LABEL[w.pass] || ''}` : '';
+  const ratio = m.total ? Math.min(1, (m.done || 0) / m.total) : 0;
+  const statusText = { done: '끝', now: '지금', next: '예정' }[status];
   return `
-    <li class="book${open ? ' open' : ''}">
-      <button class="book-head" data-action="book-open" data-id="${m.id}">
-        <span class="book-name">${esc(m.name)}${m.activeBeforeExam && !isActive(state, m, t) ? ` <span class="meta">· 시험 ${m.activeBeforeExam}일 전부터</span>` : ''}</span>
-        <span class="book-line">${line}</span>
-      </button>
-      ${bar}
-      ${controls}
+    <li class="syl ${status}${open ? ' open' : ''}">
+      <span class="syl-num">${i + 1}</span>
+      <div class="syl-body">
+        <button class="syl-head" data-action="book-open" data-id="${m.id}">
+          <span class="syl-title">${esc(m.name)}${passText} <span class="syl-role">${esc(ROLE_LABEL[role])}</span></span>
+          <span class="syl-status s-${status}">${statusText}</span>
+        </button>
+        <div class="syl-range">${esc(rangeText(m))}${status === 'now' && posText(m) ? ` · 지금 ${esc(posText(m))}` : ''}${m.approxTotal ? ' · <span class="warn-text">범위 정하기</span>' : ''}</div>
+        <div class="syl-when">${m.mode === 'weekly' ? '시험 전까지' : `${prettyDate(r.start)} ~ ${prettyDate(w.end)}`}${perDay ? ` · <strong>${esc(perDay)}</strong>` : ''}</div>
+        ${status === 'now' && m.mode !== 'weekly' ? `<div class="progress thin"><div style="width:${ratio * 100}%"></div></div>` : ''}
+        ${open ? bookEditor(m) : ''}
+      </div>
     </li>`;
 }
 
-function renderBooks() {
-  const groups = state.subjects.map((s) => {
-    const mats = state.materials.filter((m) => m.subjectId === s.id && !m.archived);
+function bookEditor(m) {
+  const unitWord = m.unit === '쪽' ? '쪽' : m.unit === '문제' ? '번' : m.unit;
+  const at = m.done ? (m.rangeFrom || 1) + m.done - 1 : '';
+  return `
+    <form class="book-edit" data-form="book-edit" data-id="${m.id}">
+      ${m.mode === 'weekly' ? `
+      <label>매주 <input type="number" name="weekly" min="0" value="${m.weekly}"> ${esc(m.unit)}</label>` : `
+      <div class="edit-line"><span>범위</span><input type="number" name="from" min="0" value="${m.rangeFrom || 1}"><span>~</span><input type="number" name="to" min="1" value="${bookTo(m)}"><span>${esc(unitWord)}</span></div>
+      <div class="edit-line"><span>지금</span><input type="number" name="at" min="0" value="${at}" placeholder="안 함"><span>${esc(unitWord)}까지 했어요</span></div>`}
+      <div class="edit-line"><span>이 책은</span>${chips(`role-${m.id}`, ROLES.filter((r) => r !== 'weekly').map((r) => [r, ROLE_LABEL[r]]), roleOf(m))}</div>
+      <div class="edit-actions">
+        <button class="btn primary" type="submit">저장</button>
+        <button class="linklike small" type="button" data-action="book-remove" data-id="${m.id}">이 책은 안 써요</button>
+      </div>
+    </form>`;
+}
+
+function examHeader() {
+  const t = today();
+  const exam = state.settings.examDate;
+  const left = exam ? diffDays(t, exam) : null;
+  const dates = state.subjects.map((s) => ({ s, d: s.examDate || exam })).filter((x) => x.d).sort((a, b) => a.d.localeCompare(b.d));
+  const last = dates.length ? dates[dates.length - 1].d : null;
+  const phase = exam && left >= 0 ? phasesFor(exam).find((p) => p.now) : null;
+  const editors = state.subjects.map((s) => `
+    <div class="exam-row">
+      <span class="exam-subject">${esc(s.name)}</span>
+      <input type="date" value="${esc(s.examDate || exam || '')}" data-action="exam-date" data-id="${s.id}" aria-label="${esc(s.name)} 시험일">
+      <input class="exam-range-input" value="${esc(s.examRange || '')}" data-action="exam-range" data-id="${s.id}" placeholder="시험 범위 (예: 교과서 p.10~96, 학습지 1~6)" aria-label="${esc(s.name)} 시험 범위">
+    </div>`).join('');
+  return `
+    <section class="card exam-head">
+      <div class="exam-top">
+        <div>
+          <div class="meta">다음 시험</div>
+          <div class="exam-when">${exam ? `${prettyDate(dates[0] ? dates[0].d : exam)}${last && last !== exam ? ` ~ ${prettyDate(last)}` : ''}` : '날짜를 넣어 주세요'}</div>
+        </div>
+        ${left != null && left >= 0 ? `<div class="exam-dday">D-${left || 'Day'}</div>` : ''}
+      </div>
+      ${dates.length ? `<div class="exam-chips">${dates.map(({ s, d }) => `<span class="exam-chip"><strong>${esc(s.name)}</strong> ${prettyDate(d)}</span>`).join('')}</div>` : ''}
+      ${phase ? `<div class="phase-now"><strong>${esc(phase.name)}</strong> (~${prettyDate(phase.to)}) · ${esc(phase.desc)}</div>` : ''}
+      <details class="exam-edit"${exam ? '' : ' open'}>
+        <summary>시험 날짜와 범위 고치기</summary>
+        <p class="sub">공지 사진을 올리면 알아서 채워져요. 직접 쓰려면 아래에 쓰세요.</p>
+        ${editors}
+      </details>
+    </section>`;
+}
+
+function renderSyllabus() {
+  const t = today();
+  const order = state.subjects.slice().sort((a, b) => (a.examDate || state.settings.examDate || '9').localeCompare(b.examDate || state.settings.examDate || '9'));
+  const cards = order.map((s) => {
+    const rows = syllabusRows(s);
+    const exam = s.examDate || state.settings.examDate;
+    const left = exam ? diffDays(t, exam) : null;
+    const note = teacherNote(s);
+    const pending = s.wrongPending || 0;
+    const wrongsDue = state.wrongs.filter((w) => w.subject === s.name && w.due).length;
+    const now = rows.filter((r) => r.status === 'now');
+    const nowText = now.length
+      ? now.map((r) => `${r.m.name.replace(/\s*\(.*?\)/g, '')} ${!posText(r.m) || posText(r.m) === '시작 전' ? '' : `${posText(r.m)} · `}${r.perDay}`).join(' / ')
+      : '지금 할 책이 없어요';
     return `
-      <section class="card">
-        <h2>${esc(s.name)}</h2>
-        <ul class="books">${mats.map(bookRow).join('') || '<li class="empty">책이 없어요.</li>'}</ul>
+      <details class="card subject-syl"${ui.openSubject === s.id ? ' open' : ''} data-subject="${s.id}">
+        <summary class="syl-subject">
+          <span class="syl-subject-top"><h2>${esc(s.name)}</h2><span class="meta">${exam ? `${prettyDate(exam)}${left != null && left >= 0 ? ` · D-${left}` : ''}` : '시험일 미정'}</span></span>
+          <span class="syl-now">지금: ${esc(nowText)}</span>
+        </summary>
+        <div class="syl-exam-range">시험 범위: ${s.examRange ? esc(s.examRange) : '<span class="meta">아직 몰라요 · 공지 나오면 사진 올리기</span>'}</div>
+        <ol class="syllabus">${rows.map(syllabusRow).join('') || '<li class="empty">책이 없어요.</li>'}</ol>
+        <div class="syl-extra">
+          <div><strong>오답 정리</strong> · 틀린 문제는 사진으로 올리면 2·7·14·30일 뒤 다시 나와요.${pending + wrongsDue ? ` 지금 다시 볼 문제 ${pending + wrongsDue}개.` : ''}</div>
+          ${note ? `<div><strong>방법</strong> · ${esc(note)}</div>` : ''}
+        </div>
         <form data-form="add-book" data-id="${s.id}" class="add-book-form">
           <input name="name" placeholder="+ 책 추가 (이름만)" aria-label="${esc(s.name)} 책 추가">
           <button class="btn small" type="submit">추가</button>
         </form>
-      </section>`;
+      </details>`;
   }).join('');
-  const approx = state.materials.some((m) => !m.archived && m.approxTotal);
   return `
-    <p class="sub">진도는 공부를 끝낸 날과 사진으로 알아서 올라가요. 틀린 데가 있을 때만 책을 눌러 고쳐 주세요.${approx ? ' 전체 분량을 모르는 책은 보통 분량으로 잡아 두었어요. 목차나 맨 뒤쪽을 사진으로 올리면 정확해져요.' : ''}</p>
+    ${examHeader()}
+    <p class="sub">과목을 누르면 책마다 범위 · 순서 · 기간 · 하루 분량이 나와요. 책을 누르면 범위와 지금 위치를 고칠 수 있어요.</p>
     ${photoCard(true)}
-    ${groups}`;
+    ${cards}`;
 }
 
 // ---------- 더보기 ----------
@@ -1367,7 +1418,7 @@ function syncCard() {
 // ---------- 렌더링 ----------
 
 const VIEWS = {
-  today: renderToday, plan: renderPlan, books: renderBooks, more: renderMore,
+  today: renderToday, plan: renderSyllabus, more: renderMore,
   wrongs: renderWrongs, cards: renderCards, projects: renderProjects, analysis: renderAnalysis, settings: renderSettings,
 };
 const MORE_TABS = ['wrongs', 'cards', 'projects', 'analysis', 'settings'];
@@ -1518,7 +1569,7 @@ document.addEventListener('click', async (e) => {
       ui.openBook = ui.openBook === id ? null : id;
       changed = false;
       break;
-    case 'book-progress': {
+    case 'book-progress-unused': {
       const m = materialById(id);
       if (!m) return;
       m.done = Math.round((m.total || 0) * Number(el.dataset.v));
@@ -1574,6 +1625,14 @@ document.addEventListener('click', async (e) => {
   await render();
 });
 
+document.addEventListener('toggle', (e) => {
+  const d = e.target;
+  if (d.matches && d.matches('details.subject-syl')) {
+    if (d.open) ui.openSubject = d.dataset.subject;
+    else if (ui.openSubject === d.dataset.subject) ui.openSubject = null;
+  }
+}, true);
+
 document.addEventListener('change', async (e) => {
   const el = e.target;
   const action = el.dataset.action;
@@ -1592,6 +1651,13 @@ document.addEventListener('change', async (e) => {
     refreshUntouchedPlan();
     await save();
     renderWhenIdle();
+    return;
+  }
+  if (action === 'exam-range') {
+    const s = subjectById(el.dataset.id);
+    if (!s) return;
+    s.examRange = el.value.trim();
+    await save();
     return;
   }
   if (action === 'proj-field') {
@@ -1674,15 +1740,23 @@ document.addEventListener('submit', async (e) => {
   } else if (kind === 'replan') {
     replan(num(f.get('minutes'), 60), state.plans[t].condition || '보통');
     msg = '남은 시간에 맞춰 다시 짰어요.';
-  } else if (kind === 'book-exact') {
+  } else if (kind === 'book-edit') {
     const m = materialById(form.dataset.id);
     if (!m) return;
-    const total = num(f.get('total'), 0);
-    if (total > 0) {
-      m.total = total;
+    if (m.mode === 'weekly') {
+      m.weekly = Math.max(0, num(f.get('weekly'), m.weekly));
+    } else {
+      const from = Math.max(0, num(f.get('from'), 1));
+      const to = Math.max(from, num(f.get('to'), from));
+      m.rangeFrom = from;
+      m.total = to - from + 1;
       m.approxTotal = false;
+      const atRaw = f.get('at');
+      m.done = atRaw === '' || atRaw === null ? 0 : Math.max(0, Math.min(m.total, num(atRaw) - from + 1));
     }
-    m.done = Math.max(0, num(f.get('done')));
+    const role = f.get(`role-${m.id}`);
+    if (role) m.role = role;
+    nextPassIfDone(m);
     ui.openBook = null;
     refreshUntouchedPlan();
   } else if (kind === 'add-book') {

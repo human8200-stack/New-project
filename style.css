@@ -527,3 +527,52 @@ button.bad.big { background: var(--warn-soft); }
 .add-book-form { display: flex; gap: 8px; margin-top: 10px; }
 .add-book-form input { flex: 1; min-width: 0; }
 label.photo-pick { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; border-radius: 12px; min-height: 52px; cursor: pointer; }
+
+/* ---------- 계획표 ---------- */
+
+.exam-head { border: 2px solid var(--accent); }
+.exam-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.exam-when { font-size: 20px; font-weight: 800; }
+.exam-dday { font-size: 28px; font-weight: 800; color: var(--warn); font-variant-numeric: tabular-nums; }
+.exam-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.exam-chip { font-size: 14px; background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; }
+.phase-now { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: var(--accent-soft); font-size: 15px; }
+.exam-edit { margin-top: 10px; }
+.exam-edit summary { color: var(--muted); font-size: 14px; }
+.exam-range-input { flex: 1 1 100%; font-size: 15px; padding: 8px 10px; }
+
+.syl-subject { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.syl-exam-range { margin: 4px 0 10px; font-size: 15px; }
+.syllabus { list-style: none; margin: 0; padding: 0; counter-reset: none; }
+.syl { display: flex; gap: 10px; padding: 12px 0; border-top: 1px solid var(--line); }
+.syl:first-child { border-top: 0; }
+.syl-num { flex: 0 0 24px; height: 24px; border-radius: 50%; background: var(--bg); border: 1px solid var(--line); font-size: 13px; display: inline-flex; align-items: center; justify-content: center; color: var(--muted); font-variant-numeric: tabular-nums; margin-top: 1px; }
+.syl.now .syl-num { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+.syl.done { opacity: 0.55; }
+.syl.done .syl-num { background: var(--accent-soft); color: var(--ok); }
+.syl-body { flex: 1; min-width: 0; }
+.syl-head { width: 100%; display: flex; justify-content: space-between; gap: 8px; align-items: baseline; border: 0; background: none; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.syl-title { font-weight: 700; min-width: 0; }
+.syl-role { font-weight: 400; font-size: 13px; color: var(--muted); }
+.syl-status { font-size: 12px; font-weight: 700; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+.s-now { background: var(--accent); color: #fff; }
+.s-next { background: var(--line); color: var(--muted); }
+.s-done { background: var(--accent-soft); color: var(--ok); }
+.syl-range { font-size: 15px; margin-top: 2px; }
+.syl-when { font-size: 14px; color: var(--muted); margin-top: 2px; }
+.syl-when strong { color: var(--text); }
+.syl-extra { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: var(--bg); font-size: 14px; display: flex; flex-direction: column; gap: 6px; }
+
+.book-edit { margin-top: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); display: flex; flex-direction: column; gap: 10px; }
+.edit-line { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 15px; }
+.edit-line > span:first-child { flex: 0 0 48px; color: var(--muted); }
+.edit-line input[type="number"] { width: 84px; padding: 6px 8px; background: var(--card); }
+.edit-actions { display: flex; gap: 12px; align-items: center; }
+details.subject-syl > summary { list-style: none; cursor: pointer; display: flex; flex-direction: column; gap: 4px; }
+details.subject-syl > summary::-webkit-details-marker { display: none; }
+.syl-subject-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.syl-subject-top h2 { margin: 0; }
+.syl-subject-top h2::after { content: " ▸"; color: var(--muted); font-size: 14px; }
+details[open] .syl-subject-top h2::after { content: " ▾"; }
+.syl-now { font-size: 15px; color: var(--accent); }
+details.subject-syl[open] > summary { margin-bottom: 4px; }

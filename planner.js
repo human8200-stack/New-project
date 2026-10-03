@@ -106,12 +106,55 @@ function daysLeftFor(state, subject, today) {
   return n >= 0 ? n : null;
 }
 
+// ---------- 공부 계획표: 책마다 역할과 기간 ----------
+// 과외 선생님 순서: 교과서 개념 → 기본 문제집 → 심화(업그레이드) → 기출 → 반복(2·3회독)
+
+const ROLES = ['concept', 'basic', 'advanced', 'past', 'review', 'weekly'];
+const ROLE_LABEL = { concept: '개념', basic: '기본 문제', advanced: '심화 (업그레이드)', past: '기출', review: '오답', weekly: '매주' };
+
+function roleOf(m) {
+  if (m.role) return m.role;
+  if (m.mode === 'weekly') return 'weekly';
+  if (['교과서', '암기', '단어'].includes(m.kind)) return 'concept';
+  if (m.kind === '기출' || m.kind === '지문') return 'past';
+  if (m.kind === '오답') return 'review';
+  if (/고쟁이|일품|블랙라벨|심화|최고/.test(m.name)) return 'advanced';
+  return 'basic';
+}
+
+// 책의 회독별 기간. 시험일을 모르면 앞으로 4주를 한 기간으로 본다.
+function bookWindows(state, m, subject, today) {
+  const exam = examDateFor(state, subject);
+  if (!exam || exam < today) return [{ pass: 1, start: today, end: addDays(today, 27) }];
+  const at = (n) => addDays(exam, -n);
+  const role = roleOf(m);
+  const hasAdvanced = state.materials.some((x) => x.subjectId === m.subjectId && !x.archived && roleOf(x) === 'advanced');
+  let list;
+  if (role === 'concept') list = [[1, today, at(22)], [2, at(14), at(8)], [3, at(3), at(1)]];
+  else if (role === 'basic') list = [[1, today, hasAdvanced ? at(22) : at(15)]];
+  else if (role === 'advanced') list = [[1, at(21), at(11)]];
+  else if (role === 'past') list = [[1, m.kind === '지문' ? at(14) : at(10), at(3)]];
+  else list = [[1, today, at(1)]];
+  return list.map(([pass, start, end]) => {
+    const e = end < today ? today : end;
+    return { pass, start: start > e ? e : start, end: e };
+  });
+}
+
+function currentWindow(state, m, subject, today) {
+  const wins = bookWindows(state, m, subject, today);
+  const w = wins[Math.min((m.pass || 1), wins.length) - 1];
+  // 앞 회독을 일찍 끝냈으면 다음 회독은 바로 시작한다
+  const start = (m.pass || 1) > 1 && m.passStarted && m.passStarted < w.start ? m.passStarted : w.start;
+  return { ...w, start, last: (m.pass || 1) >= wins.length };
+}
+
 function isActive(state, m, today) {
   if (m.archived) return false;
-  if (!m.activeBeforeExam) return true;
   const subject = state.subjects.find((s) => s.id === m.subjectId);
-  const left = daysLeftFor(state, subject, today);
-  return left !== null && left <= m.activeBeforeExam;
+  const exam = examDateFor(state, subject);
+  const w = currentWindow(state, m, subject, today);
+  return today >= w.start && (!exam || today <= exam);
 }
 
 function doneThisWeek(state, materialId, today) {
@@ -172,9 +215,10 @@ function makeId() {
 
 // 이 책을 며칠 안에 끝내야 하나. 문제집·교과서 1회독은 시험 22일 전까지(1단계),
 // 기출·오답·암기는 시험 전날까지. 시험이 가까우면 이틀은 여유로 남긴다.
-function deadlineDays(m, left) {
-  if (['기출', '오답', '암기', '단어', '지문'].includes(m.kind) || m.activeBeforeExam) return Math.max(1, left - 1);
-  return left > 25 ? left - 22 : Math.max(1, left - 2);
+// 지금 회독을 끝내야 하는 날까지 남은 날수 (늦었으면 이틀 안에 따라잡기)
+function deadlineDays(state, m, subject, today) {
+  const w = currentWindow(state, m, subject, today);
+  return Math.max(today > w.end ? 2 : 1, diffDays(today, w.end) + 1);
 }
 
 function materialCandidate(state, m, subject, today) {
@@ -190,7 +234,7 @@ function materialCandidate(state, m, subject, today) {
     const daysInWeek = 7 - dayIndexMon(today);
     units = Math.ceil(rem / daysInWeek);
   } else if (rem != null && left != null) {
-    units = Math.ceil(rem / deadlineDays(m, left));
+    units = Math.ceil(rem / deadlineDays(state, m, subject, today));
   } else {
     units = Math.round(45 / mpu); // 총량이나 시험일을 모르면 45분 분량
   }
@@ -516,7 +560,7 @@ if (typeof module !== 'undefined') {
   module.exports = {
     STAGES, KINDS, PROJECT_STAGES, LOG_INTERVALS, WRONG_INTERVALS,
     toKey, addDays, diffDays, weekStart, dayIndexMon,
-    remaining, needMinutes, recallMinutes, deadlineDays, daysLeftFor, guideFor, KIND_METHOD, completionFactor, effectiveBudget, defaultAvailable,
+    remaining, needMinutes, recallMinutes, deadlineDays, roleOf, bookWindows, currentWindow, ROLES, ROLE_LABEL, daysLeftFor, guideFor, KIND_METHOD, completionFactor, effectiveBudget, defaultAvailable,
     generatePlan, applySession, subjectSnapshot, recommend, trapsFor, isActive,
   };
 }
