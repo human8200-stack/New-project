@@ -43,6 +43,7 @@ function freshState() {
   const { subjects, materials } = seedState(today(), uid);
   return {
     version: 2,
+    updatedAt: 0, // 마지막으로 사람이 바꾼 시각. 기기 간 동기화에서 더 최근 쪽이 이긴다
     settings: { examDate: '', weekdayMinutes: [360, 180, 180, 180, 180, 180, 360] },
     subjects,
     materials,
@@ -76,17 +77,54 @@ async function load() {
       state.drills = saved.drills || [];
       if (saved.exam && saved.exam.date) state.settings.examDate = saved.exam.date;
     }
-    await save();
+    await save({ touch: false });
   }
 }
 
-async function save() {
+// touch: 사람이 바꾼 내용이면 true (동기화 대상). 자동 생성된 계획 등은 false
+async function save({ touch = true } = {}) {
+  if (touch) state.updatedAt = Date.now();
+  // 오래된 계획은 지워서 동기화 문서를 작게 유지한다 (분석은 최근 2주만 사용)
+  const cutoff = addDays(today(), -45);
+  Object.keys(state.plans).forEach((d) => { if (d < cutoff) delete state.plans[d]; });
   try {
     await dbSet('state', state);
   } catch (e) {
     toast('저장에 실패했어요.');
   }
+  if (touch && window.cloud) window.cloud.schedulePush();
 }
+
+// 다른 기기에서 온 기록으로 바꾼다. 오답 사진은 이 기기에 있던 것을 유지한다
+async function applyRemote(remote) {
+  const localImgs = {};
+  (state.wrongs || []).forEach((w) => { if (w.img) localImgs[w.id] = w.img; });
+  state = Object.assign(freshState(), remote);
+  state.wrongs.forEach((w) => { if (!w.img && localImgs[w.id]) w.img = localImgs[w.id]; });
+  await save({ touch: false });
+  renderWhenIdle();
+}
+
+// 입력 중일 때 화면을 다시 그리면 쓰던 내용이 날아가므로 입력이 끝난 뒤에 그린다
+let pendingRender = false;
+function renderWhenIdle() {
+  const active = document.activeElement;
+  if (active && active.closest('#view') && ['INPUT', 'TEXTAREA', 'SELECT'].includes(active.tagName)) {
+    pendingRender = true;
+    return;
+  }
+  render();
+}
+
+document.addEventListener('focusout', () => {
+  if (!pendingRender) return;
+  setTimeout(() => {
+    if (pendingRender) {
+      pendingRender = false;
+      renderWhenIdle();
+    }
+  }, 300);
+});
 
 // ---------- 유틸 ----------
 
@@ -840,6 +878,7 @@ function renderAnalysis() {
 function renderSettings() {
   const inputs = WEEKDAYS.map((w, i) => `<div><label>${w}요일</label><input type="number" name="d${i}" min="0" step="10" value="${state.settings.weekdayMinutes[i]}"></div>`).join('');
   return `
+    ${syncCard()}
     <div class="card">
       <h2>요일별 공부 가능 시간 (분)</h2>
       <p class="sub">학교·학원·이동 시간을 빼고 실제로 책상에 앉을 수 있는 시간이에요. 오늘 계획은 이 값에서 시작해요.</p>
@@ -847,7 +886,7 @@ function renderSettings() {
     </div>
     <div class="card">
       <h2>백업</h2>
-      <p class="sub">기록은 이 아이패드 브라우저 안에만 저장돼요. 일주일에 한 번 백업 파일을 받아 두세요.</p>
+      <p class="sub">온라인 동기화를 쓰지 않으면 기록은 이 기기 브라우저 안에만 있어요. 가끔 백업 파일을 받아 두세요.</p>
       <div class="row">
         <button class="btn" data-action="export">백업 파일 받기</button>
         <label class="btn" style="margin:0;text-align:center;color:var(--text)">백업 불러오기<input type="file" accept="application/json" data-action="import" hidden></label>
@@ -864,6 +903,40 @@ function renderSettings() {
     </div>`;
 }
 
+function syncCard() {
+  const c = window.cloud;
+  if (!c || c.status === 'unconfigured') {
+    return `
+    <div class="card">
+      <h2>아이패드 · 휴대폰 동기화</h2>
+      <p class="sub" style="margin:0">아직 Firebase 설정이 들어가지 않았어요. 저장소의 FIREBASE_SETUP.md 순서대로 설정하면 Google 로그인으로 모든 기기의 기록이 맞춰져요.</p>
+    </div>`;
+  }
+  const members = (c.members || []).map((m) => `
+    <li class="item"><div>${esc(m)}${m === c.email ? ' <span class="tag">나</span>' : ''}</div>
+    ${m === c.ownerEmail ? '<div class="meta">처음 만든 계정</div>' : m !== c.email ? `<div class="actions"><button class="btn small" data-action="cloud-remove" data-email="${esc(m)}">빼기</button></div>` : ''}</li>`).join('');
+  const body = c.email
+    ? `
+      <p class="sub">${esc(c.email)}로 로그인됨 · ${esc(c.statusText())}</p>
+      <h3>함께 보는 가족</h3>
+      <ul class="list">${members}</ul>
+      <form data-form="member" class="row" style="margin-top:8px">
+        <div style="flex:3 1 220px"><input type="email" name="email" placeholder="가족의 Google 이메일 (예: 부모님 Gmail)" required></div>
+        <div><button class="btn primary" type="submit">추가</button></div>
+      </form>
+      <p class="meta">추가한 사람이 같은 주소에서 그 Google 계정으로 로그인하면 같은 기록을 보고 고칠 수 있어요.</p>
+      <div style="margin-top:12px"><button class="btn" data-action="cloud-signout">로그아웃</button></div>`
+    : `
+      <p class="sub">${esc(c.statusText())}</p>
+      <p class="sub">아이패드와 휴대폰에서 같은 Google 계정으로 로그인하면 기록이 자동으로 맞춰져요. 부모님은 아이 기기에서 가족으로 추가된 뒤 본인 Google 계정으로 로그인하면 돼요.</p>
+      <button class="btn primary" data-action="cloud-signin">Google로 로그인</button>`;
+  return `
+    <div class="card">
+      <h2>아이패드 · 휴대폰 동기화</h2>
+      ${body}
+    </div>`;
+}
+
 // ---------- 렌더링 ----------
 
 const VIEWS = {
@@ -872,7 +945,8 @@ const VIEWS = {
 };
 
 async function render() {
-  if (ensurePlan()) await save();
+  if (!state) return; // 아직 불러오는 중
+  if (ensurePlan()) await save({ touch: false });
   document.getElementById('view').innerHTML = VIEWS[ui.tab]();
   document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('active', b.dataset.tab === ui.tab));
   const exam = state.settings.examDate;
@@ -880,7 +954,28 @@ async function render() {
   const dday = document.getElementById('dday');
   dday.hidden = left == null || left < 0;
   if (!dday.hidden) dday.textContent = left === 0 ? 'D-Day' : `D-${left}`;
+  renderSyncBadge();
 }
+
+function renderSyncBadge() {
+  const sync = document.getElementById('sync');
+  const c = window.cloud;
+  sync.hidden = !c || c.status === 'unconfigured';
+  if (!sync.hidden) {
+    sync.textContent = c.badge();
+    sync.className = `sync ${c.status}`;
+  }
+}
+
+// sync.js가 쓰는 연결점. ready는 이 기기 기록을 다 불러온 뒤 끝난다
+let markReady;
+// 동기화 상태만 바뀌었을 때: 머리글 표시만 고치고, 설정 탭을 보고 있을 때만 화면을 다시 그린다
+function syncChanged() {
+  renderSyncBadge();
+  if (ui.tab === 'settings') renderWhenIdle();
+}
+
+window.app = { getState: () => state, applyRemote, render, syncChanged, toast, ready: new Promise((r) => { markReady = r; }) };
 
 // ---------- 동작 ----------
 
@@ -988,6 +1083,15 @@ document.addEventListener('click', async (e) => {
       setTimeout(() => URL.revokeObjectURL(a.href), 1000);
       return;
     }
+    case 'cloud-signin':
+      if (window.cloud) window.cloud.signIn();
+      return;
+    case 'cloud-signout':
+      if (window.cloud && confirm('로그아웃할까요? 이 기기의 기록은 그대로 남아요.')) window.cloud.signOut();
+      return;
+    case 'cloud-remove':
+      if (window.cloud && confirm(`${el.dataset.email}을(를) 가족에서 뺄까요?`)) window.cloud.removeMember(el.dataset.email);
+      return;
     case 'reset':
       if (!confirm('정말 모든 기록을 지울까요? 먼저 백업 파일을 받아 두는 걸 권해요.')) return;
       state = freshState();
@@ -1175,6 +1279,9 @@ document.addEventListener('submit', async (e) => {
       versions: {}, question: '', role: '', limits: '', nextQuestion: '', memo: '',
     });
     msg = '추가했어요.';
+  } else if (kind === 'member') {
+    if (window.cloud) await window.cloud.addMember(f.get('email'));
+    return;
   } else if (kind === 'weekdays') {
     state.settings.weekdayMinutes = WEEKDAYS.map((_, i) => num(f.get(`d${i}`)));
     const plan = state.plans[t];
@@ -1192,6 +1299,7 @@ document.addEventListener('submit', async (e) => {
 
 (async () => {
   await load();
+  markReady();
   await render();
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     navigator.serviceWorker.register('sw.js').catch(() => {});

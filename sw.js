@@ -1,6 +1,6 @@
 // 오프라인에서도 열리도록 앱 파일을 캐시한다 (네트워크 우선)
-const CACHE = 'study-routine-v2';
-const FILES = ['./', 'index.html', 'style.css', 'planner.js', 'seed.js', 'app.js', 'manifest.webmanifest', 'icon.svg'];
+const CACHE = 'study-routine-v3';
+const FILES = ['./', 'index.html', 'style.css', 'planner.js', 'seed.js', 'app.js', 'firebase-config.js', 'sync.js', 'manifest.webmanifest', 'icon.svg'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)));
@@ -11,7 +11,8 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-  if (e.request.method !== 'GET') return;
+  // 같은 주소의 앱 파일만 캐시한다. Firebase 통신은 건드리지 않는다
+  if (e.request.method !== 'GET' || new URL(e.request.url).origin !== self.location.origin) return;
   e.respondWith(
     fetch(e.request)
       .then((res) => {
