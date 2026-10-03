@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>공부 루틴</title>
+  <meta name="description" content="고1 진도 기록, 간격 복습, 수학 오답 재출제, 시험 모드">
+  <meta name="theme-color" content="#2f5d50">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="공부 루틴">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="top-inner">
+      <h1>공부 루틴</h1>
+      <div id="dday" class="dday" hidden></div>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button data-tab="today" class="active">오늘</button>
+      <button data-tab="log">진도 기록</button>
+      <button data-tab="math">수학</button>
+      <button data-tab="exam">시험 모드</button>
+      <button data-tab="settings">설정</button>
+    </nav>
+  </header>
+
+  <main id="view"></main>
+
+  <script src="app.js"></script>
+</body>
+</html>
