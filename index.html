@@ -21,16 +21,20 @@
       <div class="top-badges">
         <span id="sync" class="sync" hidden></span>
         <div id="dday" class="dday" hidden></div>
+        <button id="settings-btn" class="settings-btn" data-action="go-tab" data-id="settings" aria-label="설정">설정</button>
       </div>
     </div>
     <nav class="tabs" role="tablist">
       <button data-tab="today" class="active">오늘</button>
       <button data-tab="plan">계획표</button>
-      <button data-tab="more">더보기</button>
+      <button data-tab="review">오답·복습</button>
+      <button data-tab="projects">수행평가</button>
+      <button data-tab="analysis">기록</button>
     </nav>
   </header>
 
   <main id="view"></main>
+    <div id="popup"></div>
 
   <script src="planner.js"></script>
   <script src="seed.js"></script>

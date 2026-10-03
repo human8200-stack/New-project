@@ -123,7 +123,26 @@ function roleOf(m) {
 }
 
 // 책의 회독별 기간. 시험일을 모르면 앞으로 4주를 한 기간으로 본다.
+// 선행·방학 계획: 시험과 상관없이 기간 안에 끝낼 책 묶음
+function goalOf(state, m) {
+  return m.goalId ? (state.goals || []).find((g) => g.id === m.goalId) || null : null;
+}
+
+// 선행 기간 안에서 역할별로 기간을 나눈다 (개념 먼저, 문제는 조금 늦게 시작해 겹치게)
+function goalWindows(goal, role, today) {
+  const span = Math.max(1, diffDays(goal.start, goal.end) + 1);
+  const at = (f) => addDays(goal.start, Math.round((span - 1) * f));
+  const parts = { concept: [0, 0.5], basic: [0.1, 0.85], advanced: [0.55, 1], past: [0.8, 1] }[role] || [0, 1];
+  let start = at(parts[0]);
+  let end = at(parts[1]);
+  if (end < today) end = today;
+  if (start > end) start = end;
+  return [{ pass: 1, start, end }];
+}
+
 function bookWindows(state, m, subject, today) {
+  const goal = goalOf(state, m);
+  if (goal) return goalWindows(goal, roleOf(m), today);
   const exam = examDateFor(state, subject);
   if (!exam || exam < today) return [{ pass: 1, start: today, end: addDays(today, 27) }];
   const at = (n) => addDays(exam, -n);
@@ -152,8 +171,10 @@ function currentWindow(state, m, subject, today) {
 function isActive(state, m, today) {
   if (m.archived) return false;
   const subject = state.subjects.find((s) => s.id === m.subjectId);
-  const exam = examDateFor(state, subject);
+  const goal = goalOf(state, m);
   const w = currentWindow(state, m, subject, today);
+  if (goal) return today >= goal.start && today >= w.start && today <= addDays(goal.end, 7);
+  const exam = examDateFor(state, subject);
   return today >= w.start && (!exam || today <= exam);
 }
 
@@ -199,8 +220,11 @@ function effectiveBudget(state, today, available, condition) {
   return { minutes: Math.round(available * (CONDITION[condition] || 1) * f), factor: f };
 }
 
+// 방학처럼 하루 공부 시간을 따로 정한 선행 기간이면 그 시간을 쓴다
 function defaultAvailable(state, today) {
-  return state.settings.weekdayMinutes[parseKey(today).getDay()] || 0;
+  const base = state.settings.weekdayMinutes[parseKey(today).getDay()] || 0;
+  const vacation = (state.goals || []).filter((g) => g.minutes && today >= g.start && today <= g.end);
+  return vacation.length ? Math.max(base, ...vacation.map((g) => g.minutes)) : base;
 }
 
 function daysSince(key, today) {
@@ -224,9 +248,12 @@ function deadlineDays(state, m, subject, today) {
 function materialCandidate(state, m, subject, today) {
   const rem = remaining(state, m, today);
   if (rem === 0) return null;
-  const left = daysLeftFor(state, subject, today);
+  const goal = goalOf(state, m);
+  const examLeft = daysLeftFor(state, subject, today);
+  const left = goal ? Math.max(0, diffDays(today, goal.end)) : examLeft;
   const mpu = m.minPerUnit;
   const reasons = [];
+  if (goal) reasons.push(`${goal.name}`);
 
   // 오늘 분량
   let units;
@@ -251,7 +278,7 @@ function materialCandidate(state, m, subject, today) {
   if (left != null) {
     closeness = left <= 21 ? (21 - left) / 21 : 0;
     if (need != null) urgency = clamp(need / 60 / Math.max(1, left - 2), 0, 1.5);
-    reasons.push(`시험 D-${left}`);
+    if (!goal) reasons.push(`시험 D-${left}`);
     if (need != null && need >= 60) reasons.push(`남은 약 ${Math.round(need / 60)}시간`);
   }
 
@@ -286,7 +313,9 @@ function materialCandidate(state, m, subject, today) {
   if (subject.stage === '암기' && ['암기', '단어'].includes(m.kind)) stageFit = 1.2;
 
   const importance = 0.6 + subject.importance * 0.2;
-  const score = importance * stageFit * (1 + 2 * urgency + closeness + 1.2 * weak + 0.8 * gap + behind);
+  // 시험이 3주 안이면 선행은 뒤로 미룬다
+  const goalFactor = goal ? (examLeft != null && examLeft <= 21 ? 0.4 : 0.8) : 1;
+  const score = goalFactor * importance * stageFit * (1 + 2 * urgency + closeness + 1.2 * weak + 0.8 * gap + behind);
 
   const range = m.nextRange ? ` (${m.nextRange}부터)` : '';
   return {
@@ -447,7 +476,8 @@ function round2(v) {
 // ---------- 진단 ----------
 
 function subjectSnapshot(state, subject, today) {
-  const mats = state.materials.filter((m) => m.subjectId === subject.id && !m.archived);
+  // 시험 판단에는 선행 책을 넣지 않는다
+  const mats = state.materials.filter((m) => m.subjectId === subject.id && !m.archived && !m.goalId);
   let need = 0;
   let unknown = 0;
   let total = 0;
@@ -560,7 +590,7 @@ if (typeof module !== 'undefined') {
   module.exports = {
     STAGES, KINDS, PROJECT_STAGES, LOG_INTERVALS, WRONG_INTERVALS,
     toKey, addDays, diffDays, weekStart, dayIndexMon,
-    remaining, needMinutes, recallMinutes, deadlineDays, roleOf, bookWindows, currentWindow, ROLES, ROLE_LABEL, daysLeftFor, guideFor, KIND_METHOD, completionFactor, effectiveBudget, defaultAvailable,
+    remaining, needMinutes, recallMinutes, deadlineDays, goalOf, roleOf, bookWindows, currentWindow, ROLES, ROLE_LABEL, daysLeftFor, guideFor, KIND_METHOD, completionFactor, effectiveBudget, defaultAvailable,
     generatePlan, applySession, subjectSnapshot, recommend, trapsFor, isActive,
   };
 }
