@@ -346,3 +346,5 @@ details summary { cursor: pointer; }
   .hero-title { font-size: 19px; }
   .bar .name { flex-basis: 96px; }
 }
+
+.dash th, .dash td { white-space: nowrap; }
