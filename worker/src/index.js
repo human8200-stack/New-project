@@ -1,5 +1,5 @@
 // 공부 루틴 사진 읽기 서버 (Cloudflare Worker)
-// 앱이 보낸 사진과 지시문을 Claude에게 넘기고, 답 글자를 그대로 돌려준다.
+// 앱이 보낸 지시문(과 사진)을 Claude에게 넘기고, 답 글자를 그대로 돌려준다.
 // API 키는 이 서버의 비밀 값(ANTHROPIC_API_KEY)에만 있고 앱에는 없다.
 // 가족 코드(FAMILY_CODE)가 맞는 요청만 받는다.
 
@@ -35,7 +35,7 @@ export default {
     }
     const prompt = typeof body.prompt === 'string' ? body.prompt.slice(0, 20000) : '';
     const images = Array.isArray(body.images) ? body.images.slice(0, MAX_IMAGES) : [];
-    if (!prompt || !images.length) return reply(env, 400, { error: '사진과 지시문이 필요해요' });
+    if (!prompt) return reply(env, 400, { error: '지시문이 필요해요' });
 
     const content = images
       .filter((img) => img && typeof img.data === 'string' && ['image/jpeg', 'image/png', 'image/webp'].includes(img.media_type))
