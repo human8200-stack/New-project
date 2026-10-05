@@ -58,7 +58,6 @@ function freshState() {
     timer: null,
     checkins: {},
     overrides: {},
-    cheers: [],
   };
 }
 
@@ -640,33 +639,6 @@ function weeklyReport() {
     </section>`;
 }
 
-// ---------- 응원 ----------
-
-const CHEERS = ['오늘도 화이팅!', '꾸준히 하는 모습이 멋져요', '수학 오답 정리 잘했어요', '힘들면 쉬어 가도 괜찮아', '시험까지 같이 가자!'];
-
-function latestCheer() {
-  const c = (state.cheers || []).slice(-1)[0];
-  return c && diffDays(c.date, today()) <= 2 ? c : null;
-}
-
-function cheerCard() {
-  const list = (state.cheers || []).slice(-5).reverse().map((c) => `<li><strong>${esc(c.from)}</strong> ${esc(c.text)} <span class="meta">${prettyDate(c.date)}</span></li>`).join('');
-  return `
-    <section class="card">
-      <h2>응원</h2>
-      <p class="sub">부모님 폰에서 같은 기록을 보고 있으면(설정 → 동기화) 여기서 남긴 응원이 아이 화면 맨 위에 떠요.</p>
-      <form data-form="cheer">
-        <div class="row">
-          <div><label>보내는 사람</label><input name="from" value="${esc(ui.cheerFrom || '엄마')}" required></div>
-          <div style="flex:2 1 220px"><label>한마디</label><input name="text" placeholder="직접 쓰거나 아래에서 고르기" required></div>
-        </div>
-        <div class="chips" style="margin-top:8px">${CHEERS.map((c) => `<button type="button" class="chip-btn" data-action="cheer-pick" data-v="${esc(c)}">${esc(c)}</button>`).join('')}</div>
-        <div style="margin-top:10px"><button class="btn primary" type="submit">응원 보내기</button></div>
-      </form>
-      ${list ? `<ul class="report">${list}</ul>` : ''}
-    </section>`;
-}
-
 // ---------- 저녁 체크인: 과외 선생님처럼 매일 묻기 ----------
 
 const FEELS = [['all', '다 했어요'], ['most', '거의 다'], ['half', '절반쯤'], ['little', '거의 못 했어요']];
@@ -778,9 +750,7 @@ function glanceCard() {
     pace = Math.abs(gap) <= 2 ? '<span class="good-text">계획대로 가고 있어요</span>'
       : gap > 0 ? `<span class="good-text">계획보다 ${gap}% 앞서요</span>` : `<span class="warn-text">계획보다 ${-gap}% 늦어요</span>`;
   }
-  const cheer = latestCheer();
   return `
-    ${cheer ? `<div class="cheer-banner"><strong>${esc(cheer.from)}</strong> ${esc(cheer.text)}</div>` : ''}
     <section class="glance">
       <div class="glance-item"><span>시험까지</span><strong>${left != null && left >= 0 ? `D-${left || 'Day'}` : '미정'}</strong></div>
       <div class="glance-item"><span>전체 진도</span><strong>${overall ? pct(overall.progress) : '-'}</strong>${overall ? `<small>${pace}</small>` : ''}</div>
@@ -1761,7 +1731,6 @@ function renderAnalysis() {
       <h2>배지</h2>
       <div class="badges">${BADGES.map(([id, name]) => `<span class="badge-item${badges.some(([b]) => b === id) ? ' on' : ''}">${esc(name)}</span>`).join('')}</div>
     </section>
-    ${cheerCard()}
     ${checkinHistory()}`;
   return top + renderAnalysisBody();
 }
@@ -2034,11 +2003,6 @@ document.addEventListener('click', async (e) => {
       ui.showCheckin = true;
       changed = false;
       break;
-    case 'cheer-pick': {
-      const input = document.querySelector('[data-form=cheer] input[name=text]');
-      if (input) input.value = el.dataset.v;
-      return;
-    }
     case 'photo-as-wrong': {
       const subj = subjectById(id);
       if (!subj || !ai.pending) return;
@@ -2341,13 +2305,6 @@ document.addEventListener('submit', async (e) => {
     }
     msg = applyCheckin(feel, f.getAll('hard'), num(f.get('tomorrow'), 0));
     ui.showCheckin = false;
-  } else if (kind === 'cheer') {
-    const text = (f.get('text') || '').trim();
-    const from = (f.get('from') || '').trim() || '가족';
-    if (!text) return;
-    ui.cheerFrom = from;
-    state.cheers = (state.cheers || []).concat({ id: uid(), date: t, from, text }).slice(-30);
-    msg = '응원을 보냈어요.';
   } else if (kind === 'goal-time') {
     const g = (state.goals || []).find((x) => x.id === form.dataset.id);
     if (!g) return;
