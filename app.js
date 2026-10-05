@@ -1080,12 +1080,12 @@ function photoCard(compact) {
         <div style="margin-top:10px"><button class="linklike small" data-action="photo-cancel">저장하지 않기</button></div>
       </section>`;
   }
-  return `
-    <section class="card photo-card">
-      <label class="btn big primary wide photo-pick">사진 찍기 · 올리기<input class="file-hidden" type="file" accept="image/*" multiple data-action="ai-photos"></label>
-      <p class="sub" style="margin:8px 0 0">${compact ? '책 표지나 목차, 시험 공지를 찍어 올리면 알아서 채워져요.' : '오늘 배운 곳 · 채점한 문제 · 틀린 문제 · 시험 공지, 뭐든 찍어서 한 번에 올리세요. 알아서 나눠서 기록해요.'}${photoAiReady() ? '' : ' <span class="warn-text">(지금은 AI 연결이 없어 틀린 문제 저장만 돼요. 설정 → AI 연결)</span>'}</p>
-      ${ai.error ? `<p class="warn-text" style="margin:8px 0 0">${esc(ai.error)}</p>` : ''}
-    </section>`;
+  // 평소에는 화면 오른쪽 아래 카메라 버튼만 보인다
+  if (ai.error) return `<section class="card photo-card"><p class="warn-text" style="margin:0">${esc(ai.error)}</p></section>`;
+  if (!compact && !photoAiReady() && !ui.photoTipSeen) {
+    return '<p class="sub photo-tip">오른쪽 아래 카메라로 틀린 문제를 찍어 두면 다시 풀 날에 나와요. AI를 연결하면(설정) 배운 곳·채점한 쪽·시험 공지도 알아서 정리돼요.</p>';
+  }
+  return '';
 }
 
 // ---------- 처음 한 번: 버튼만 눌러서 끝내기 ----------
@@ -1183,7 +1183,7 @@ function renderToday() {
         <span class="meta">${doneCount}/${plan.tasks.length} · 약 ${hm(planned)}</span>
       </div>
       <div class="progress"><div style="width:${rate}%"></div></div>
-      <p class="sub"><strong>▶ 시작</strong>을 누르고 공부하면 시간과 진도가 자동으로 기록돼요. 누르지 않아도 하루가 지나면 다 한 것으로 쳐요. 못 한 것만 알려 주세요.</p>
+      <p class="sub">▶ 시작을 누르면 시간과 진도가 기록돼요. 못 한 것만 알려 주세요.</p>
       <ol class="todo">${plan.tasks.map((x, i) => taskRow(x, i, x === firstTodo)).join('') || '<li class="empty">오늘 배정할 공부가 없어요.</li>'}</ol>
     </section>
 
@@ -1357,7 +1357,7 @@ function examHeader() {
       ${phase ? `<div class="phase-now"><strong>${esc(phase.name)}</strong> (~${prettyDate(phase.to)}) · ${esc(phase.desc)}</div>` : ''}
       <details class="exam-edit"${exam ? '' : ' open'}>
         <summary>시험 날짜와 범위 고치기</summary>
-        <p class="sub">공지 사진을 올리면 알아서 채워져요. 직접 쓰려면 아래에 쓰세요.</p>
+
         ${editors}
       </details>
     </section>`;
@@ -1411,7 +1411,7 @@ function renderSyllabus() {
   return `
     ${planSwitch()}
     ${examHeader()}
-    <p class="sub">과목을 누르면 책마다 범위 · 순서 · 기간 · 하루 분량이 나와요. 책을 누르면 범위와 지금 위치를 고칠 수 있어요.</p>
+
     ${photoCard(true)}
     ${cards}`;
 }
@@ -1551,7 +1551,7 @@ function keyCardButtons(subjectIds) {
   if (!ids.length) return '';
   return `
     <div class="keycards">
-      <span class="meta">핵심 카드 받기 (사진 없이)</span>
+      <span class="meta">핵심 카드</span>
       <div class="chips">${ids.map((id) => `<button class="chip-btn" data-action="key-cards" data-id="${id}"${ai.busy ? ' disabled' : ''}>${esc(subjectById(id).name)}</button>`).join('')}</div>
     </div>`;
 }
@@ -1578,7 +1578,7 @@ function renderReviewTab() {
   return `
     <section class="card">
       <h2>핵심 카드</h2>
-      <p class="sub">과목과 지금 공부하는 책·범위를 보고 AI가 외울 카드를 만들어요. 사진은 필요 없어요. 만든 카드는 "오늘 떠올릴 것"과 앱을 열 때 뜨는 팝업에 나와요.</p>
+      <p class="sub">과목을 고르면 지금 범위에서 외울 카드를 만들어요.</p>
       ${aiReady() ? keyCardButtons(state.subjects.map((x) => x.id)) : '<p class="sub">AI 연결이 필요해요. Claude 안에서 열거나 설정 → AI 연결을 해 주세요.</p>'}
       ${ai.busy ? '<p class="ai-busy">만드는 중이에요…</p>' : ''}
       ${ai.error ? `<p class="warn-text">${esc(ai.error)}</p>` : ''}
@@ -1598,7 +1598,7 @@ function renderWrongs() {
   return `
     <section class="card">
       <h2>틀린 문제 모음</h2>
-      <p class="sub">틀린 문제를 사진으로 올리면 여기에 모이고, 2일 → 7일 → 14일 → 30일 뒤 "오늘 떠올릴 것"에 다시 나와요.</p>
+      <p class="sub">카메라로 찍은 틀린 문제가 모여요. 2·7·14·30일 뒤에 다시 나와요.</p>
       ${photoCard(true)}
       <ul class="list">${items || '<li class="empty">아직 없어요.</li>'}</ul>
     </section>`;
@@ -1614,7 +1614,7 @@ function renderCards() {
   return `
     <section class="card">
       <h2>복습 카드 모음</h2>
-      <p class="sub">오늘 배운 곳을 사진으로 올리면 카드가 자동으로 만들어져요. 직접 만들고 싶을 때만 아래에 쓰세요.</p>
+
       <form data-form="log">
         <div class="row">
           <div><label>과목</label><select name="subject">${options(state.subjects.map((s) => s.name))}</select></div>
@@ -1884,6 +1884,8 @@ async function render() {
   document.getElementById('view').innerHTML = VIEWS[ui.tab]();
   document.getElementById('popup').innerHTML = popupHtml();
   renderTimerBar();
+  document.querySelector('.tabs').hidden = !state.setupDone;
+  document.getElementById('fab').hidden = !state.setupDone || !!ui.setup || !['today', 'plan', 'review'].includes(ui.tab);
   const navTab = MORE_TABS.includes(ui.tab) ? 'more' : ui.tab;
   document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('active', b.dataset.tab === navTab));
   document.getElementById('settings-btn').classList.toggle('on', ui.tab === 'settings');
