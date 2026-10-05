@@ -55,6 +55,10 @@ function freshState() {
     drills: [],
     projects: [],
     goals: [],
+    timer: null,
+    checkins: {},
+    overrides: {},
+    cheers: [],
   };
 }
 
@@ -229,7 +233,7 @@ function autoClosePastDays() {
   Object.keys(state.plans).filter((d) => d < t && d >= addDays(t, -7)).sort().forEach((d) => {
     state.plans[d].tasks.forEach((task) => {
       if (task.status !== 'todo' || task.type === 'project') return;
-      completeTask(task, { amount: task.amount, minutes: task.minutes, auto: true, date: d });
+      completeTask(task, { amount: task.amount, minutes: task.minutes, auto: true, assumed: true, date: d });
       task.auto = true;
       closed += 1;
     });
@@ -242,7 +246,8 @@ function ensurePlan() {
   if (state.plans[t] || !state.setupDone) return false;
   autoClosePastDays();
   autoDiagnose();
-  const available = defaultAvailable(state, t);
+  const override = (state.overrides || {})[t];
+  const available = override || defaultAvailable(state, t);
   const condition = '보통';
   const { minutes, factor } = effectiveBudget(state, t, available, condition);
   state.plans[t] = { available, condition, factor, budget: minutes, tasks: generatePlan(state, t, minutes) };
@@ -284,6 +289,7 @@ function recordSession(data) {
     id: uid(),
     date: data.date || today(),
     auto: !!data.auto,
+    assumed: !!data.assumed,
     slot: data.slot || currentSlot(),
     type: data.type || 'material',
     materialId: data.materialId || null,
@@ -328,7 +334,7 @@ function nextPassIfDone(m) {
 }
 
 // 할 공부 하나를 끝냈을 때. 교과서·암기·지문은 복습 카드도 자동으로 만든다
-function completeTask(task, { amount, minutes, wrong = null, nextRange = '', advance: advanceStage = true, auto = false, date }) {
+function completeTask(task, { amount, minutes, wrong = null, nextRange = '', advance: advanceStage = true, auto = false, assumed = false, date }) {
   if (task.type === 'project') {
     recordSession({ type: 'project', subjectId: task.subjectId, minutes, amount: 0, taskId: task.id });
     task.actual = { amount: null, minutes };
@@ -350,6 +356,7 @@ function completeTask(task, { amount, minutes, wrong = null, nextRange = '', adv
     wrong,
     nextRange,
     auto,
+    assumed,
     date,
     addReview: !!m && ['교과서', '암기', '지문'].includes(m.kind) && amount > 0,
     reviewText: m ? `${m.name} ${what}` : '',
@@ -452,7 +459,7 @@ function taskForm(task) {
     <form class="inline-form" data-form="task" data-id="${task.id}">
       <div class="row">
         <div><label>실제로 한 양 (${esc(task.unit)})</label><input type="number" name="amount" min="0" step="any" value="${task.amount}" required></div>
-        <div><label>걸린 시간(분)</label><input type="number" name="minutes" min="0" value="${task.minutes}" required></div>
+        <div><label>걸린 시간(분)</label><input type="number" name="minutes" min="0" value="${task.minutesHint || task.minutes}" required></div>
         ${isProblems ? '<div><label>틀린 개수 (선택)</label><input type="number" name="wrong" min="0"></div>' : ''}
       </div>
       ${m ? `<label>다음에 시작할 곳 (선택)</label><input name="nextRange" value="${esc(m.nextRange)}" placeholder="예: 3-2 단원, 0431번, p.88">` : ''}
@@ -476,6 +483,7 @@ function taskRow(task, index, isFirst) {
         <div class="todo-what">${esc(what)}${task.status === 'skipped' ? ' · 못 함 (다음에 다시 나와요)' : actual}</div>
         ${!done ? `<div class="todo-how">${how ? `${esc(how)} · ` : ''}${hm(task.minutes)}</div>${why}
         <div class="todo-miss">
+          ${state.timer && state.timer.taskId === task.id ? '<span class="timer-on">재는 중…</span>' : `<button class="start-btn" data-action="timer-start" data-id="${task.id}">▶ 시작</button>`}
           <button class="miss-btn" data-action="miss-task" data-id="${task.id}">못 했어요</button>
           ${task.type !== 'project' ? `<button class="miss-btn" data-action="half-task" data-id="${task.id}">절반쯤 했어요</button>` : ''}
           <button class="linklike small" data-action="open-task" data-id="${task.id}">${ui.openForm === task.id ? '닫기' : '직접 입력'}</button>
@@ -483,6 +491,252 @@ function taskRow(task, index, isFirst) {
         ${ui.openForm === task.id ? taskForm(task) : ''}
       </div>
     </li>`;
+}
+
+// ---------- 공부 타이머 ----------
+// 할 공부의 "시작"을 누르면 시간을 잰다. 끝내면 잰 시간으로 기록하고 진도를 올린다.
+
+function timerElapsedMin() {
+  if (!state.timer) return 0;
+  return Math.max(1, Math.round((Date.now() - state.timer.startedAt) / 60000));
+}
+
+function clockText(ms) {
+  const sec = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  return `${h ? `${h}:` : ''}${String(m).padStart(h ? 2 : 1, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function timerTask() {
+  if (!state.timer) return null;
+  const plan = state.plans[state.timer.date];
+  return plan ? plan.tasks.find((x) => x.id === state.timer.taskId) : null;
+}
+
+function renderTimerBar() {
+  const bar = document.getElementById('timerbar');
+  if (!bar) return;
+  const task = timerTask();
+  if (!task) {
+    bar.hidden = true;
+    bar.innerHTML = '';
+    return;
+  }
+  bar.hidden = false;
+  if (ui.timerAsk) {
+    const { what } = taskLines(task);
+    bar.innerHTML = `
+      <div class="timer-ask">
+        <div><strong>${esc(task.title)}</strong> · ${timerElapsedMin()}분 했어요</div>
+        <div class="meta">계획: ${esc(what)} — 다 했어요?</div>
+        <div class="timer-buttons">
+          <button class="btn primary" data-action="timer-done">다 했어요</button>
+          ${task.type !== 'project' ? '<button class="btn" data-action="timer-part">일부만 했어요</button>' : ''}
+          <button class="btn" data-action="timer-resume">계속하기</button>
+        </div>
+      </div>`;
+    return;
+  }
+  bar.innerHTML = `
+    <div class="timer-run">
+      <span class="timer-dot" aria-hidden="true"></span>
+      <span class="timer-title">${esc(task.title)}</span>
+      <span class="timer-clock" id="timer-clock">${clockText(Date.now() - state.timer.startedAt)}</span>
+      <button class="btn small primary" data-action="timer-stop">끝</button>
+    </div>`;
+}
+
+setInterval(() => {
+  const el = document.getElementById('timer-clock');
+  if (el && state && state.timer) el.textContent = clockText(Date.now() - state.timer.startedAt);
+}, 1000);
+
+// ---------- 연속 공부일 · 배지 · 주간 성적표 ----------
+
+function studyDays() {
+  const days = new Set(state.sessions.filter((x) => !x.assumed).map((x) => x.date));
+  Object.keys(state.checkins || {}).forEach((d) => days.add(d));
+  return days;
+}
+
+function streak() {
+  const days = studyDays();
+  let d = today();
+  if (!days.has(d)) d = addDays(d, -1); // 오늘 아직 안 했어도 어제까지 이어졌으면 유지
+  let n = 0;
+  while (days.has(d)) {
+    n += 1;
+    d = addDays(d, -1);
+  }
+  return n;
+}
+
+function weekStats(endKey) {
+  const from = addDays(endKey, -6);
+  const ss = state.sessions.filter((x) => x.date >= from && x.date <= endKey);
+  const minutes = ss.reduce((a, x) => a + (x.minutes || 0), 0);
+  const graded = ss.filter((x) => x.wrong != null && x.amount > 0);
+  const solved = graded.reduce((a, x) => a + x.amount, 0);
+  const wrong = graded.reduce((a, x) => a + x.wrong, 0);
+  let planned = 0;
+  let done = 0;
+  for (let i = 0; i < 7; i++) {
+    const p = state.plans[addDays(from, i)];
+    if (!p) continue;
+    p.tasks.forEach((x) => {
+      planned += 1;
+      if (x.status === 'done') done += 1;
+      else if (x.status === 'partial') done += 0.5;
+    });
+  }
+  const bySubject = {};
+  ss.forEach((x) => { if (x.subjectId) bySubject[x.subjectId] = (bySubject[x.subjectId] || 0) + (x.minutes || 0); });
+  return { minutes, acc: solved ? (solved - wrong) / solved : null, rate: planned ? done / planned : null, bySubject, days: new Set(ss.map((x) => x.date)).size };
+}
+
+const BADGES = [
+  ['streak3', '3일 연속', () => streak() >= 3],
+  ['streak7', '일주일 연속', () => streak() >= 7],
+  ['streak30', '한 달 연속', () => streak() >= 30],
+  ['pass1', '첫 1회독 완료', () => state.materials.some((m) => (m.pass || 1) > 1)],
+  ['wrong10', '오답 10개 졸업', () => state.wrongs.filter((w) => !w.due).length >= 10],
+  ['cards50', '복습 카드 50번 기억', () => state.logs.reduce((a, l) => a + (l.history || []).filter((h) => h.ok).length, 0) >= 50],
+  ['hours20', '한 주 20시간', () => weekStats(today()).minutes >= 1200],
+];
+
+function earnedBadges() {
+  return BADGES.filter(([, , ok]) => ok());
+}
+
+function diffText(now, before, unit) {
+  if (before == null || now == null) return '';
+  const d = now - before;
+  if (Math.abs(d) < 0.005 * (unit === '%' ? 1 : 100)) return '<span class="meta">지난주와 같아요</span>';
+  const v = unit === '%' ? `${Math.round(Math.abs(d) * 100)}%p` : hm(Math.abs(d));
+  return d > 0 ? `<span class="good-text">▲ ${v}</span>` : `<span class="warn-text">▼ ${v}</span>`;
+}
+
+function weeklyReport() {
+  const t = today();
+  const now = weekStats(t);
+  const before = weekStats(addDays(t, -7));
+  const subjectRows = state.subjects
+    .map((s) => ({ s, m: now.bySubject[s.id] || 0, b: before.bySubject[s.id] || 0 }))
+    .filter((x) => x.m || x.b)
+    .sort((a, b) => b.m - a.m)
+    .map((x) => `<li><span>${esc(x.s.name)}</span><strong>${hm(x.m)}</strong>${diffText(x.m, x.b, 'min')}</li>`).join('');
+  return `
+    <section class="card report-card">
+      <h2>이번 주 성적표 <span class="meta">(최근 7일)</span></h2>
+      <div class="report-grid">
+        <div><span>공부 시간</span><strong>${hm(now.minutes)}</strong>${diffText(now.minutes, before.minutes, 'min')}</div>
+        <div><span>계획 달성</span><strong>${now.rate == null ? '-' : pct(now.rate)}</strong>${diffText(now.rate, before.rate, '%')}</div>
+        <div><span>정답률</span><strong>${now.acc == null ? '-' : pct(now.acc)}</strong>${diffText(now.acc, before.acc, '%')}</div>
+        <div><span>공부한 날</span><strong>${now.days}일</strong></div>
+      </div>
+      ${subjectRows ? `<ul class="report-subjects">${subjectRows}</ul>` : ''}
+    </section>`;
+}
+
+// ---------- 응원 ----------
+
+const CHEERS = ['오늘도 화이팅!', '꾸준히 하는 모습이 멋져요', '수학 오답 정리 잘했어요', '힘들면 쉬어 가도 괜찮아', '시험까지 같이 가자!'];
+
+function latestCheer() {
+  const c = (state.cheers || []).slice(-1)[0];
+  return c && diffDays(c.date, today()) <= 2 ? c : null;
+}
+
+function cheerCard() {
+  const list = (state.cheers || []).slice(-5).reverse().map((c) => `<li><strong>${esc(c.from)}</strong> ${esc(c.text)} <span class="meta">${prettyDate(c.date)}</span></li>`).join('');
+  return `
+    <section class="card">
+      <h2>응원</h2>
+      <p class="sub">부모님 폰에서 같은 기록을 보고 있으면(설정 → 동기화) 여기서 남긴 응원이 아이 화면 맨 위에 떠요.</p>
+      <form data-form="cheer">
+        <div class="row">
+          <div><label>보내는 사람</label><input name="from" value="${esc(ui.cheerFrom || '엄마')}" required></div>
+          <div style="flex:2 1 220px"><label>한마디</label><input name="text" placeholder="직접 쓰거나 아래에서 고르기" required></div>
+        </div>
+        <div class="chips" style="margin-top:8px">${CHEERS.map((c) => `<button type="button" class="chip-btn" data-action="cheer-pick" data-v="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+        <div style="margin-top:10px"><button class="btn primary" type="submit">응원 보내기</button></div>
+      </form>
+      ${list ? `<ul class="report">${list}</ul>` : ''}
+    </section>`;
+}
+
+// ---------- 저녁 체크인: 과외 선생님처럼 매일 묻기 ----------
+
+const FEELS = [['all', '다 했어요'], ['most', '거의 다'], ['half', '절반쯤'], ['little', '거의 못 했어요']];
+const TOMORROW = [[0, '평소대로'], [60, '1시간'], [120, '2시간'], [180, '3시간'], [240, '4시간'], [360, '6시간']];
+
+function checkinCard(plan) {
+  const t = today();
+  const done = (state.checkins || {})[t];
+  if (done) {
+    return `
+      <section class="card checkin done">
+        <h2>오늘 체크인 완료</h2>
+        <p style="margin:0">${esc(done.reply || '')}</p>
+      </section>`;
+  }
+  const hour = new Date().getHours();
+  const allClosed = plan.tasks.length && plan.tasks.every((x) => x.status !== 'todo');
+  if (hour < 18 && !allClosed && !ui.showCheckin) {
+    return '<button class="linklike small checkin-link" data-action="show-checkin">오늘 공부 마무리 체크인 (30초)</button>';
+  }
+  const studied = [...new Set(plan.tasks.map((x) => x.subjectId).filter(Boolean))];
+  return `
+    <section class="card checkin">
+      <h2>오늘 어땠어요? <span class="meta">30초</span></h2>
+      <form data-form="checkin">
+        <label>오늘 계획은</label>
+        ${chips('feel', FEELS, plan.tasks.every((x) => x.status !== 'todo') ? 'all' : null)}
+        <label>어려웠던 과목 (있으면)</label>
+        <div class="chips">${studied.map((id) => `<label class="chip"><input type="checkbox" name="hard" value="${id}"><span>${esc(subjectById(id).name)}</span></label>`).join('')}</div>
+        <label>내일 공부할 수 있는 시간</label>
+        ${chips('tomorrow', TOMORROW, 0)}
+        <button class="btn primary" type="submit" style="margin-top:12px">마무리</button>
+      </form>
+    </section>`;
+}
+
+// 체크인 답으로 오늘 남은 공부를 정리하고, 내일 계획에 반영한다
+function applyCheckin(feel, hard, tomorrowMin) {
+  const t = today();
+  const plan = state.plans[t];
+  const todo = plan ? plan.tasks.filter((x) => x.status === 'todo') : [];
+  todo.forEach((task, i) => {
+    let ratio = 0;
+    if (feel === 'all') ratio = 1;
+    else if (feel === 'most') ratio = i === todo.length - 1 ? 0 : 1;
+    else if (feel === 'half') ratio = 0.5;
+    if (task.type === 'project') {
+      if (ratio === 1) completeTask(task, { amount: 1, minutes: task.minutes, auto: true, advance: false });
+      else task.status = 'skipped';
+      return;
+    }
+    if (ratio === 0) task.status = 'skipped';
+    else completeTask(task, { amount: Math.max(1, Math.round(task.amount * ratio)), minutes: Math.round(task.minutes * ratio), auto: true });
+  });
+  hard.forEach((id) => {
+    const s = subjectById(id);
+    if (s) s.hardUntil = addDays(t, 3);
+  });
+  if (tomorrowMin) state.overrides = Object.assign(state.overrides || {}, { [addDays(t, 1)]: tomorrowMin });
+  const n = streak() + (studyDays().has(t) ? 0 : 1);
+  const lines = {
+    all: `계획을 다 끝냈어요! ${n >= 2 ? `${n}일 연속이에요.` : ''} 내일도 이대로만 가요.`,
+    most: `거의 다 했어요. 남은 건 내일 계획에 넣어 둘게요.${n >= 2 ? ` ${n}일 연속!` : ''}`,
+    half: '절반이라도 한 게 중요해요. 내일은 양을 조금 줄여서 다시 짤게요.',
+    little: '괜찮아요, 그런 날도 있어요. 내일은 꼭 할 것만 남겨 둘게요.',
+  };
+  let reply = lines[feel] || lines.half;
+  if (hard.length) reply += ` 어려웠던 ${hard.map((id) => subjectById(id).name).join(', ')}은(는) 내일 먼저 넣고 핵심 카드도 받아 보세요.`;
+  state.checkins = Object.assign(state.checkins || {}, { [t]: { feel, hard, tomorrow: tomorrowMin, reply } });
+  return reply;
 }
 
 // ---------- 한눈에 보기 ----------
@@ -524,11 +778,13 @@ function glanceCard() {
     pace = Math.abs(gap) <= 2 ? '<span class="good-text">계획대로 가고 있어요</span>'
       : gap > 0 ? `<span class="good-text">계획보다 ${gap}% 앞서요</span>` : `<span class="warn-text">계획보다 ${-gap}% 늦어요</span>`;
   }
+  const cheer = latestCheer();
   return `
+    ${cheer ? `<div class="cheer-banner"><strong>${esc(cheer.from)}</strong> ${esc(cheer.text)}</div>` : ''}
     <section class="glance">
       <div class="glance-item"><span>시험까지</span><strong>${left != null && left >= 0 ? `D-${left || 'Day'}` : '미정'}</strong></div>
       <div class="glance-item"><span>전체 진도</span><strong>${overall ? pct(overall.progress) : '-'}</strong>${overall ? `<small>${pace}</small>` : ''}</div>
-      <div class="glance-item"><span>최근 7일</span><strong>${hm(week)}</strong></div>
+      <div class="glance-item"><span>연속 공부</span><strong>${streak()}일</strong><small>최근 7일 ${hm(week)}</small></div>
       ${worry.length ? `<button class="glance-worry" data-action="go-tab" data-id="plan">신경 쓸 과목: ${esc(worry.join(', '))} →</button>` : ''}
     </section>`;
 }
@@ -957,9 +1213,11 @@ function renderToday() {
         <span class="meta">${doneCount}/${plan.tasks.length} · 약 ${hm(planned)}</span>
       </div>
       <div class="progress"><div style="width:${rate}%"></div></div>
-      <p class="sub">다 하면 그냥 두세요. 하루가 지나면 다 한 것으로 자동 기록해요. <strong>못 한 것만</strong> 알려 주세요. 채점한 쪽을 사진으로 올리면 맞은 개수까지 알아서 기록돼요.</p>
+      <p class="sub"><strong>▶ 시작</strong>을 누르고 공부하면 시간과 진도가 자동으로 기록돼요. 누르지 않아도 하루가 지나면 다 한 것으로 쳐요. 못 한 것만 알려 주세요.</p>
       <ol class="todo">${plan.tasks.map((x, i) => taskRow(x, i, x === firstTodo)).join('') || '<li class="empty">오늘 배정할 공부가 없어요.</li>'}</ol>
     </section>
+
+    ${checkinCard(plan)}
 
     <details class="card fold">
       <summary>오늘 시간이 부족해요</summary>
@@ -1496,6 +1754,34 @@ function renderProjects() {
 // ---------- 화면: 분석 ----------
 
 function renderAnalysis() {
+  const badges = earnedBadges();
+  const top = `
+    ${weeklyReport()}
+    <section class="card">
+      <h2>배지</h2>
+      <div class="badges">${BADGES.map(([id, name]) => `<span class="badge-item${badges.some(([b]) => b === id) ? ' on' : ''}">${esc(name)}</span>`).join('')}</div>
+    </section>
+    ${cheerCard()}
+    ${checkinHistory()}`;
+  return top + renderAnalysisBody();
+}
+
+function checkinHistory() {
+  const days = Object.keys(state.checkins || {}).sort().reverse().slice(0, 7);
+  if (!days.length) return '';
+  const label = Object.fromEntries(FEELS);
+  return `
+    <section class="card">
+      <h2>최근 체크인</h2>
+      <ul class="report">${days.map((d) => {
+    const c = state.checkins[d];
+    const hard = (c.hard || []).map((id) => (subjectById(id) || {}).name).filter(Boolean);
+    return `<li>${prettyDate(d)} · ${esc(label[c.feel] || '')}${hard.length ? ` · 어려움: ${esc(hard.join(', '))}` : ''}</li>`;
+  }).join('')}</ul>
+    </section>`;
+}
+
+function renderAnalysisBody() {
   const t = today();
   const days = [];
   for (let i = 13; i >= 0; i--) days.push(addDays(t, -i));
@@ -1628,6 +1914,7 @@ async function render() {
   if (!VIEWS[ui.tab]) ui.tab = 'today';
   document.getElementById('view').innerHTML = VIEWS[ui.tab]();
   document.getElementById('popup').innerHTML = popupHtml();
+  renderTimerBar();
   const navTab = MORE_TABS.includes(ui.tab) ? 'more' : ui.tab;
   document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('active', b.dataset.tab === navTab));
   document.getElementById('settings-btn').classList.toggle('on', ui.tab === 'settings');
@@ -1704,6 +1991,54 @@ document.addEventListener('click', async (e) => {
       changed = false;
       window.scrollTo(0, 0);
       break;
+    case 'timer-start': {
+      const task = findTask(id);
+      if (!task) return;
+      if (state.timer && state.timer.taskId !== id && !confirm('다른 공부 타이머가 돌고 있어요. 그건 멈추고 이걸 시작할까요?')) return;
+      state.timer = { taskId: id, date: today(), startedAt: Date.now() };
+      ui.timerAsk = false;
+      toast('시작! 끝나면 아래 "끝"을 눌러 주세요.');
+      break;
+    }
+    case 'timer-stop':
+      ui.timerAsk = true;
+      changed = false;
+      break;
+    case 'timer-resume':
+      ui.timerAsk = false;
+      changed = false;
+      break;
+    case 'timer-done':
+    case 'timer-part': {
+      const task = timerTask();
+      const minutes = timerElapsedMin();
+      if (!task) {
+        state.timer = null;
+        break;
+      }
+      ui.timerAsk = false;
+      if (action === 'timer-part') {
+        state.timer = null;
+        ui.openForm = task.id;
+        ui.tab = 'today';
+        task.minutesHint = minutes;
+        toast(`${minutes}분 했어요. 실제로 한 양만 넣어 주세요.`);
+        break;
+      }
+      state.timer = null;
+      const msg = completeTask(task, { amount: task.amount, minutes, advance: true });
+      toast(`${minutes}분 공부했어요. ${msg}`);
+      break;
+    }
+    case 'show-checkin':
+      ui.showCheckin = true;
+      changed = false;
+      break;
+    case 'cheer-pick': {
+      const input = document.querySelector('[data-form=cheer] input[name=text]');
+      if (input) input.value = el.dataset.v;
+      return;
+    }
     case 'photo-as-wrong': {
       const subj = subjectById(id);
       if (!subj || !ai.pending) return;
@@ -1998,6 +2333,21 @@ document.addEventListener('submit', async (e) => {
     state.goals = state.goals || [];
     state.goals.push({ id: uid(), name: (f.get('name') || '선행').trim(), start, end, minutes: readTime(f, 'minutes', 0) });
     msg = '계획을 만들었어요. 이제 이 기간에 끝낼 책을 넣어 주세요.';
+  } else if (kind === 'checkin') {
+    const feel = f.get('feel');
+    if (!feel) {
+      toast('오늘 계획은 어땠는지 하나 골라 주세요.');
+      return;
+    }
+    msg = applyCheckin(feel, f.getAll('hard'), num(f.get('tomorrow'), 0));
+    ui.showCheckin = false;
+  } else if (kind === 'cheer') {
+    const text = (f.get('text') || '').trim();
+    const from = (f.get('from') || '').trim() || '가족';
+    if (!text) return;
+    ui.cheerFrom = from;
+    state.cheers = (state.cheers || []).concat({ id: uid(), date: t, from, text }).slice(-30);
+    msg = '응원을 보냈어요.';
   } else if (kind === 'goal-time') {
     const g = (state.goals || []).find((x) => x.id === form.dataset.id);
     if (!g) return;
