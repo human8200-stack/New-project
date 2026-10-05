@@ -3,7 +3,7 @@
   "short_name": "공부 루틴",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#f6f5f1",
-  "theme_color": "#2f5d50",
+  "background_color": "#f3f4f8",
+  "theme_color": "#24304f",
   "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
 }
