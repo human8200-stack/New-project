@@ -295,6 +295,12 @@ function materialCandidate(state, m, subject, today) {
     if (acc != null && acc < 0.75) reasons.push(`정확도 ${Math.round(acc * 100)}%`);
   }
 
+  // 체크인에서 어려웠다고 한 과목은 사흘 동안 먼저 넣는다
+  if (subject.hardUntil && subject.hardUntil >= today) {
+    weak = Math.min(1, weak + 0.3);
+    reasons.push('어제 어려웠던 과목');
+  }
+
   const since = daysSince(subject.lastStudied, today);
   const gap = since == null ? 0.5 : clamp(since / 7, 0, 1);
   if (since != null && since >= 3) reasons.push(`${since}일째 안 함`);
