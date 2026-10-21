@@ -139,10 +139,11 @@ function goalOf(state, m) {
 }
 
 // 선행 기간 안에서 역할별로 기간을 나눈다 (개념 먼저, 문제는 조금 늦게 시작해 겹치게)
-function goalWindows(goal, role, today) {
+// part: 책마다 정한 구간 (추천 계획에서 대수 먼저, 미적분I 나중처럼 순서를 줄 때)
+function goalWindows(goal, role, today, part) {
   const span = Math.max(1, diffDays(goal.start, goal.end) + 1);
   const at = (f) => addDays(goal.start, Math.round((span - 1) * f));
-  const parts = { concept: [0, 0.5], basic: [0.1, 0.85], advanced: [0.55, 1], past: [0.8, 1] }[role] || [0, 1];
+  const parts = part || { concept: [0, 0.5], basic: [0.1, 0.85], advanced: [0.55, 1], past: [0.8, 1] }[role] || [0, 1];
   let start = at(parts[0]);
   let end = at(parts[1]);
   if (end < today) end = today;
@@ -152,7 +153,7 @@ function goalWindows(goal, role, today) {
 
 function bookWindows(state, m, subject, today) {
   const goal = goalOf(state, m);
-  if (goal) return goalWindows(goal, roleOf(m), today);
+  if (goal) return goalWindows(goal, roleOf(m), today, m.goalPart);
   const exam = examDateFor(state, subject);
   if (!exam || exam < today) return [{ pass: 1, start: today, end: addDays(today, 27) }];
   const at = (n) => addDays(exam, -n);
@@ -256,7 +257,8 @@ function deadlineDays(state, m, subject, today) {
   return Math.max(today > w.end ? 2 : 1, diffDays(today, w.end) + 1);
 }
 
-function materialCandidate(state, m, subject, today) {
+// maxMin: 한 번에 앉는 최대 시간 (방학처럼 긴 날은 2시간)
+function materialCandidate(state, m, subject, today, maxMin = 90) {
   const rem = remaining(state, m, today);
   if (rem === 0) return null;
   const goal = goalOf(state, m);
@@ -276,8 +278,8 @@ function materialCandidate(state, m, subject, today) {
   } else {
     units = Math.round(45 / mpu); // 총량이나 시험일을 모르면 45분 분량
   }
-  // 한 번 앉으면 최소 30분, 최대 90분
-  let minutes = clamp(units * mpu, 30, 90);
+  // 한 번 앉으면 최소 30분, 최대 90분 (긴 날은 120분)
+  let minutes = clamp(units * mpu, 30, maxMin);
   units = Math.max(1, Math.floor(minutes / mpu));
   if (rem != null) units = Math.min(units, rem);
   minutes = Math.round(units * mpu);
@@ -456,6 +458,8 @@ function generatePlan(state, today, budget, opts = {}) {
     left -= t.minutes;
   }
 
+  // 6시간 넘게 공부하는 날(방학)은 한 과목에 세 번까지, 한 번에 2시간까지
+  const long = budget >= 360;
   const candidates = [];
   state.subjects.forEach((s) => {
     const f = finalCandidate(state, s, today);
@@ -468,7 +472,7 @@ function generatePlan(state, today, budget, opts = {}) {
     if (exclude.has(m.id) || !isActive(state, m, today)) return;
     const subject = state.subjects.find((s) => s.id === m.subjectId);
     if (!subject) return;
-    const c = materialCandidate(state, m, subject, today);
+    const c = materialCandidate(state, m, subject, today, long ? 120 : 90);
     if (c) candidates.push(c);
   });
   candidates.sort((a, b) => b.score - a.score);
@@ -476,7 +480,7 @@ function generatePlan(state, today, budget, opts = {}) {
   const perSubject = {};
   for (const c of candidates) {
     if (left < 15) break;
-    if ((perSubject[c.subjectId] || 0) >= 2) continue;
+    if ((perSubject[c.subjectId] || 0) >= (long ? 3 : 2)) continue;
     if (c.minutes > left) {
       const material = state.materials.find((m) => m.id === c.materialId);
       const mpu = material ? material.minPerUnit : c.minutes / c.amount;

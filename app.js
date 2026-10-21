@@ -1761,6 +1761,147 @@ function goalCard(g) {
     </section>`;
 }
 
+// ---------- 추천 선행 계획: 고교 상위권 학생 평균 속도 기준 ----------
+// 학교마다 고2·고3 과목 순서가 다를 수 있으니, 책 이름과 범위는 넣은 뒤 고칠 수 있다.
+// part는 방학 기간 중 이 책을 하는 구간 (0 = 시작, 1 = 끝)
+
+const RECOMMEND = {
+  '1-겨울': {
+    name: '겨울방학 선행 (고2 준비)',
+    minutes: 480,
+    why: [
+      '상위권 학생은 고1 겨울에 고2 1학기 수학(대수)을 개념부터 심화까지 한 번 끝내고, 미적분I 개념에 들어가요.',
+      '수학 선행만 하면 고1 내용이 흔들려요. 고1 오답을 같이 다시 풀어요.',
+      '국어·영어는 진도보다 고2 모의고사 수준 실력을 올리는 시기예요.',
+      '고2 선택 과학은 하나만 골라 개념을 한 번 읽어 두면 1학기가 편해요.',
+    ],
+    books: [
+      { s: '수학', name: '대수 개념 (교과서 또는 개념원리)', kind: '교과서', unit: '쪽', total: 240, mpu: 6, role: 'concept', part: [0, 0.35] },
+      { s: '수학', name: '쎈 대수', kind: '문제집', unit: '문제', total: 1100, mpu: 3, role: 'basic', part: [0, 0.55] },
+      { s: '수학', name: '고쟁이 대수 (심화)', kind: '문제집', unit: '문제', total: 500, mpu: 6, role: 'advanced', part: [0.4, 0.8] },
+      { s: '수학', name: '미적분I 개념', kind: '교과서', unit: '쪽', total: 220, mpu: 6, role: 'concept', part: [0.5, 0.85] },
+      { s: '수학', name: '쎈 미적분I', kind: '문제집', unit: '문제', total: 900, mpu: 3, role: 'basic', part: [0.6, 1] },
+      { s: '수학', name: '고1 수학 오답 다시 풀기', kind: '오답', unit: '문제', total: 200, mpu: 6, role: 'review', part: [0, 1] },
+      { s: '영어', name: '수능 영단어 (워드마스터 수능)', kind: '단어', unit: 'Day', total: 40, mpu: 20, role: 'concept', part: [0, 0.9] },
+      { s: '영어', name: '고2 모의고사 영어 기출', kind: '모의고사', unit: '회', weekly: 2, total: 16, mpu: 60, role: 'past', part: [0.1, 1] },
+      { s: '국어', name: '문학 개념어·작품 정리', kind: '교과서', unit: '쪽', total: 120, mpu: 4, role: 'concept', part: [0, 0.5] },
+      { s: '국어', name: '독서·문학 기출 (고2 수준)', kind: '기출', unit: '문제', total: 300, mpu: 2.5, role: 'basic', part: [0.2, 1] },
+      { s: '통합과학', name: '고2 선택 과학 1과목 개념 (과목 정하면 이름 바꾸기)', kind: '교과서', unit: '쪽', total: 200, mpu: 5, role: 'concept', part: [0.15, 1] },
+    ],
+  },
+  '2-여름': {
+    name: '여름방학 선행 (고2 2학기 준비)',
+    minutes: 480,
+    why: [
+      '2학기 수학을 개념부터 심화까지 끝내고, 1학기 수학은 기출로 다시 다져요.',
+      '국어·영어는 수능형 기출로 넘어가는 시기예요.',
+    ],
+    books: [
+      { s: '수학', name: '2학기 수학 개념 (미적분I 또는 확률과 통계)', kind: '교과서', unit: '쪽', total: 220, mpu: 6, role: 'concept', part: [0, 0.4] },
+      { s: '수학', name: '쎈 (2학기 과목)', kind: '문제집', unit: '문제', total: 900, mpu: 3, role: 'basic', part: [0.1, 0.75] },
+      { s: '수학', name: '고쟁이 (2학기 과목, 심화)', kind: '문제집', unit: '문제', total: 450, mpu: 6, role: 'advanced', part: [0.5, 1] },
+      { s: '수학', name: '1학기 수학 오답 다시 풀기', kind: '오답', unit: '문제', total: 150, mpu: 6, role: 'review', part: [0, 1] },
+      { s: '영어', name: '수능 영어 기출 (유형별)', kind: '기출', unit: '문제', total: 300, mpu: 3, role: 'basic', part: [0, 1] },
+      { s: '국어', name: '수능 국어 기출 (독서·문학)', kind: '기출', unit: '문제', total: 300, mpu: 3, role: 'basic', part: [0, 1] },
+    ],
+  },
+  '2-겨울': {
+    name: '겨울방학 (고3 준비)',
+    minutes: 600,
+    why: [
+      '수능 범위 수학을 기출로 한 바퀴 돌리고, 고3 1학기 과목 개념을 끝내요.',
+      '국어·영어는 매주 실전 모의고사로 시간 감각을 만들어요.',
+    ],
+    books: [
+      { s: '수학', name: '수능 수학 기출 (대수·미적분I)', kind: '기출', unit: '문제', total: 1000, mpu: 4, role: 'basic', part: [0, 0.9] },
+      { s: '수학', name: '고3 1학기 수학 개념', kind: '교과서', unit: '쪽', total: 200, mpu: 6, role: 'concept', part: [0, 0.5] },
+      { s: '수학', name: '틀린 기출 다시 풀기', kind: '오답', unit: '문제', total: 200, mpu: 6, role: 'review', part: [0.2, 1] },
+      { s: '영어', name: '수능 영어 실전 모의고사', kind: '모의고사', unit: '회', weekly: 2, total: 16, mpu: 70, role: 'past', part: [0, 1] },
+      { s: '국어', name: '수능 국어 실전 모의고사', kind: '모의고사', unit: '회', weekly: 2, total: 16, mpu: 80, role: 'past', part: [0, 1] },
+    ],
+  },
+  '1-여름': {
+    name: '여름방학 선행 (2학기 준비)',
+    minutes: 480,
+    why: ['2학기 수학을 개념부터 심화까지 한 번 끝내고, 1학기 오답을 다시 풀어요.'],
+    books: [
+      { s: '수학', name: '공통수학2 개념', kind: '교과서', unit: '쪽', total: 220, mpu: 6, role: 'concept', part: [0, 0.4] },
+      { s: '수학', name: '쎈 공통수학2', kind: '문제집', unit: '문제', total: 1100, mpu: 3, role: 'basic', part: [0.1, 0.8] },
+      { s: '수학', name: '고쟁이 공통수학2 (심화)', kind: '문제집', unit: '문제', total: 450, mpu: 6, role: 'advanced', part: [0.5, 1] },
+      { s: '수학', name: '1학기 수학 오답 다시 풀기', kind: '오답', unit: '문제', total: 150, mpu: 6, role: 'review', part: [0, 1] },
+      { s: '영어', name: '고1 모의고사 영어 기출', kind: '모의고사', unit: '회', weekly: 1, total: 8, mpu: 60, role: 'past', part: [0, 1] },
+    ],
+  },
+};
+
+// 학년은 3월에 오른다. 처음 쓰기 시작한 해(2026)를 고1로 본다
+function gradeAt(t) {
+  const y = Number(t.slice(0, 4));
+  const schoolYear = Number(t.slice(5, 7)) >= 3 ? y : y - 1;
+  return (state.settings.grade || 1) + schoolYear - (state.settings.gradeYear || 2026);
+}
+
+// 다음 방학 추천 계획. 시험이 남아 있으면 마지막 시험 다음 날부터 시작한다
+function recommendedGoal() {
+  const t = today();
+  const mon = Number(t.slice(5, 7));
+  const y = Number(t.slice(0, 4));
+  const winter = mon >= 9 || mon <= 2;
+  const rec = RECOMMEND[`${gradeAt(t)}-${winter ? '겨울' : '여름'}`];
+  if (!rec) return null;
+  const startY = mon <= 2 ? y - 1 : y;
+  let start = winter ? `${startY}-12-24` : `${y}-07-20`;
+  const end = winter ? `${startY + 1}-02-28` : `${y}-08-20`;
+  const exams = state.subjects.map((s) => s.examDate).filter((d) => d && d >= t && d < start);
+  if (exams.length) start = addDays(exams.sort().pop(), 1);
+  if (start < t) start = t;
+  if (start >= end) return null;
+  // 이미 이 기간에 만든 계획이 있으면 추천하지 않는다
+  if ((state.goals || []).some((g) => g.end >= start && g.start <= end)) return null;
+  return { ...rec, start, end };
+}
+
+function recommendCard() {
+  const r = recommendedGoal();
+  if (!r) return '';
+  const span = diffDays(r.start, r.end);
+  const at = (f) => prettyDate(addDays(r.start, Math.round(span * f)));
+  const subjects = [...new Set(r.books.map((b) => b.s))].filter((n) => subjectByName(n));
+  return `
+    <section class="card recommend-card">
+      <div class="syl-subject">
+        <h2>추천: ${esc(r.name)}</h2>
+        <span class="meta">${prettyDate(r.start)} ~ ${prettyDate(r.end)} · 하루 ${hm(r.minutes)}</span>
+      </div>
+      <p class="sub">고등학교 상위권 학생들이 이 시기에 보통 하는 양이에요. 넣고 나서 책 이름이나 범위가 다르면 고치면 돼요.</p>
+      ${subjects.map((n) => `
+        <div class="goal-subject"><strong>${esc(n)}</strong>
+          <ol class="rec-books">${r.books.filter((b) => b.s === n).map((b) => `<li><span>${esc(b.name)} <span class="syl-role">${esc(ROLE_LABEL[b.role])}</span></span><span class="meta">${b.weekly ? `매주 ${b.weekly}${esc(b.unit)}` : `${b.total}${esc(b.unit)}`} · ${at(b.part[0])}~${at(b.part[1])}</span></li>`).join('')}</ol>
+        </div>`).join('')}
+      <details class="rec-why"><summary class="meta">왜 이렇게 짰나요</summary><ul>${r.why.map((w) => `<li>${esc(w)}</li>`).join('')}</ul></details>
+      <button class="btn primary wide" data-action="goal-recommend">이대로 넣기</button>
+    </section>`;
+}
+
+function addRecommendedGoal() {
+  const r = recommendedGoal();
+  if (!r) return '';
+  const t = today();
+  const g = { id: uid(), name: r.name, start: r.start, end: r.end, minutes: r.minutes, recommended: true };
+  state.goals = state.goals || [];
+  state.goals.push(g);
+  r.books.forEach((b) => {
+    const s = subjectByName(b.s);
+    if (!s) return;
+    const m = addBook(s, b.name, b.unit, b.total);
+    // 모의고사처럼 매주 정해진 횟수만큼 하는 책
+    if (b.weekly) Object.assign(m, { mode: 'weekly', weekly: b.weekly, total: null });
+    Object.assign(m, { kind: b.kind, minPerUnit: b.mpu, role: b.role, goalPart: b.part, goalId: g.id, rangeFrom: 1, approxTotal: false, recommended: true, activeBeforeExam: 0, created: g.start < t ? t : g.start });
+  });
+  refreshUntouchedPlan();
+  return `${r.name}을 넣었어요. ${prettyDate(r.start)}부터 오늘 할 공부에 같이 나와요.`;
+}
+
 function renderGoals() {
   const t = today();
   const goals = (state.goals || []).slice().sort((a, b) => a.start.localeCompare(b.start));
@@ -1770,8 +1911,9 @@ function renderGoals() {
     : { name: '여름방학 선행', start: `${year}-07-20`, end: `${year}-08-20` };
   return `
     <p class="sub">시험이 아니어도 다음 학기 내용을 미리 끝내는 계획이에요. 기간 안에서 개념 → 문제 → 심화 순서로 나눠서, 하루 분량이 오늘 할 공부에 같이 들어가요. 시험 3주 전부터는 시험 공부를 먼저 넣어요.</p>
+    ${recommendCard()}
     ${goals.map(goalCard).join('')}
-    <details class="card fold"${goals.length ? '' : ' open'}>
+    <details class="card fold"${goals.length || recommendedGoal() ? '' : ' open'}>
       <summary>+ 새 선행·방학 계획 만들기</summary>
       <form data-form="goal" class="inline-form">
         <label>이름</label><input name="name" value="${esc(suggest.name)}" required>
@@ -2319,6 +2461,11 @@ document.addEventListener('click', async (e) => {
       ui.popup = false;
       changed = false;
       break;
+    case 'goal-recommend': {
+      const msg = addRecommendedGoal();
+      if (msg) toast(msg);
+      break;
+    }
     case 'goal-del': {
       const g = (state.goals || []).find((x) => x.id === id);
       if (!g || !confirm(`${g.name}을(를) 지울까요? 넣은 책도 함께 빠져요.`)) return;

@@ -585,3 +585,10 @@ details.subject-syl[open] > summary { margin-bottom: 8px; }
 .cause-bar .c-개념 { color: var(--card); }
 .cause-bar .c-해석, .cause-bar .c-계산 { color: #1b2236; }
 .cause-tip { margin: 2px 0 4px; font-size: 14px; }
+
+/* 추천 선행 계획 */
+.recommend-card { border: 2px solid var(--hl); }
+.rec-books { list-style: none; margin: 4px 0 10px; padding: 0; display: grid; gap: 6px; }
+.rec-books li { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 14px; }
+.rec-why { margin: 4px 0 12px; }
+.rec-why ul { margin: 6px 0 0; padding-left: 18px; font-size: 14px; display: grid; gap: 4px; }
