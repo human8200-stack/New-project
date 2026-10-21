@@ -62,7 +62,7 @@ function freshState() {
 }
 
 // sw.js의 CACHE 이름과 같이 올린다. 설정 맨 아래에 보여서 휴대폰이 새 버전인지 알 수 있다
-const APP_VERSION = 'v25';
+const APP_VERSION = 'v26';
 
 let state;
 const ui = { revealed: null, tab: 'today', openForm: null, openBook: null, openSubject: null, setup: false, planView: 'exam', popup: false };
@@ -2372,7 +2372,8 @@ function aiKeyCard() {
           <input type="password" name="key" placeholder="sk-ant-로 시작하는 API 키" autocomplete="off" autocapitalize="off" spellcheck="false" required>
           <div style="margin-top:10px"><button class="btn primary" type="submit">저장</button></div>
         </form>
-        <p class="meta">부모님이 platform.claude.com → API Keys에서 만들어 주세요. 키는 이 기기에만 저장되고 다른 기기로 넘어가지 않아요. 아이패드와 휴대폰에 각각 넣어 주세요.</p>`}
+        <p class="meta">부모님이 platform.claude.com → API Keys에서 만들어 주세요. 키는 이 기기에만 저장되고 다른 기기로 넘어가지 않아요. 아이패드와 휴대폰에 각각 넣어 주세요.</p>
+        <button class="btn" data-action="share-parents" style="margin-top:6px">부모님께 안내 보내기</button>`}
       ${!key && aiUrl() && state.settings.aiCode ? '<p class="meta">키가 없으면 가족 서버의 AI를 써요.</p>' : ''}
     </section>`;
 }
@@ -2565,6 +2566,12 @@ document.addEventListener('click', async (e) => {
     case 'welcome-close':
       state.welcome = false;
       break;
+    case 'share-parents': {
+      const url = new URL('parents.html', location.href).href;
+      if (navigator.share) navigator.share({ title: '공부 루틴 사진 읽기 켜는 법', url }).catch(() => {});
+      else window.open(url, '_blank');
+      return;
+    }
     case 'my-key-clear':
       if (!confirm('이 기기에서 Claude API 키를 지울까요?')) return;
       setMyKey('');
