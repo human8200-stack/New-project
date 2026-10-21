@@ -90,6 +90,10 @@ body {
   font-size: 16px;
   line-height: 1.55;
   -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* 두 번 눌러 확대되거나 눌렀을 때 회색 상자가 번쩍이지 않게 (손가락 두 개 확대는 그대로) */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   word-break: keep-all;
   overflow-wrap: anywhere;
 }

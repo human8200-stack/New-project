@@ -62,7 +62,7 @@ function freshState() {
 }
 
 // sw.js의 CACHE 이름과 같이 올린다. 설정 맨 아래에 보여서 휴대폰이 새 버전인지 알 수 있다
-const APP_VERSION = 'v21';
+const APP_VERSION = 'v22';
 
 let state;
 const ui = { revealed: null, tab: 'today', openForm: null, openBook: null, openSubject: null, setup: false, planView: 'exam', popup: false };
@@ -2900,7 +2900,7 @@ document.addEventListener('submit', async (e) => {
   markReady();
   await render();
   initAi();
-  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
     // 새 버전이 자리 잡으면 한 번 새로 연다. 처음 설치할 때는 새로 열지 않는다
     const hadController = !!navigator.serviceWorker.controller;
     let reloaded = false;
