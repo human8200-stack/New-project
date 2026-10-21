@@ -487,3 +487,18 @@ details.subject-syl[open] > summary { margin-bottom: 8px; }
 }
 
 [hidden] { display: none !important; }
+
+/* ---------- 정리 후: 떠올릴 카드 한 줄 · 다시 볼 것 ---------- */
+
+.recall-line { width: 100%; display: flex; align-items: center; gap: 10px; border: 0; background: var(--card); color: var(--text); font: inherit; font-size: 15px; text-align: left; padding: 14px 16px; border-radius: 16px; box-shadow: var(--shadow); margin-bottom: 14px; cursor: pointer; }
+.recall-line.static { cursor: default; }
+.recall-line-dot { flex: 0 0 10px; width: 10px; height: 10px; border-radius: 50%; background: var(--hl); box-shadow: 0 0 0 4px color-mix(in srgb, var(--hl) 35%, transparent); }
+.recall-line.done .recall-line-dot { background: var(--ok); box-shadow: none; }
+.recall-line > span:nth-child(2) { flex: 1; min-width: 0; }
+.recall-line-go { color: var(--accent); font-weight: 700; font-size: 14px; white-space: nowrap; }
+.recall-line.done { color: var(--muted); }
+.review-filter { margin: 4px 0 8px; }
+.chip-btn.on { background: var(--btn); color: var(--btn-text); }
+.review-q { font-weight: 600; margin-top: 4px; }
+.review-item .wrong-img { margin-top: 8px; }
+.switch button { font-size: 14px; padding: 9px 4px; }
