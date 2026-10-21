@@ -48,7 +48,8 @@ const cloud = {
     return { loading: '연결 중', signedOut: '로그인 필요', connecting: '맞추는 중', pushing: '올리는 중', synced: '동기화됨', error: '동기화 오류' }[this.status] || '';
   },
 };
-window.cloud = cloud;
+// Firebase 설정이 없으면 cloud.js(연결 코드 동기화)가 맡는다
+if (window.FIREBASE_CONFIG || !window.cloud) window.cloud = cloud;
 
 function setStatus(status, error = '') {
   cloud.status = status;
@@ -260,6 +261,6 @@ async function start(config) {
 
 if (window.FIREBASE_CONFIG) {
   start(window.FIREBASE_CONFIG);
-} else if (window.app) {
+} else if (window.app && window.cloud === cloud) {
   window.app.syncChanged();
 }
