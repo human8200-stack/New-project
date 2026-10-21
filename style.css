@@ -18,6 +18,10 @@
   --warn-soft: #fbebe6;
   --ok: #2f8a58;
   --ok-soft: #e7f4ec;
+  --c-concept: #2b3a67;     /* 오답 원인: 개념 · 적용 · 계산 · 해석 */
+  --c-apply: #6f86d6;
+  --c-calc: #e08a3c;
+  --c-read: #b9a24a;
   --shadow: 0 1px 2px rgba(27, 34, 54, 0.04), 0 6px 18px rgba(27, 34, 54, 0.06);
   --radius: 18px;
   --font: "IBM Plex Sans KR", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
@@ -43,6 +47,10 @@
     --warn-soft: #3a2621;
     --ok: #7fd3a2;
     --ok-soft: #1d3127;
+  --c-concept: #b4c2f5;
+  --c-apply: #6f86d6;
+  --c-calc: #f0a35e;
+  --c-read: #d8c56a;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
   }
 }
@@ -65,6 +73,10 @@
   --warn-soft: #3a2621;
   --ok: #7fd3a2;
   --ok-soft: #1d3127;
+  --c-concept: #b4c2f5;
+  --c-apply: #6f86d6;
+  --c-calc: #f0a35e;
+  --c-read: #d8c56a;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
 }
 
@@ -537,3 +549,39 @@ details.subject-syl[open] > summary { margin-bottom: 8px; }
 .sol-answer strong, .sol-concept strong { background: linear-gradient(transparent 58%, var(--hl-mark) 58%); margin-right: 4px; }
 .report-sub { margin: 6px 0 4px; padding-left: 18px; font-size: 14px; color: var(--muted); }
 .recall-a .solution { background: var(--card); }
+
+/* 마무리 기간 */
+.syl-head.static { cursor: default; }
+.final-days { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 2px; font-size: 13px; }
+.final-days li { padding: 3px 0; }
+.final-days li .meta { display: inline-block; min-width: 34px; font-weight: 700; }
+.final-days li.today { font-weight: 600; }
+.final-days li.today .meta { color: var(--text); background: linear-gradient(transparent 58%, var(--hl-mark) 58%); }
+
+/* 오답 원인 진단 */
+.diag { margin-top: 8px; display: grid; gap: 6px; font-size: 14px; }
+.cause { justify-self: start; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 999px; color: var(--text); }
+.cause::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--c-concept); }
+.cause.c-적용::before { background: var(--c-apply); }
+.cause.c-계산::before { background: var(--c-calc); }
+.cause.c-해석::before { background: var(--c-read); }
+.diag-basic strong { background: linear-gradient(transparent 58%, var(--hl-mark) 58%); margin-right: 4px; }
+.diag-checks { background: var(--accent-soft); border-radius: 12px; padding: 8px 12px; }
+.diag-checks ol { margin: 4px 0 0; padding-left: 20px; display: grid; gap: 4px; }
+.diag-checks details { display: inline; }
+.diag-checks summary { display: inline; cursor: pointer; }
+.recall-checks { margin: 8px 0; text-align: left; }
+.cause-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+.cause-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.cause-row { padding: 10px 0; border-top: 1px solid var(--line); }
+.cause-head { display: flex; justify-content: space-between; align-items: baseline; }
+.cause-bar { display: flex; gap: 2px; height: 22px; margin: 6px 0; border-radius: 6px; overflow: hidden; }
+.cause-bar span { display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; min-width: 18px; }
+.c-개념 { background: var(--c-concept); }
+.c-적용 { background: var(--c-apply); }
+.c-계산 { background: var(--c-calc); }
+.c-해석 { background: var(--c-read); }
+.cause.c-개념, .cause.c-적용, .cause.c-계산, .cause.c-해석 { background: var(--accent-soft); }
+.cause-bar .c-개념 { color: var(--card); }
+.cause-bar .c-해석, .cause-bar .c-계산 { color: #1b2236; }
+.cause-tip { margin: 2px 0 4px; font-size: 14px; }
