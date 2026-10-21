@@ -1,6 +1,6 @@
 // 오프라인에서도 열리도록 앱 파일을 캐시한다 (네트워크 우선)
 // app.js의 APP_VERSION과 같이 올린다
-const CACHE = 'study-routine-v26';
+const CACHE = 'study-routine-v27';
 const FILES = ['./', 'index.html', 'style.css', 'planner.js', 'seed.js', 'app.js', 'firebase-config.js', 'cloud.js', 'sync.js', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png', 'vendor/anthropic-sdk.mjs'];
 
 // 새 버전은 기다리지 않고 바로 자리를 잡는다 (앱이 이를 보고 한 번 새로 연다)
