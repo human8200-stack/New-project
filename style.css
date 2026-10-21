@@ -527,3 +527,13 @@ details.subject-syl[open] > summary { margin-bottom: 8px; }
 .manual-top input[type="date"] { width: auto; padding: 6px 10px; }
 .manual-row .memo { flex: 1 1 160px; min-width: 0; padding: 7px 10px; font-size: 14px; }
 .range-manual .btn { margin-top: 12px; }
+
+/* ---------- 풀이 ---------- */
+.solution { margin-top: 8px; background: var(--bg); border-radius: 12px; padding: 10px 12px; }
+.solution summary { font-weight: 700; color: var(--accent); font-size: 14px; }
+.sol-concept, .sol-answer { margin: 8px 0; font-size: 14px; }
+.sol-steps { margin: 6px 0; padding-left: 22px; font-size: 14px; }
+.sol-steps li { margin: 4px 0; }
+.sol-answer strong, .sol-concept strong { background: linear-gradient(transparent 58%, var(--hl-mark) 58%); margin-right: 4px; }
+.report-sub { margin: 6px 0 4px; padding-left: 18px; font-size: 14px; color: var(--muted); }
+.recall-a .solution { background: var(--card); }

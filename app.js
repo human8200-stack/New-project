@@ -409,10 +409,10 @@ function recallSection() {
       <button class="btn big good" data-action="log-ok" data-id="${item.id}">기억났어요</button>
       <button class="btn big bad" data-action="log-miss" data-id="${item.id}">헷갈려요</button>`;
   } else {
-    meta = `${esc(item.subject)}${item.unit ? ` · ${esc(item.unit)}` : ''} · ${daysAgoText(item.date)} 틀린 문제`;
+    meta = `${esc(item.subject)}${item.unit ? ` · ${esc(item.unit)}` : ''} · ${daysAgoText(item.date)} ${{ question: '물어본 문제', test: `시험지 ${esc(item.problemNo || '')}번` }[item.kind] || '틀린 문제'}`;
     question = '이 문제를 다시 풀어 보세요.';
     extra = item.img ? `<img class="wrong-img" src="${item.img}" alt="다시 풀 오답 문제">` : '';
-    answer = item.note ? `지난번에 꼬인 곳: ${esc(item.note)}` : '풀이를 확인해 보세요.';
+    answer = `${item.note ? `${item.kind === 'question' ? '핵심 개념' : '지난번에 꼬인 곳'}: ${esc(item.note)}` : '풀이를 확인해 보세요.'}${stepsHtml(item, false)}`;
     buttons = `
       <button class="btn big good" data-action="wrong-ok" data-id="${item.id}">맞혔어요</button>
       <button class="btn big bad" data-action="wrong-miss" data-id="${item.id}">또 틀렸어요</button>`;
@@ -838,13 +838,18 @@ ${books}
    {"type":"lesson","photo":번호,"subject":과목,"pages":"p.58~61","endPage":61,"topic":"단원·주제 한 줄","cards":[{"q":"책을 덮고 답할 수 있는 구체적인 복습 질문","a":"1~2문장 답"}]}  (cards 2~3개, 사진 내용만 근거로)
 2. "solved" 학생이 풀고 채점한 문제집·학습지 쪽
    {"type":"solved","photo":번호,"subject":과목,"book":"위 책 목록에서 가장 가까운 이름 (없으면 표지에 보이는 이름)","solved":푼 문제 수,"wrong":틀린 문제 수,"last":마지막 문제 번호 숫자}
-3. "wrong" 틀린 문제 하나를 크게 찍은 것
-   {"type":"wrong","photo":번호,"subject":과목,"unit":"단원","why":"이 문제에서 놓치기 쉬운 점 한 줄"}
-4. "exam" 시험 범위·시험 시간표 공지
+3. "wrong" 틀린 문제 하나를 크게 찍은 것 (✗ 표시나 고친 답이 있음)
+   {"type":"wrong","photo":번호,"subject":과목,"unit":"단원","why":"이 문제에서 놓치기 쉬운 점 한 줄","steps":["풀이 1단계","2단계","…"],"answer":"정답"}
+4. "test" 채점한 시험지·모의고사·학습지 전체 (여러 문제에 ✗ 표시)
+   {"type":"test","photo":번호,"subject":과목,"title":"시험 이름 (보이면)","total":전체 문항 수 또는 null,"wrong":[{"no":"문제 번호","unit":"단원","why":"놓친 점 한 줄","concept":"다시 볼 개념 한 줄"}]}
+5. "question" 학생이 모르는 문제 (풀이 흔적이 없거나 ? 표시, 풀다 멈춘 문제)
+   {"type":"question","photo":번호,"subject":과목,"unit":"단원","concept":"이 문제에 필요한 핵심 개념 한 줄","steps":["풀이 1단계","2단계","…"],"answer":"정답","tip":"비슷한 문제에서 먼저 확인할 점 한 줄"}
+   (풀이는 고등학교 1학년이 따라갈 수 있게 단계마다 한 문장으로, 3~6단계)
+6. "exam" 시험 범위·시험 시간표 공지
    {"type":"exam","photo":번호,"exams":[{"subject":과목,"date":"YYYY-MM-DD 또는 null","range":"범위 한 줄","startPage":교과서 시작 쪽 숫자 또는 null,"endPage":교과서 마지막 쪽 숫자 또는 null}]}
-5. "book" 책 표지·목차·맨 뒤쪽
+7. "book" 책 표지·목차·맨 뒤쪽
    {"type":"book","photo":번호,"subject":과목,"book":"책 이름","unit":"문제" 또는 "쪽","total":전체 문제 수 또는 쪽 수 (모르면 null)}
-6. 알 수 없으면 {"type":"other","photo":번호}
+8. 알 수 없으면 {"type":"other","photo":번호}
 
 과목은 반드시 위 과목 목록의 글자 그대로 씁니다. 숫자를 읽을 수 없으면 null로 둡니다.
 JSON 하나로만 답하세요: {"items":[...]}`;
@@ -1014,10 +1019,43 @@ function applyPhotoItems(items, jpegs) {
         nextPassIfDone(m);
       }
       lines.push(`${s.name} · ${m.name} ${solved}문제${wrong != null ? ` (틀림 ${wrong})` : ''} → 진도에 반영`);
-    } else if (x.type === 'wrong' && s) {
+    } else if ((x.type === 'wrong' || x.type === 'question') && s) {
       const img = jpegs[(Number(x.photo) || 1) - 1] || '';
-      state.wrongs.push({ id: uid(), date: t, subject: s.name, unit: String(x.unit || ''), trap: '', note: String(x.why || ''), img, step: 0, due: addDays(t, WRONG_INTERVALS[0]), history: [] });
-      lines.push(`${s.name} · 틀린 문제 → 2일 뒤 다시 풀기로 저장`);
+      const steps = (Array.isArray(x.steps) ? x.steps : []).map(String).filter(Boolean).slice(0, 8);
+      const isQ = x.type === 'question';
+      state.wrongs.push({
+        id: uid(), date: t, subject: s.name, unit: String(x.unit || ''), trap: '', kind: isQ ? 'question' : 'wrong',
+        note: String((isQ ? x.concept : x.why) || ''), tip: String(x.tip || ''), steps, answer: String(x.answer || ''),
+        img, step: 0, due: addDays(t, WRONG_INTERVALS[0]), history: [],
+      });
+      lines.push({
+        text: isQ ? `${s.name}${x.unit ? ` · ${x.unit}` : ''} 모르는 문제 → 풀이를 보고, 2일 뒤 혼자 다시 풀기` : `${s.name} · 틀린 문제 → 2일 뒤 다시 풀기로 저장`,
+        concept: String((isQ ? x.concept : x.why) || ''), steps, answer: String(x.answer || ''), tip: String(x.tip || ''),
+      });
+    } else if (x.type === 'test' && s) {
+      const img = jpegs[(Number(x.photo) || 1) - 1] || '';
+      const wrongs = (Array.isArray(x.wrong) ? x.wrong : []).filter((w) => w && (w.no || w.why)).slice(0, 30);
+      wrongs.forEach((w) => {
+        state.wrongs.push({
+          id: uid(), date: t, subject: s.name, unit: String(w.unit || ''), trap: '', kind: 'test', problemNo: String(w.no || ''),
+          note: `${w.no ? `${w.no}번 · ` : ''}${w.why || ''}`, concept: String(w.concept || ''), img,
+          step: 0, due: addDays(t, WRONG_INTERVALS[0]), history: [],
+        });
+      });
+      // 다시 볼 개념은 복습 카드로도 만든다
+      wrongs.filter((w) => w.concept).slice(0, 5).forEach((w) => {
+        state.logs.push({ id: uid(), created: Date.now(), date: t, subject: s.name, kind: '시험', text: `${x.title || '시험지'} ${w.no ? `${w.no}번` : ''}`.trim(), q: `${w.unit ? `[${w.unit}] ` : ''}${w.concept}`, a: String(w.why || ''), step: 0, due: addDays(t, 1), history: [] });
+      });
+      // 정답률에만 반영한다 (틀린 문제는 위에서 하나씩 저장했으니 '쌓인 오답' 수는 늘리지 않음)
+      const total = Number(x.total) || null;
+      if (total && wrongs.length <= total) {
+        const acc = (total - wrongs.length) / total;
+        s.accuracy = s.accuracy == null ? acc : Math.round((0.7 * s.accuracy + 0.3 * acc) * 100) / 100;
+      }
+      lines.push({
+        text: `${s.name}${x.title ? ` ${x.title}` : ' 시험지'} · 틀린 문제 ${wrongs.length}개${wrongs.length ? ` (${wrongs.map((w) => w.no).filter(Boolean).join(', ')}번)` : ''} → 다시 풀 목록에 저장`,
+        list: wrongs.map((w) => `${w.no ? `${w.no}번` : ''}${w.unit ? ` [${w.unit}]` : ''} ${w.why || ''}${w.concept ? ` → 다시 볼 개념: ${w.concept}` : ''}`.trim()),
+      });
     } else if (x.type === 'exam') {
       const exams = Array.isArray(x.exams) ? x.exams : [];
       const dates = [];
@@ -1057,6 +1095,23 @@ function applyPhotoItems(items, jpegs) {
   return lines;
 }
 
+function stepsHtml(o, open) {
+  if (!o.steps || !o.steps.length) return '';
+  return `
+    <details class="solution"${open ? ' open' : ''}>
+      <summary>풀이 보기</summary>
+      ${o.concept ? `<p class="sol-concept"><strong>핵심 개념</strong> ${esc(o.concept)}</p>` : ''}
+      <ol class="sol-steps">${o.steps.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>
+      ${o.answer ? `<p class="sol-answer"><strong>답</strong> ${esc(o.answer)}</p>` : ''}
+      ${o.tip ? `<p class="meta">다음에 먼저 확인할 것: ${esc(o.tip)}</p>` : ''}
+    </details>`;
+}
+
+function reportItem(l) {
+  if (typeof l === 'string') return `<li>${esc(l)}</li>`;
+  return `<li>${esc(l.text)}${l.list && l.list.length ? `<ul class="report-sub">${l.list.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}${stepsHtml(l, true)}</li>`;
+}
+
 // 어느 화면에서나 같은 사진 버튼
 function photoCard(compact) {
   if (ai.busy) return '<section class="card photo-card"><p class="ai-busy">사진을 읽고 정리하는 중이에요… (30초쯤 걸려요)</p></section>';
@@ -1064,7 +1119,7 @@ function photoCard(compact) {
     return `
       <section class="card photo-card done">
         <h2>이렇게 정리했어요</h2>
-        <ul class="report">${ai.report.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>
+        <ul class="report">${ai.report.map(reportItem).join('')}</ul>
         <div class="recall-buttons">
           <button class="btn big primary" data-action="ai-ok">좋아요</button>
           <button class="btn big" data-action="ai-undo">되돌리기</button>
@@ -1788,9 +1843,11 @@ function reviewList() {
     if (x.kind === 'wrong') {
       return `
         <li class="item review-item">
-          <div><span class="tag">${esc(x.subject)}</span><span class="meta">틀린 문제${x.w.unit ? ` · ${esc(x.w.unit)}` : ''}</span> ${when}
-            ${x.w.img ? `<img class="wrong-img" src="${x.w.img}" alt="틀린 문제">` : ''}
-            ${x.w.note ? `<div class="meta">${esc(x.w.note)}</div>` : ''}</div>
+          <div><span class="tag">${esc(x.subject)}</span><span class="meta">${{ question: '모르는 문제', test: '시험지 오답' }[x.w.kind] || '틀린 문제'}${x.w.unit ? ` · ${esc(x.w.unit)}` : ''}</span> ${when}
+            ${x.w.img ? `<img class="wrong-img" src="${x.w.img}" alt="문제 사진">` : ''}
+            ${x.w.note ? `<div class="meta">${esc(x.w.note)}</div>` : ''}
+            ${x.w.concept ? `<div class="meta">다시 볼 개념: ${esc(x.w.concept)}</div>` : ''}
+            ${stepsHtml(x.w, false)}</div>
         </li>`;
     }
     return `
