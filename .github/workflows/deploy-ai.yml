@@ -1,4 +1,4 @@
-# 사진 읽기 AI 서버(worker/)를 Cloudflare에 올린다.
+# 우리 집 서버(worker/: 사진 읽기 + 기기 동기화)를 Cloudflare에 올린다.
 # 컴퓨터 없이 휴대폰으로: 저장소 Settings → Secrets and variables → Actions에
 # CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, ANTHROPIC_API_KEY, FAMILY_CODE를 넣고
 # Actions → "AI 서버 올리기" → Run workflow를 누른다. 다 되면 요약에 서버 주소가 나온다.
@@ -36,7 +36,29 @@ jobs:
 
       - name: 설치
         working-directory: worker
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
+
+      - name: 동기화 저장소 준비
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          find_id() {
+            npx wrangler kv namespace list | node -e "
+              let s = ''; process.stdin.on('data', (d) => s += d).on('end', () => {
+                const list = JSON.parse(s.slice(s.indexOf('[')));
+                const hit = list.find((x) => x.title === 'study-ai-sync');
+                console.log(hit ? hit.id : '');
+              });"
+          }
+          id=$(find_id)
+          if [ -z "$id" ]; then
+            npx wrangler kv namespace create study-ai-sync
+            id=$(find_id)
+          fi
+          if [ -z "$id" ]; then echo "::error::동기화 저장소를 만들지 못했어요"; exit 1; fi
+          sed -i "s/SYNC_NAMESPACE_ID/$id/" wrangler.toml
 
       - name: 올리기
         id: deploy

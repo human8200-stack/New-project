@@ -62,7 +62,7 @@ function freshState() {
 }
 
 // sw.js의 CACHE 이름과 같이 올린다. 설정 맨 아래에 보여서 휴대폰이 새 버전인지 알 수 있다
-const APP_VERSION = 'v23';
+const APP_VERSION = 'v24';
 
 let state;
 const ui = { revealed: null, tab: 'today', openForm: null, openBook: null, openSubject: null, setup: false, planView: 'exam', popup: false };
@@ -2277,6 +2277,7 @@ function checkinHistory() {
 
 function syncCard() {
   const c = window.cloud;
+  if (c && c.mode === 'code') return codeSyncCard(c);
   if (!c || c.status === 'unconfigured') {
     return `
     <div class="card">
@@ -2307,6 +2308,40 @@ function syncCard() {
       <h2>아이패드 · 휴대폰 동기화</h2>
       ${body}
     </div>`;
+}
+
+// 우리 집 서버로 맞추기: 연결 코드 하나를 두 기기에 넣는다
+function codeSyncCard(c) {
+  let body;
+  if (c.status === 'needsAi') {
+    body = `<p class="sub" style="margin:0">${esc(c.statusText())}</p>`;
+  } else if (c.id) {
+    body = `
+      <p class="sub">${esc(c.statusText())}</p>
+      <div class="link-code"><span class="meta">이 기록의 연결 코드</span><strong>${esc(c.displayCode())}</strong></div>
+      <p class="meta">아이패드·휴대폰 중 다른 기기에서 설정 → 이 칸에 위 코드를 넣으면 같은 기록이 나와요.</p>
+      <div class="row" style="margin-top:8px">
+        <button class="btn" data-action="cloud-share">코드 보내기</button>
+        <button class="linklike small" data-action="cloud-link-open">다른 기기의 코드 넣기</button>
+      </div>
+      ${ui.linkOpen ? linkForm() : ''}`;
+  } else {
+    body = `<p class="sub">${esc(c.statusText())}</p>${linkForm()}`;
+  }
+  return `
+    <div class="card">
+      <h2>아이패드 · 휴대폰 동기화</h2>
+      ${body}
+    </div>`;
+}
+
+function linkForm() {
+  return `
+    <form data-form="cloud-link" class="row" style="margin-top:10px">
+      <div style="flex:3 1 200px"><input name="code" placeholder="다른 기기의 연결 코드 (예: abcd-efgh-jkmn-pqrs)" autocapitalize="off" autocomplete="off" required></div>
+      <div><button class="btn primary" type="submit">연결</button></div>
+    </form>
+    <p class="meta">연결하면 이 기기 기록 대신 그 기기 기록을 써요.</p>`;
 }
 
 // ---------- 렌더링 ----------
@@ -2345,7 +2380,7 @@ async function render() {
 function renderSyncBadge() {
   const sync = document.getElementById('sync');
   const c = window.cloud;
-  sync.hidden = !c || c.status === 'unconfigured';
+  sync.hidden = !c || c.status === 'unconfigured' || !c.badge();
   if (!sync.hidden) {
     sync.textContent = c.badge();
     sync.className = `sync ${c.status}`;
@@ -2452,6 +2487,17 @@ document.addEventListener('click', async (e) => {
       break;
     case 'welcome-close':
       state.welcome = false;
+      break;
+    case 'cloud-share': {
+      const code = window.cloud ? window.cloud.displayCode() : '';
+      const text = `공부 루틴 연결 코드: ${code}\n다른 기기에서 설정 → 아이패드·휴대폰 동기화에 넣으세요.`;
+      if (navigator.share) navigator.share({ text }).catch(() => {});
+      else if (navigator.clipboard) navigator.clipboard.writeText(code).then(() => toast('연결 코드를 복사했어요.')).catch(() => toast(code));
+      return;
+    }
+    case 'cloud-link-open':
+      ui.linkOpen = !ui.linkOpen;
+      changed = false;
       break;
     case 'force-update': {
       // 저장해 둔 앱 파일만 지우고 새로 받는다. 공부 기록(IndexedDB)은 건드리지 않는다
@@ -2879,8 +2925,15 @@ document.addEventListener('submit', async (e) => {
   } else if (kind === 'ai') {
     state.settings.aiUrl = (f.get('aiUrl') || '').trim();
     state.settings.aiCode = (f.get('aiCode') || '').trim();
+    if (window.cloud && window.cloud.refresh) setTimeout(() => window.cloud.refresh(), 0);
   } else if (kind === 'member') {
     if (window.cloud) await window.cloud.addMember(f.get('email'));
+    return;
+  } else if (kind === 'cloud-link') {
+    if (!window.cloud || !window.cloud.link) return;
+    if (!confirm('이 기기 기록 대신 연결한 기기의 기록을 쓸까요?')) return;
+    if (await window.cloud.link(f.get('code'))) ui.linkOpen = false;
+    render();
     return;
   } else {
     return;
