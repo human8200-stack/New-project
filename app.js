@@ -62,7 +62,7 @@ function freshState() {
 }
 
 // sw.js의 CACHE 이름과 같이 올린다. 설정 맨 아래에 보여서 휴대폰이 새 버전인지 알 수 있다
-const APP_VERSION = 'v26';
+const APP_VERSION = 'v27';
 
 let state;
 const ui = { revealed: null, tab: 'today', openForm: null, openBook: null, openSubject: null, setup: false, planView: 'exam', popup: false };
@@ -2325,7 +2325,7 @@ function checkinHistory() {
 
 function syncCard() {
   const c = window.cloud;
-  if (c && c.mode === 'code') return codeSyncCard(c);
+  if (c && c.mode === 'login') return loginSyncCard(c);
   if (!c || c.status === 'unconfigured') {
     return `
     <div class="card">
@@ -2378,48 +2378,52 @@ function aiKeyCard() {
     </section>`;
 }
 
-// 동기화 서버에 들어가는 가족 코드 (서버 주소가 미리 들어 있지 않으면 주소도)
-function familyForm() {
-  return `
-    <form data-form="ai" style="margin-top:6px">
-      ${window.AI_URL ? `<input type="hidden" name="aiUrl" value="${esc(state.settings.aiUrl || '')}">` : `<label>서버 주소</label><input name="aiUrl" value="${esc(state.settings.aiUrl || '')}" placeholder="https://study-ai.○○○.workers.dev">`}
-      <label>가족 코드</label><input name="aiCode" value="${esc(state.settings.aiCode || '')}" placeholder="부모님께 받은 코드" autocapitalize="off" autocomplete="off">
-      <div style="margin-top:10px"><button class="btn primary" type="submit">저장</button></div>
-    </form>`;
-}
-
-// 우리 집 서버로 맞추기: 연결 코드 하나를 두 기기에 넣는다
-function codeSyncCard(c) {
+// 아이디·비밀번호로 로그인하면 기기마다 같은 기록 (우리 집 서버)
+function loginSyncCard(c) {
   let body;
-  if (c.status === 'needsAi') {
-    body = `<p class="sub" style="margin:0">부모님께 받은 가족 코드를 넣으면 이 기기 기록에 연결 코드가 생겨요.</p>${familyForm()}`;
-  } else if (c.id) {
+  if (c.status === 'noServer') {
+    body = `<p class="sub" style="margin:0">${esc(c.statusText())}</p>`;
+  } else if (c.userId) {
+    body = `
+      <p class="sub"><span class="tag">${esc(c.userId)}</span> 로그인됨 · ${esc(c.statusText())}</p>
+      <p class="meta">다른 기기에서도 같은 아이디로 로그인하면 기록이 저절로 맞춰져요.</p>
+      <div class="row" style="margin-top:8px">
+        <button class="btn" data-action="auth-logout">로그아웃</button>
+        <button class="linklike small" data-action="auth-pw-open">비밀번호 바꾸기</button>
+      </div>
+      ${ui.pwOpen ? `
+        <form data-form="auth-password" style="margin-top:10px">
+          <input type="password" name="old" placeholder="지금 비밀번호" autocomplete="current-password" required>
+          <input type="password" name="password" placeholder="새 비밀번호 (6자 이상)" autocomplete="new-password" required style="margin-top:8px">
+          <div style="margin-top:10px"><button class="btn primary" type="submit">바꾸기</button></div>
+        </form>` : ''}`;
+  } else if (ui.authMode === 'signup') {
+    body = `
+      <p class="sub">처음 한 번만 만들어요. 아이패드와 휴대폰에서 같은 아이디로 로그인하면 돼요.</p>
+      <form data-form="auth-signup">
+        <label>아이디 (영어 소문자·숫자)</label><input name="id" value="${esc(ui.authId || '')}" autocapitalize="off" autocomplete="username" spellcheck="false" required>
+        <label>비밀번호 (6자 이상)</label><input type="password" name="password" autocomplete="new-password" required>
+        <label>비밀번호 한 번 더</label><input type="password" name="password2" autocomplete="new-password" required>
+        <label>가족 코드</label><input name="invite" value="${esc(state.settings.aiCode || '')}" placeholder="부모님께 받은 코드" autocapitalize="off" autocomplete="off" required>
+        <div style="margin-top:12px"><button class="btn primary" type="submit">계정 만들기</button></div>
+      </form>
+      <button class="linklike small" data-action="auth-mode" data-id="login" style="margin-top:10px">이미 계정이 있어요 → 로그인</button>`;
+  } else {
     body = `
       <p class="sub">${esc(c.statusText())}</p>
-      <div class="link-code"><span class="meta">이 기록의 연결 코드</span><strong>${esc(c.displayCode())}</strong></div>
-      <p class="meta">아이패드·휴대폰 중 다른 기기에서 설정 → 이 칸에 위 코드를 넣으면 같은 기록이 나와요.</p>
-      <div class="row" style="margin-top:8px">
-        <button class="btn" data-action="cloud-share">코드 보내기</button>
-        <button class="linklike small" data-action="cloud-link-open">다른 기기의 코드 넣기</button>
-      </div>
-      ${ui.linkOpen ? linkForm() : ''}`;
-  } else {
-    body = `<p class="sub">${esc(c.statusText())}</p>${linkForm()}`;
+      <form data-form="auth-login">
+        <input name="id" value="${esc(ui.authId || '')}" placeholder="아이디" autocapitalize="off" autocomplete="username" spellcheck="false" required>
+        <input type="password" name="password" placeholder="비밀번호" autocomplete="current-password" required style="margin-top:8px">
+        <div style="margin-top:10px"><button class="btn primary" type="submit">로그인</button></div>
+      </form>
+      ${c.status === 'error' ? `<p class="warn-text">${esc(c.error)}</p>` : ''}
+      <button class="linklike small" data-action="auth-mode" data-id="signup" style="margin-top:10px">처음이에요 → 계정 만들기</button>`;
   }
   return `
     <div class="card">
       <h2>아이패드 · 휴대폰 동기화</h2>
       ${body}
     </div>`;
-}
-
-function linkForm() {
-  return `
-    <form data-form="cloud-link" class="row" style="margin-top:10px">
-      <div style="flex:3 1 200px"><input name="code" placeholder="다른 기기의 연결 코드 (예: abcd-efgh-jkmn-pqrs)" autocapitalize="off" autocomplete="off" required></div>
-      <div><button class="btn primary" type="submit">연결</button></div>
-    </form>
-    <p class="meta">연결하면 이 기기 기록 대신 그 기기 기록을 써요.</p>`;
 }
 
 // ---------- 렌더링 ----------
@@ -2576,17 +2580,18 @@ document.addEventListener('click', async (e) => {
       if (!confirm('이 기기에서 Claude API 키를 지울까요?')) return;
       setMyKey('');
       break;
-    case 'cloud-share': {
-      const code = window.cloud ? window.cloud.displayCode() : '';
-      const text = `공부 루틴 연결 코드: ${code}\n다른 기기에서 설정 → 아이패드·휴대폰 동기화에 넣으세요.`;
-      if (navigator.share) navigator.share({ text }).catch(() => {});
-      else if (navigator.clipboard) navigator.clipboard.writeText(code).then(() => toast('연결 코드를 복사했어요.')).catch(() => toast(code));
-      return;
-    }
-    case 'cloud-link-open':
-      ui.linkOpen = !ui.linkOpen;
+    case 'auth-mode':
+      ui.authMode = id;
       changed = false;
       break;
+    case 'auth-pw-open':
+      ui.pwOpen = !ui.pwOpen;
+      changed = false;
+      break;
+    case 'auth-logout':
+      if (!window.cloud || !confirm('로그아웃할까요? 이 기기의 기록은 그대로 남아요.')) return;
+      window.cloud.logOut();
+      return;
     case 'force-update': {
       // 저장해 둔 앱 파일만 지우고 새로 받는다. 공부 기록(IndexedDB)은 건드리지 않는다
       toast('새 버전을 받는 중이에요…');
@@ -3017,7 +3022,6 @@ document.addEventListener('submit', async (e) => {
   } else if (kind === 'ai') {
     state.settings.aiUrl = (f.get('aiUrl') || '').trim();
     state.settings.aiCode = (f.get('aiCode') || '').trim();
-    if (window.cloud && window.cloud.refresh) setTimeout(() => window.cloud.refresh(), 0);
   } else if (kind === 'member') {
     if (window.cloud) await window.cloud.addMember(f.get('email'));
     return;
@@ -3031,10 +3035,28 @@ document.addEventListener('submit', async (e) => {
     toast('이 기기에 키를 저장했어요. 이제 사진을 읽을 수 있어요.');
     render();
     return;
-  } else if (kind === 'cloud-link') {
-    if (!window.cloud || !window.cloud.link) return;
-    if (!confirm('이 기기 기록 대신 연결한 기기의 기록을 쓸까요?')) return;
-    if (await window.cloud.link(f.get('code'))) ui.linkOpen = false;
+  } else if (kind === 'auth-login' || kind === 'auth-signup') {
+    if (!window.cloud || !window.cloud.logIn) return;
+    const id = (f.get('id') || '').trim().toLowerCase();
+    const password = f.get('password') || '';
+    ui.authId = id; // 비밀번호를 틀려도 아이디는 남겨 둔다
+    if (kind === 'auth-signup') {
+      if (password !== f.get('password2')) {
+        toast('비밀번호 두 번이 서로 달라요.');
+        return;
+      }
+      const invite = (f.get('invite') || '').trim();
+      if (await window.cloud.signUp(id, password, invite)) {
+        state.settings.aiCode = invite; // 서버 AI를 쓸 때도 같은 코드
+        await save();
+      }
+    } else {
+      await window.cloud.logIn(id, password);
+    }
+    render();
+    return;
+  } else if (kind === 'auth-password') {
+    if (window.cloud && await window.cloud.changePassword(f.get('old') || '', f.get('password') || '')) ui.pwOpen = false;
     render();
     return;
   } else {
