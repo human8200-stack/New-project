@@ -62,7 +62,7 @@ function freshState() {
 }
 
 // sw.js의 CACHE 이름과 같이 올린다. 설정 맨 아래에 보여서 휴대폰이 새 버전인지 알 수 있다
-const APP_VERSION = 'v27';
+const APP_VERSION = 'v28';
 
 let state;
 const ui = { revealed: null, tab: 'today', openForm: null, openBook: null, openSubject: null, setup: false, planView: 'exam', popup: false };
@@ -2326,35 +2326,10 @@ function checkinHistory() {
 function syncCard() {
   const c = window.cloud;
   if (c && c.mode === 'login') return loginSyncCard(c);
-  if (!c || c.status === 'unconfigured') {
-    return `
-    <div class="card">
-      <h2>아이패드 · 휴대폰 동기화</h2>
-      <p class="sub" style="margin:0">아직 Firebase 설정이 들어가지 않았어요. 저장소의 FIREBASE_SETUP.md 순서대로 설정하면 Google 로그인으로 모든 기기의 기록이 맞춰져요.</p>
-    </div>`;
-  }
-  const members = (c.members || []).map((m) => `
-    <li class="item"><div>${esc(m)}${m === c.email ? ' <span class="tag">나</span>' : ''}</div>
-    ${m === c.ownerEmail ? '<div class="meta">처음 만든 계정</div>' : m !== c.email ? `<div class="actions"><button class="btn small" data-action="cloud-remove" data-email="${esc(m)}">빼기</button></div>` : ''}</li>`).join('');
-  const body = c.email
-    ? `
-      <p class="sub">${esc(c.email)}로 로그인됨 · ${esc(c.statusText())}</p>
-      <h3>함께 보는 가족</h3>
-      <ul class="list">${members}</ul>
-      <form data-form="member" class="row" style="margin-top:8px">
-        <div style="flex:3 1 220px"><input type="email" name="email" placeholder="가족의 Google 이메일 (예: 부모님 Gmail)" required></div>
-        <div><button class="btn primary" type="submit">추가</button></div>
-      </form>
-      <p class="meta">추가한 사람이 같은 주소에서 그 Google 계정으로 로그인하면 같은 기록을 보고 고칠 수 있어요.</p>
-      <div style="margin-top:12px"><button class="btn" data-action="cloud-signout">로그아웃</button></div>`
-    : `
-      <p class="sub">${esc(c.statusText())}</p>
-      <p class="sub">아이패드와 휴대폰에서 같은 Google 계정으로 로그인하면 기록이 자동으로 맞춰져요. 부모님은 아이 기기에서 가족으로 추가된 뒤 본인 Google 계정으로 로그인하면 돼요.</p>
-      <button class="btn primary" data-action="cloud-signin">Google로 로그인</button>`;
   return `
     <div class="card">
       <h2>아이패드 · 휴대폰 동기화</h2>
-      ${body}
+      <p class="sub" style="margin:0">동기화를 불러오지 못했어요. 앱을 닫았다가 다시 열어 주세요.</p>
     </div>`;
 }
 
@@ -2404,7 +2379,7 @@ function loginSyncCard(c) {
         <label>아이디 (영어 소문자·숫자)</label><input name="id" value="${esc(ui.authId || '')}" autocapitalize="off" autocomplete="username" spellcheck="false" required>
         <label>비밀번호 (6자 이상)</label><input type="password" name="password" autocomplete="new-password" required>
         <label>비밀번호 한 번 더</label><input type="password" name="password2" autocomplete="new-password" required>
-        <label>가족 코드</label><input name="invite" value="${esc(state.settings.aiCode || '')}" placeholder="부모님께 받은 코드" autocapitalize="off" autocomplete="off" required>
+        ${c.needsInvite === false ? '' : `<label>가족 코드</label><input name="invite" value="${esc(state.settings.aiCode || '')}" placeholder="부모님께 받은 코드" autocapitalize="off" autocomplete="off" required>`}
         <div style="margin-top:12px"><button class="btn primary" type="submit">계정 만들기</button></div>
       </form>
       <button class="linklike small" data-action="auth-mode" data-id="login" style="margin-top:10px">이미 계정이 있어요 → 로그인</button>`;
@@ -2770,15 +2745,6 @@ document.addEventListener('click', async (e) => {
       if (!confirm('이 수행평가를 삭제할까요?')) return;
       state.projects = state.projects.filter((x) => x.id !== id);
       break;
-    case 'cloud-signin':
-      if (window.cloud) window.cloud.signIn();
-      return;
-    case 'cloud-signout':
-      if (window.cloud && confirm('로그아웃할까요? 이 기기의 기록은 그대로 남아요.')) window.cloud.signOut();
-      return;
-    case 'cloud-remove':
-      if (window.cloud && confirm(`${el.dataset.email}을(를) 가족에서 뺄까요?`)) window.cloud.removeMember(el.dataset.email);
-      return;
     case 'export': {
       const blob = new Blob([JSON.stringify(state)], { type: 'application/json' });
       const a = document.createElement('a');
@@ -3022,9 +2988,6 @@ document.addEventListener('submit', async (e) => {
   } else if (kind === 'ai') {
     state.settings.aiUrl = (f.get('aiUrl') || '').trim();
     state.settings.aiCode = (f.get('aiCode') || '').trim();
-  } else if (kind === 'member') {
-    if (window.cloud) await window.cloud.addMember(f.get('email'));
-    return;
   } else if (kind === 'my-key') {
     const key = (f.get('key') || '').trim();
     if (!/^sk-ant-[A-Za-z0-9_-]{20,}$/.test(key)) {
@@ -3046,7 +3009,7 @@ document.addEventListener('submit', async (e) => {
         return;
       }
       const invite = (f.get('invite') || '').trim();
-      if (await window.cloud.signUp(id, password, invite)) {
+      if (await window.cloud.signUp(id, password, invite) && invite) {
         state.settings.aiCode = invite; // 서버 AI를 쓸 때도 같은 코드
         await save();
       }
