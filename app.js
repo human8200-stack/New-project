@@ -85,6 +85,26 @@ async function load() {
     }
     await save({ touch: false });
   }
+  // 처음 여는 사람도 설정 화면 없이 바로 기본 책으로 계획을 보여주고, 바꿀 것은 쓰면서 고친다
+  if (!state.setupDone) {
+    autoSetup();
+    await save({ touch: false }); // 다른 기기 기록을 불러오면 그쪽이 이기도록 사람이 바꾼 것으로 치지 않는다
+  }
+}
+
+function autoSetup() {
+  const t = today();
+  state.materials.forEach((m) => {
+    if (m.mode === 'weekly') return;
+    if (!m.total) {
+      m.total = DEFAULT_TOTAL[m.unit] || 100;
+      m.approxTotal = true;
+    }
+    m.startDone = m.done || 0;
+    m.created = t;
+  });
+  state.setupDone = true;
+  state.welcome = true;
 }
 
 // touch: 사람이 바꾼 내용이면 true (동기화 대상). 자동 생성된 계획 등은 false
@@ -738,6 +758,29 @@ function overallProgress() {
   return { progress: done / total, target: target / total };
 }
 
+// 처음 며칠: 기본 책으로 짠 계획을 내 것으로 바꾸는 세 가지
+function welcomeCard() {
+  if (!state.welcome) return '';
+  const examSet = !!(state.settings.examDate || state.subjects.some((s) => s.examDate));
+  const wd = state.settings.weekdayMinutes;
+  const rows = [
+    [examSet, '시험 날짜·범위', examSet ? '넣었어요' : '공지 사진을 찍거나 글을 붙여넣으면 돼요', 'welcome-exam', examSet ? '고치기' : '넣기'],
+    [!!state.welcomeTime, '공부할 수 있는 시간', `지금: 평일 ${hm(wd[1])} · 주말 ${hm(wd[0])}`, 'welcome-time', '바꾸기'],
+    [!!state.welcomeBooks, '쓰는 책', '기본 책이 들어 있어요. 안 쓰는 책은 빼고, 진도를 맞춰요', 'welcome-books', '확인'],
+  ];
+  return `
+    <section class="card welcome">
+      <div class="plan-top"><h2>내 계획으로 바꾸기</h2><button class="linklike small" data-action="welcome-close">다 했어요</button></div>
+      <p class="sub">지금은 기본 책으로 짠 계획이에요. 이 세 가지만 바꾸면 내 계획이 돼요.</p>
+      <ul class="welcome-list">${rows.map(([done, title, desc, action, label]) => `
+        <li class="${done ? 'done' : ''}">
+          <span class="welcome-check">${done ? '✓' : ''}</span>
+          <div><strong>${esc(title)}</strong><div class="meta">${esc(desc)}</div></div>
+          <button class="btn small" data-action="${action}">${esc(label)}</button>
+        </li>`).join('')}</ul>
+    </section>`;
+}
+
 function glanceCard() {
   const t = today();
   const exam = state.settings.examDate;
@@ -1240,8 +1283,8 @@ function renderSetup() {
   }).join('');
   return `
     <section class="card setup">
-      <h2>처음 한 번만 골라 주세요</h2>
-      <p class="sub">세 가지만 고르면 오늘 할 공부가 바로 나와요.</p>
+      <h2>${state.setupDone ? '시간과 책 고르기' : '처음 한 번만 골라 주세요'}</h2>
+      <p class="sub">고르고 저장하면 오늘 할 공부가 바로 다시 짜여요.</p>
       <form data-form="setup">
         <fieldset class="setup-group">
           <legend>1. 다음 시험 첫날</legend>
@@ -1277,6 +1320,7 @@ function renderToday() {
   const firstTodo = todo[0];
 
   return `
+    ${welcomeCard()}
     ${glanceCard()}
     ${photoCard(true)}
     ${recallLine(plan)}
@@ -2394,6 +2438,26 @@ document.addEventListener('click', async (e) => {
       ui.tab = id;
       changed = false;
       window.scrollTo(0, 0);
+      break;
+    case 'welcome-exam':
+      ui.tab = 'plan';
+      ui.planView = 'exam';
+      ui.rangeOpen = true;
+      ui.scrollToRange = true;
+      changed = false;
+      break;
+    case 'welcome-time':
+      state.welcomeTime = true;
+      ui.tab = 'settings';
+      window.scrollTo(0, 0);
+      break;
+    case 'welcome-books':
+      state.welcomeBooks = true;
+      ui.setup = true;
+      window.scrollTo(0, 0);
+      break;
+    case 'welcome-close':
+      state.welcome = false;
       break;
     case 'redo-setup':
       ui.setup = true;
