@@ -42,7 +42,7 @@
     changePassword() {},
     statusText() {
       switch (this.status) {
-        case 'noServer': return '부모님이 우리 집 서버를 올리면 로그인할 수 있어요.';
+        case 'noServer': return '부모님이 동기화 설정(Firebase)을 마치면 로그인할 수 있어요.';
         case 'signedOut': return '로그인하면 아이패드와 휴대폰 기록이 저절로 맞춰져요.';
         case 'connecting': return '기록을 맞추는 중…';
         case 'pushing': return '올리는 중…';

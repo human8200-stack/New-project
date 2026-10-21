@@ -5,7 +5,7 @@
 | | 누가 | 돈 |
 |---|---|---|
 | **사진 읽기·핵심 카드 (AI)** | 쓰는 집마다 각자 Claude API 키 | 각자 쓴 만큼 (사진 몇 장 정리에 보통 수십 원) |
-| **기기 동기화 (아이디·비밀번호 로그인)** | 한 집(부모님)이 서버를 한 번 올리면 친구도 같이 씀 | 무료 (Cloudflare 무료 사용량 안) |
+| **기기 동기화 (아이디·비밀번호 로그인)** | 한 집(부모님)이 Firebase를 한 번 설정하면 친구도 같이 씀 ([FIREBASE_SETUP.md](FIREBASE_SETUP.md)) | 무료 |
 
 ## A. 사진 읽기: 각자 API 키 넣기 (5분)
 
@@ -19,7 +19,9 @@ Claude API 계정은 만 18세 이상만 만들 수 있어서, 각 집 부모님
 
 키가 새어 나가면 platform.claude.com → API Keys에서 그 키를 지우고 새로 만들면 됩니다.
 
-## B. 기기 동기화: 서버 한 번 올리기 (부모님 한 집만, 10분)
+## B. (다른 방법) 기기 동기화를 Cloudflare 서버로
+
+보통은 [FIREBASE_SETUP.md](FIREBASE_SETUP.md)의 Firebase로 동기화합니다. Firebase를 쓰지 않을 때만 아래처럼 Cloudflare 서버를 올립니다.
 
 컴퓨터 없이 휴대폰 Safari로 할 수 있습니다. 링크는 누르지 말고 Safari 주소창에 직접 입력하세요 (누르면 GitHub 앱이 열릴 수 있어요).
 
