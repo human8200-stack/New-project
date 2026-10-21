@@ -611,12 +611,10 @@ img { max-width: 100%; height: auto; }
 .back-btn { margin: 4px 0 12px; background: var(--card); box-shadow: var(--shadow); }
 .setup-login { display: block; margin: 14px auto 0; }
 
-/* 처음 며칠: 내 계획으로 바꾸기 */
-.welcome { border: 2px solid var(--hl); }
-.welcome-list { list-style: none; margin: 0; padding: 0; }
-.welcome-list li { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
-.welcome-list li > div { flex: 1 1 auto; min-width: 0; }
-.welcome-check { flex: 0 0 26px; height: 26px; border-radius: 50%; border: 2px solid var(--line); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; }
-.welcome-list li.done .welcome-check { background: var(--hl); border-color: var(--hl); color: var(--hl-text); }
-.welcome-list li.done strong { color: var(--muted); }
-.welcome-list .btn { flex: 0 0 auto; white-space: nowrap; }
+/* 처음 며칠: 기본 계획 안내 한 줄 */
+.welcome-line { display: flex; align-items: center; gap: 4px; padding: 0 6px 0 0; }
+.welcome-go { flex: 1 1 auto; display: flex; align-items: center; gap: 10px; font: inherit; color: inherit; text-align: left; background: none; border: 0; padding: 12px 0 12px 16px; cursor: pointer; min-width: 0; }
+.welcome-go > span:nth-child(2) { flex: 1 1 auto; }
+.welcome-x { border: 0; background: none; color: var(--muted); font-size: 20px; width: 36px; height: 36px; cursor: pointer; }
+.glance-btn { font: inherit; color: inherit; text-align: left; border: 0; cursor: pointer; }
+.glance-btn small { color: var(--accent); font-weight: 600; }

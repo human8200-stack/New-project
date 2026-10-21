@@ -758,27 +758,10 @@ function overallProgress() {
   return { progress: done / total, target: target / total };
 }
 
-// 처음 며칠: 기본 책으로 짠 계획을 내 것으로 바꾸는 세 가지
+// 처음 며칠: 기본 책·기본 시간으로 짠 계획이라는 것을 한 줄로 알리고, 누르면 고르는 화면으로
 function welcomeCard() {
   if (!state.welcome) return '';
-  const examSet = !!(state.settings.examDate || state.subjects.some((s) => s.examDate));
-  const wd = state.settings.weekdayMinutes;
-  const rows = [
-    [examSet, '시험 날짜·범위', examSet ? '넣었어요' : '공지 사진을 찍거나 글을 붙여넣으면 돼요', 'welcome-exam', examSet ? '고치기' : '넣기'],
-    [!!state.welcomeTime, '공부할 수 있는 시간', `지금: 평일 ${hm(wd[1])} · 주말 ${hm(wd[0])}`, 'welcome-time', '바꾸기'],
-    [!!state.welcomeBooks, '쓰는 책', '기본 책이 들어 있어요. 안 쓰는 책은 빼고, 진도를 맞춰요', 'welcome-books', '확인'],
-  ];
-  return `
-    <section class="card welcome">
-      <div class="plan-top"><h2>내 계획으로 바꾸기</h2><button class="linklike small" data-action="welcome-close">다 했어요</button></div>
-      <p class="sub">지금은 기본 책으로 짠 계획이에요. 이 세 가지만 바꾸면 내 계획이 돼요.</p>
-      <ul class="welcome-list">${rows.map(([done, title, desc, action, label]) => `
-        <li class="${done ? 'done' : ''}">
-          <span class="welcome-check">${done ? '✓' : ''}</span>
-          <div><strong>${esc(title)}</strong><div class="meta">${esc(desc)}</div></div>
-          <button class="btn small" data-action="${action}">${esc(label)}</button>
-        </li>`).join('')}</ul>
-    </section>`;
+  return `<div class="recall-line welcome-line"><button class="welcome-go" data-action="welcome-books"><span class="recall-line-dot"></span><span>기본 책으로 짠 계획이에요</span><span class="recall-line-go">내 책·시간 고르기 ›</span></button><button class="welcome-x" data-action="welcome-close" aria-label="닫기">×</button></div>`;
 }
 
 function glanceCard() {
@@ -801,7 +784,9 @@ function glanceCard() {
   }
   return `
     <section class="glance">
-      <div class="glance-item"><span>시험까지</span><strong>${left != null && left >= 0 ? `D-${left || 'Day'}` : '미정'}</strong></div>
+      ${left != null && left >= 0
+    ? `<div class="glance-item"><span>시험까지</span><strong>D-${left || 'Day'}</strong></div>`
+    : '<button class="glance-item glance-btn" data-action="welcome-exam"><span>시험까지</span><strong>미정</strong><small>날짜 넣기 ›</small></button>'}
       <div class="glance-item"><span>전체 진도</span><strong>${overall ? pct(overall.progress) : '-'}</strong>${overall ? `<small>${pace}</small>` : ''}</div>
       <div class="glance-item"><span>연속 공부</span><strong>${streak()}일</strong><small>최근 7일 ${hm(week)}</small></div>
       ${worry.length ? `<button class="glance-worry" data-action="go-tab" data-id="plan">신경 쓸 과목: ${esc(worry.join(', '))} →</button>` : ''}
@@ -2751,6 +2736,7 @@ document.addEventListener('submit', async (e) => {
     ui.setup = false;
     delete state.plans[t];
     ui.tab = 'today';
+    state.welcome = false;
     msg = '계획을 만들었어요. 오늘 할 공부부터 시작해요.';
     window.scrollTo(0, 0);
   } else if (kind === 'task') {
