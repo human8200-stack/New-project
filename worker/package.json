@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "build:sdk": "echo \"export { default } from '@anthropic-ai/sdk';\" > sdk-entry.mjs && esbuild sdk-entry.mjs --bundle --format=esm --platform=browser --minify --legal-comments=eof --outfile=../vendor/anthropic-sdk.mjs && rm sdk-entry.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0"

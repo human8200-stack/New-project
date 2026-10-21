@@ -1,8 +1,8 @@
-# 우리 집 서버(worker/: 사진 읽기 + 기기 동기화)를 Cloudflare에 올린다.
+# 우리 집 서버(worker/: 기기 동기화 + 필요하면 사진 읽기)를 Cloudflare에 올린다.
 # 컴퓨터 없이 휴대폰으로: 저장소 Settings → Secrets and variables → Actions에
-# CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, ANTHROPIC_API_KEY, FAMILY_CODE를 넣고
+# CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, FAMILY_CODE (그리고 필요하면 ANTHROPIC_API_KEY)를 넣고
 # Actions → "AI 서버 올리기" → Run workflow를 누른다. 다 되면 요약에 서버 주소가 나온다.
-name: AI 서버 올리기
+name: 우리 집 서버 올리기
 
 on:
   workflow_dispatch:
@@ -19,7 +19,8 @@ jobs:
           FAMILY_CODE: ${{ secrets.FAMILY_CODE }}
         run: |
           missing=""
-          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID ANTHROPIC_API_KEY FAMILY_CODE; do
+          # ANTHROPIC_API_KEY는 넣지 않아도 된다 (각자 앱에 자기 키를 넣으면 서버 AI는 쓰지 않는다)
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID FAMILY_CODE; do
             if [ -z "${!name}" ]; then missing="$missing $name"; fi
           done
           if [ -n "$missing" ]; then
@@ -79,7 +80,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           FAMILY_CODE: ${{ secrets.FAMILY_CODE }}
         run: |
-          printf '%s' "$ANTHROPIC_API_KEY" | npx wrangler secret put ANTHROPIC_API_KEY
+          if [ -n "$ANTHROPIC_API_KEY" ]; then printf '%s' "$ANTHROPIC_API_KEY" | npx wrangler secret put ANTHROPIC_API_KEY; fi
           printf '%s' "$FAMILY_CODE" | npx wrangler secret put FAMILY_CODE
 
       - name: 서버 주소 알려 주기

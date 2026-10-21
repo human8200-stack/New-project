@@ -54,7 +54,7 @@
     },
     statusText() {
       switch (this.status) {
-        case 'needsAi': return '아래 AI 연결에 가족 코드를 넣으면 동기화도 켜져요.';
+        case 'needsAi': return '가족 코드를 넣으면 동기화가 켜져요.';
         case 'unlinked': return '아직 연결 전이에요.';
         case 'connecting': return '기록을 맞추는 중…';
         case 'pushing': return '올리는 중…';
