@@ -271,6 +271,7 @@ function replan(remainingMinutes, condition) {
   kept.forEach((x) => {
     if (x.materialId) exclude.push(x.materialId);
     if (x.type === 'wrongPending') exclude.push(`wrong:${x.subjectId}`);
+    if (x.type === 'final') exclude.push(`final:${x.subjectId}`);
   });
   const keptFixed = kept.some((x) => ['review', 'wrongPhoto', 'project'].includes(x.type));
   const factor = completionFactor(state, t);
@@ -291,6 +292,7 @@ function recordSession(data) {
     assumed: !!data.assumed,
     slot: data.slot || currentSlot(),
     type: data.type || 'material',
+    finalKey: data.finalKey || undefined,
     materialId: data.materialId || null,
     subjectId: data.subjectId || null,
     taskId: data.taskId || null,
@@ -346,6 +348,7 @@ function completeTask(task, { amount, minutes, wrong = null, nextRange = '', adv
   const { what } = taskLines(task);
   const res = recordSession({
     type: task.type,
+    finalKey: task.finalKey,
     materialId: task.materialId,
     subjectId: task.subjectId,
     taskId: task.id,
@@ -410,9 +413,11 @@ function recallSection() {
       <button class="btn big bad" data-action="log-miss" data-id="${item.id}">헷갈려요</button>`;
   } else {
     meta = `${esc(item.subject)}${item.unit ? ` · ${esc(item.unit)}` : ''} · ${daysAgoText(item.date)} ${{ question: '물어본 문제', test: `시험지 ${esc(item.problemNo || '')}번` }[item.kind] || '틀린 문제'}`;
-    question = '이 문제를 다시 풀어 보세요.';
-    extra = item.img ? `<img class="wrong-img" src="${item.img}" alt="다시 풀 오답 문제">` : '';
-    answer = `${item.note ? `${item.kind === 'question' ? '핵심 개념' : '지난번에 꼬인 곳'}: ${esc(item.note)}` : '풀이를 확인해 보세요.'}${stepsHtml(item, false)}`;
+    // 처음 다시 풀 때는 부족했던 기본부터 확인하고 원래 문제로 간다
+    const checksFirst = item.step === 0 && item.checks && item.checks.length;
+    question = checksFirst ? '먼저 기본부터 확인하고, 이 문제를 다시 풀어 보세요.' : '이 문제를 다시 풀어 보세요.';
+    extra = `${checksFirst ? `<div class="diag-checks recall-checks"><ol>${item.checks.map((c) => `<li>${esc(c.q)}</li>`).join('')}</ol></div>` : ''}${item.img ? `<img class="wrong-img" src="${item.img}" alt="다시 풀 오답 문제">` : ''}`;
+    answer = `${item.note ? `${item.kind === 'question' ? '핵심 개념' : '지난번에 꼬인 곳'}: ${esc(item.note)}` : '풀이를 확인해 보세요.'}${diagHtml(item, true)}${stepsHtml(item, false)}`;
     buttons = `
       <button class="btn big good" data-action="wrong-ok" data-id="${item.id}">맞혔어요</button>
       <button class="btn big bad" data-action="wrong-miss" data-id="${item.id}">또 틀렸어요</button>`;
@@ -439,6 +444,7 @@ function taskLines(task) {
   const m = task.materialId ? materialById(task.materialId) : null;
   if (task.type === 'project') return { what: task.detail, how: '' };
   if (task.type === 'wrongPending') return { what: `쌓인 오답 ${task.amount}문제`, how: '다시 풀기 → 또 틀리면 원인 한 줄' };
+  if (task.type === 'final') return { what: task.unit === '문제' ? `${task.amount}문제` : '', how: task.detail };
   const start = m && m.nextRange ? `${m.nextRange}부터 ` : '';
   return { what: `${start}${task.amount}${task.unit}`, how: m ? KIND_METHOD[m.kind] || '' : '' };
 }
@@ -839,12 +845,15 @@ ${books}
 2. "solved" 학생이 풀고 채점한 문제집·학습지 쪽
    {"type":"solved","photo":번호,"subject":과목,"book":"위 책 목록에서 가장 가까운 이름 (없으면 표지에 보이는 이름)","solved":푼 문제 수,"wrong":틀린 문제 수,"last":마지막 문제 번호 숫자}
 3. "wrong" 틀린 문제 하나를 크게 찍은 것 (✗ 표시나 고친 답이 있음)
-   {"type":"wrong","photo":번호,"subject":과목,"unit":"단원","why":"이 문제에서 놓치기 쉬운 점 한 줄","steps":["풀이 1단계","2단계","…"],"answer":"정답"}
+   {"type":"wrong","photo":번호,"subject":과목,"unit":"단원","why":"이 문제에서 놓친 점 한 줄",${DIAG_FIELDS},"steps":["풀이 1단계","2단계","…"],"answer":"정답"}
 4. "test" 채점한 시험지·모의고사·학습지 전체 (여러 문제에 ✗ 표시)
-   {"type":"test","photo":번호,"subject":과목,"title":"시험 이름 (보이면)","total":전체 문항 수 또는 null,"wrong":[{"no":"문제 번호","unit":"단원","why":"놓친 점 한 줄","concept":"다시 볼 개념 한 줄"}]}
+   {"type":"test","photo":번호,"subject":과목,"title":"시험 이름 (보이면)","total":전체 문항 수 또는 null,"wrong":[{"no":"문제 번호","unit":"단원","why":"놓친 점 한 줄","concept":"다시 볼 개념 한 줄",${DIAG_FIELDS}}]}
 5. "question" 학생이 모르는 문제 (풀이 흔적이 없거나 ? 표시, 풀다 멈춘 문제)
-   {"type":"question","photo":번호,"subject":과목,"unit":"단원","concept":"이 문제에 필요한 핵심 개념 한 줄","steps":["풀이 1단계","2단계","…"],"answer":"정답","tip":"비슷한 문제에서 먼저 확인할 점 한 줄"}
+   {"type":"question","photo":번호,"subject":과목,"unit":"단원","concept":"이 문제에 필요한 핵심 개념 한 줄",${DIAG_FIELDS},"steps":["풀이 1단계","2단계","…"],"answer":"정답","tip":"비슷한 문제에서 먼저 확인할 점 한 줄"}
    (풀이는 고등학교 1학년이 따라갈 수 있게 단계마다 한 문장으로, 3~6단계)
+   틀린 원인(cause)은 학생의 풀이 흔적을 보고 고릅니다: "개념" 개념·공식을 모름 / "적용" 알지만 이 문제에 어떻게 쓰는지 모름 / "계산" 계산·부호 실수 / "해석" 조건이나 묻는 것을 잘못 읽음.
+   흔적이 없으면 "개념"이나 "적용" 중에서 고릅니다. basic은 이 문제를 풀려면 먼저 알아야 하는 더 기초적인 내용입니다. 중학교 내용이 원인이면 "(중3)"처럼 학년을 붙입니다.
+   check는 그 기초만 묻는 아주 짧고 쉬운 확인 문제 1~2개입니다 (원인이 "계산"이나 "해석"이면 빈 배열).
 6. "exam" 시험 범위·시험 시간표 공지
    {"type":"exam","photo":번호,"exams":[{"subject":과목,"date":"YYYY-MM-DD 또는 null","range":"범위 한 줄","startPage":교과서 시작 쪽 숫자 또는 null,"endPage":교과서 마지막 쪽 숫자 또는 null}]}
 7. "book" 책 표지·목차·맨 뒤쪽
@@ -853,6 +862,22 @@ ${books}
 
 과목은 반드시 위 과목 목록의 글자 그대로 씁니다. 숫자를 읽을 수 없으면 null로 둡니다.
 JSON 하나로만 답하세요: {"items":[...]}`;
+}
+
+const DIAG_FIELDS = '"cause":"개념|적용|계산|해석","basic":"먼저 알아야 하는 기본 한 줄","check":[{"q":"기본 확인 문제","a":"답"}]';
+const CAUSES = { 개념: '개념을 몰라서', 적용: '알지만 적용을 못 해서', 계산: '계산 실수', 해석: '문제를 잘못 읽어서' };
+const CAUSE_TIPS = {
+  개념: '개념을 몰라서 틀린 게 가장 많아요. 문제를 더 풀기보다 아래 기본부터 교과서로 다시 보세요.',
+  적용: '개념은 아는데 적용이 막혀요. 예제를 보고 "어떤 조건에서 이 개념을 꺼내는지"를 한 줄로 적어 두세요.',
+  계산: '계산 실수가 가장 많아요. 풀이를 한 줄씩 줄 맞춰 쓰고, 끝나면 부호와 숫자만 한 번 더 보세요.',
+  해석: '문제를 잘못 읽어서 틀린 게 많아요. 읽을 때 조건과 묻는 것에 밑줄부터 그으세요.',
+};
+
+// AI가 준 원인 진단을 저장할 모양으로
+function diagOf(x) {
+  const cause = CAUSES[x.cause] ? x.cause : '';
+  const checks = (Array.isArray(x.check) ? x.check : []).filter((c) => c && c.q).slice(0, 2).map((c) => ({ q: String(c.q), a: String(c.a || '') }));
+  return { cause, basic: String(x.basic || ''), checks };
 }
 
 function blobToBase64(blob) {
@@ -1026,11 +1051,12 @@ function applyPhotoItems(items, jpegs) {
       state.wrongs.push({
         id: uid(), date: t, subject: s.name, unit: String(x.unit || ''), trap: '', kind: isQ ? 'question' : 'wrong',
         note: String((isQ ? x.concept : x.why) || ''), tip: String(x.tip || ''), steps, answer: String(x.answer || ''),
-        img, step: 0, due: addDays(t, WRONG_INTERVALS[0]), history: [],
+        ...diagOf(x), img, step: 0, due: addDays(t, WRONG_INTERVALS[0]), history: [],
       });
       lines.push({
         text: isQ ? `${s.name}${x.unit ? ` · ${x.unit}` : ''} 모르는 문제 → 풀이를 보고, 2일 뒤 혼자 다시 풀기` : `${s.name} · 틀린 문제 → 2일 뒤 다시 풀기로 저장`,
         concept: String((isQ ? x.concept : x.why) || ''), steps, answer: String(x.answer || ''), tip: String(x.tip || ''),
+        diag: diagOf(x),
       });
     } else if (x.type === 'test' && s) {
       const img = jpegs[(Number(x.photo) || 1) - 1] || '';
@@ -1038,7 +1064,7 @@ function applyPhotoItems(items, jpegs) {
       wrongs.forEach((w) => {
         state.wrongs.push({
           id: uid(), date: t, subject: s.name, unit: String(w.unit || ''), trap: '', kind: 'test', problemNo: String(w.no || ''),
-          note: `${w.no ? `${w.no}번 · ` : ''}${w.why || ''}`, concept: String(w.concept || ''), img,
+          note: `${w.no ? `${w.no}번 · ` : ''}${w.why || ''}`, concept: String(w.concept || ''), ...diagOf(w), img,
           step: 0, due: addDays(t, WRONG_INTERVALS[0]), history: [],
         });
       });
@@ -1054,7 +1080,10 @@ function applyPhotoItems(items, jpegs) {
       }
       lines.push({
         text: `${s.name}${x.title ? ` ${x.title}` : ' 시험지'} · 틀린 문제 ${wrongs.length}개${wrongs.length ? ` (${wrongs.map((w) => w.no).filter(Boolean).join(', ')}번)` : ''} → 다시 풀 목록에 저장`,
-        list: wrongs.map((w) => `${w.no ? `${w.no}번` : ''}${w.unit ? ` [${w.unit}]` : ''} ${w.why || ''}${w.concept ? ` → 다시 볼 개념: ${w.concept}` : ''}`.trim()),
+        list: wrongs.map((w) => {
+          const d = diagOf(w);
+          return `${w.no ? `${w.no}번` : ''}${w.unit ? ` [${w.unit}]` : ''} ${d.cause ? `${CAUSES[d.cause]} · ` : ''}${w.why || ''}${d.basic ? ` → 부족한 기본: ${d.basic}` : w.concept ? ` → 다시 볼 개념: ${w.concept}` : ''}`.trim();
+        }),
       });
     } else if (x.type === 'exam') {
       const exams = Array.isArray(x.exams) ? x.exams : [];
@@ -1107,9 +1136,23 @@ function stepsHtml(o, open) {
     </details>`;
 }
 
+// 왜 틀렸는지: 원인 · 부족한 기본 · 기본 확인 문제
+function diagHtml(d, openChecks) {
+  if (!d || (!d.cause && !d.basic)) return '';
+  return `
+    <div class="diag">
+      ${d.cause ? `<span class="cause c-${esc(d.cause)}">${esc(CAUSES[d.cause])}</span>` : ''}
+      ${d.basic ? `<div class="diag-basic"><strong>부족한 기본</strong> ${esc(d.basic)}</div>` : ''}
+      ${d.checks && d.checks.length ? `
+        <div class="diag-checks"><div class="meta">먼저 기본 확인</div>
+          <ol>${d.checks.map((c) => `<li>${esc(c.q)}${c.a ? ` <details${openChecks ? ' open' : ''}><summary class="meta">답</summary>${esc(c.a)}</details>` : ''}</li>`).join('')}</ol>
+        </div>` : ''}
+    </div>`;
+}
+
 function reportItem(l) {
   if (typeof l === 'string') return `<li>${esc(l)}</li>`;
-  return `<li>${esc(l.text)}${l.list && l.list.length ? `<ul class="report-sub">${l.list.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}${stepsHtml(l, true)}</li>`;
+  return `<li>${esc(l.text)}${l.list && l.list.length ? `<ul class="report-sub">${l.list.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}${diagHtml(l.diag, false)}${stepsHtml(l, true)}</li>`;
 }
 
 // 어느 화면에서나 같은 사진 버튼
@@ -1355,6 +1398,31 @@ function syllabusRow(r, i) {
         <div class="syl-when">${m.mode === 'weekly' ? '시험 전까지' : `${prettyDate(r.start)} ~ ${prettyDate(w.end)}`}${perDay ? ` · <strong>${esc(perDay)}</strong>` : ''}</div>
         ${status === 'now' && m.mode !== 'weekly' ? `<div class="progress thin"><div style="width:${ratio * 100}%"></div></div>` : ''}
         ${open ? bookEditor(m) : ''}
+      </div>
+    </li>`;
+}
+
+// 계획표 맨 끝: 시험 4일 전~전날 마무리 기간
+function finalRow(exam, n) {
+  const t = today();
+  if (!exam || exam < t) return '';
+  const start = addDays(exam, -FINAL_DAYS);
+  const end = addDays(exam, -1);
+  const status = t > end ? 'done' : t >= start ? 'now' : 'next';
+  const days = [FINAL_DAYS, 3, 2, 1].map((left) => {
+    const d = addDays(exam, -left);
+    return `<li class="${d === t ? 'today' : ''}"><span class="meta">D-${left}</span> ${esc(finalStep(left).title)}</li>`;
+  });
+  return `
+    <li class="syl ${status} syl-final">
+      <span class="syl-num">${n + 1}</span>
+      <div class="syl-body">
+        <div class="syl-head static">
+          <span class="syl-title">마무리 <span class="syl-role">새 진도 대신 정리</span></span>
+          <span class="syl-status s-${status}">${{ done: '끝', now: '지금', next: '예정' }[status]}</span>
+        </div>
+        <div class="syl-when">${prettyDate(start)} ~ ${prettyDate(end)} · 하루 한 번</div>
+        <ol class="final-days">${days.join('')}</ol>
       </div>
     </li>`;
 }
@@ -1626,7 +1694,7 @@ function renderSyllabus() {
           <span class="syl-now">지금: ${esc(nowText)}</span>
         </summary>
         <div class="syl-exam-range">시험 범위: ${s.examRange ? esc(s.examRange) : '<span class="meta">아직 몰라요 · 공지 나오면 사진 올리기</span>'}</div>
-        <ol class="syllabus">${rows.map(syllabusRow).join('') || '<li class="empty">책이 없어요.</li>'}</ol>
+        <ol class="syllabus">${rows.map(syllabusRow).join('') || '<li class="empty">책이 없어요.</li>'}${finalRow(exam, rows.length)}</ol>
         <div class="syl-extra">
           <div><strong>오답 정리</strong> · 틀린 문제는 사진으로 올리면 2·7·14·30일 뒤 다시 나와요.${pending + wrongsDue ? ` 지금 다시 볼 문제 ${pending + wrongsDue}개.` : ''}</div>
           ${note ? `<div><strong>방법</strong> · ${esc(note)}</div>` : ''}
@@ -1693,6 +1761,147 @@ function goalCard(g) {
     </section>`;
 }
 
+// ---------- 추천 선행 계획: 고교 상위권 학생 평균 속도 기준 ----------
+// 학교마다 고2·고3 과목 순서가 다를 수 있으니, 책 이름과 범위는 넣은 뒤 고칠 수 있다.
+// part는 방학 기간 중 이 책을 하는 구간 (0 = 시작, 1 = 끝)
+
+const RECOMMEND = {
+  '1-겨울': {
+    name: '겨울방학 선행 (고2 준비)',
+    minutes: 480,
+    why: [
+      '상위권 학생은 고1 겨울에 고2 1학기 수학(대수)을 개념부터 심화까지 한 번 끝내고, 미적분I 개념에 들어가요.',
+      '수학 선행만 하면 고1 내용이 흔들려요. 고1 오답을 같이 다시 풀어요.',
+      '국어·영어는 진도보다 고2 모의고사 수준 실력을 올리는 시기예요.',
+      '고2 선택 과학은 하나만 골라 개념을 한 번 읽어 두면 1학기가 편해요.',
+    ],
+    books: [
+      { s: '수학', name: '대수 개념 (교과서 또는 개념원리)', kind: '교과서', unit: '쪽', total: 240, mpu: 6, role: 'concept', part: [0, 0.35] },
+      { s: '수학', name: '쎈 대수', kind: '문제집', unit: '문제', total: 1100, mpu: 3, role: 'basic', part: [0, 0.55] },
+      { s: '수학', name: '고쟁이 대수 (심화)', kind: '문제집', unit: '문제', total: 500, mpu: 6, role: 'advanced', part: [0.4, 0.8] },
+      { s: '수학', name: '미적분I 개념', kind: '교과서', unit: '쪽', total: 220, mpu: 6, role: 'concept', part: [0.5, 0.85] },
+      { s: '수학', name: '쎈 미적분I', kind: '문제집', unit: '문제', total: 900, mpu: 3, role: 'basic', part: [0.6, 1] },
+      { s: '수학', name: '고1 수학 오답 다시 풀기', kind: '오답', unit: '문제', total: 200, mpu: 6, role: 'review', part: [0, 1] },
+      { s: '영어', name: '수능 영단어 (워드마스터 수능)', kind: '단어', unit: 'Day', total: 40, mpu: 20, role: 'concept', part: [0, 0.9] },
+      { s: '영어', name: '고2 모의고사 영어 기출', kind: '모의고사', unit: '회', weekly: 2, total: 16, mpu: 60, role: 'past', part: [0.1, 1] },
+      { s: '국어', name: '문학 개념어·작품 정리', kind: '교과서', unit: '쪽', total: 120, mpu: 4, role: 'concept', part: [0, 0.5] },
+      { s: '국어', name: '독서·문학 기출 (고2 수준)', kind: '기출', unit: '문제', total: 300, mpu: 2.5, role: 'basic', part: [0.2, 1] },
+      { s: '통합과학', name: '고2 선택 과학 1과목 개념 (과목 정하면 이름 바꾸기)', kind: '교과서', unit: '쪽', total: 200, mpu: 5, role: 'concept', part: [0.15, 1] },
+    ],
+  },
+  '2-여름': {
+    name: '여름방학 선행 (고2 2학기 준비)',
+    minutes: 480,
+    why: [
+      '2학기 수학을 개념부터 심화까지 끝내고, 1학기 수학은 기출로 다시 다져요.',
+      '국어·영어는 수능형 기출로 넘어가는 시기예요.',
+    ],
+    books: [
+      { s: '수학', name: '2학기 수학 개념 (미적분I 또는 확률과 통계)', kind: '교과서', unit: '쪽', total: 220, mpu: 6, role: 'concept', part: [0, 0.4] },
+      { s: '수학', name: '쎈 (2학기 과목)', kind: '문제집', unit: '문제', total: 900, mpu: 3, role: 'basic', part: [0.1, 0.75] },
+      { s: '수학', name: '고쟁이 (2학기 과목, 심화)', kind: '문제집', unit: '문제', total: 450, mpu: 6, role: 'advanced', part: [0.5, 1] },
+      { s: '수학', name: '1학기 수학 오답 다시 풀기', kind: '오답', unit: '문제', total: 150, mpu: 6, role: 'review', part: [0, 1] },
+      { s: '영어', name: '수능 영어 기출 (유형별)', kind: '기출', unit: '문제', total: 300, mpu: 3, role: 'basic', part: [0, 1] },
+      { s: '국어', name: '수능 국어 기출 (독서·문학)', kind: '기출', unit: '문제', total: 300, mpu: 3, role: 'basic', part: [0, 1] },
+    ],
+  },
+  '2-겨울': {
+    name: '겨울방학 (고3 준비)',
+    minutes: 600,
+    why: [
+      '수능 범위 수학을 기출로 한 바퀴 돌리고, 고3 1학기 과목 개념을 끝내요.',
+      '국어·영어는 매주 실전 모의고사로 시간 감각을 만들어요.',
+    ],
+    books: [
+      { s: '수학', name: '수능 수학 기출 (대수·미적분I)', kind: '기출', unit: '문제', total: 1000, mpu: 4, role: 'basic', part: [0, 0.9] },
+      { s: '수학', name: '고3 1학기 수학 개념', kind: '교과서', unit: '쪽', total: 200, mpu: 6, role: 'concept', part: [0, 0.5] },
+      { s: '수학', name: '틀린 기출 다시 풀기', kind: '오답', unit: '문제', total: 200, mpu: 6, role: 'review', part: [0.2, 1] },
+      { s: '영어', name: '수능 영어 실전 모의고사', kind: '모의고사', unit: '회', weekly: 2, total: 16, mpu: 70, role: 'past', part: [0, 1] },
+      { s: '국어', name: '수능 국어 실전 모의고사', kind: '모의고사', unit: '회', weekly: 2, total: 16, mpu: 80, role: 'past', part: [0, 1] },
+    ],
+  },
+  '1-여름': {
+    name: '여름방학 선행 (2학기 준비)',
+    minutes: 480,
+    why: ['2학기 수학을 개념부터 심화까지 한 번 끝내고, 1학기 오답을 다시 풀어요.'],
+    books: [
+      { s: '수학', name: '공통수학2 개념', kind: '교과서', unit: '쪽', total: 220, mpu: 6, role: 'concept', part: [0, 0.4] },
+      { s: '수학', name: '쎈 공통수학2', kind: '문제집', unit: '문제', total: 1100, mpu: 3, role: 'basic', part: [0.1, 0.8] },
+      { s: '수학', name: '고쟁이 공통수학2 (심화)', kind: '문제집', unit: '문제', total: 450, mpu: 6, role: 'advanced', part: [0.5, 1] },
+      { s: '수학', name: '1학기 수학 오답 다시 풀기', kind: '오답', unit: '문제', total: 150, mpu: 6, role: 'review', part: [0, 1] },
+      { s: '영어', name: '고1 모의고사 영어 기출', kind: '모의고사', unit: '회', weekly: 1, total: 8, mpu: 60, role: 'past', part: [0, 1] },
+    ],
+  },
+};
+
+// 학년은 3월에 오른다. 처음 쓰기 시작한 해(2026)를 고1로 본다
+function gradeAt(t) {
+  const y = Number(t.slice(0, 4));
+  const schoolYear = Number(t.slice(5, 7)) >= 3 ? y : y - 1;
+  return (state.settings.grade || 1) + schoolYear - (state.settings.gradeYear || 2026);
+}
+
+// 다음 방학 추천 계획. 시험이 남아 있으면 마지막 시험 다음 날부터 시작한다
+function recommendedGoal() {
+  const t = today();
+  const mon = Number(t.slice(5, 7));
+  const y = Number(t.slice(0, 4));
+  const winter = mon >= 9 || mon <= 2;
+  const rec = RECOMMEND[`${gradeAt(t)}-${winter ? '겨울' : '여름'}`];
+  if (!rec) return null;
+  const startY = mon <= 2 ? y - 1 : y;
+  let start = winter ? `${startY}-12-24` : `${y}-07-20`;
+  const end = winter ? `${startY + 1}-02-28` : `${y}-08-20`;
+  const exams = state.subjects.map((s) => s.examDate).filter((d) => d && d >= t && d < start);
+  if (exams.length) start = addDays(exams.sort().pop(), 1);
+  if (start < t) start = t;
+  if (start >= end) return null;
+  // 이미 이 기간에 만든 계획이 있으면 추천하지 않는다
+  if ((state.goals || []).some((g) => g.end >= start && g.start <= end)) return null;
+  return { ...rec, start, end };
+}
+
+function recommendCard() {
+  const r = recommendedGoal();
+  if (!r) return '';
+  const span = diffDays(r.start, r.end);
+  const at = (f) => prettyDate(addDays(r.start, Math.round(span * f)));
+  const subjects = [...new Set(r.books.map((b) => b.s))].filter((n) => subjectByName(n));
+  return `
+    <section class="card recommend-card">
+      <div class="syl-subject">
+        <h2>추천: ${esc(r.name)}</h2>
+        <span class="meta">${prettyDate(r.start)} ~ ${prettyDate(r.end)} · 하루 ${hm(r.minutes)}</span>
+      </div>
+      <p class="sub">고등학교 상위권 학생들이 이 시기에 보통 하는 양이에요. 넣고 나서 책 이름이나 범위가 다르면 고치면 돼요.</p>
+      ${subjects.map((n) => `
+        <div class="goal-subject"><strong>${esc(n)}</strong>
+          <ol class="rec-books">${r.books.filter((b) => b.s === n).map((b) => `<li><span>${esc(b.name)} <span class="syl-role">${esc(ROLE_LABEL[b.role])}</span></span><span class="meta">${b.weekly ? `매주 ${b.weekly}${esc(b.unit)}` : `${b.total}${esc(b.unit)}`} · ${at(b.part[0])}~${at(b.part[1])}</span></li>`).join('')}</ol>
+        </div>`).join('')}
+      <details class="rec-why"><summary class="meta">왜 이렇게 짰나요</summary><ul>${r.why.map((w) => `<li>${esc(w)}</li>`).join('')}</ul></details>
+      <button class="btn primary wide" data-action="goal-recommend">이대로 넣기</button>
+    </section>`;
+}
+
+function addRecommendedGoal() {
+  const r = recommendedGoal();
+  if (!r) return '';
+  const t = today();
+  const g = { id: uid(), name: r.name, start: r.start, end: r.end, minutes: r.minutes, recommended: true };
+  state.goals = state.goals || [];
+  state.goals.push(g);
+  r.books.forEach((b) => {
+    const s = subjectByName(b.s);
+    if (!s) return;
+    const m = addBook(s, b.name, b.unit, b.total);
+    // 모의고사처럼 매주 정해진 횟수만큼 하는 책
+    if (b.weekly) Object.assign(m, { mode: 'weekly', weekly: b.weekly, total: null });
+    Object.assign(m, { kind: b.kind, minPerUnit: b.mpu, role: b.role, goalPart: b.part, goalId: g.id, rangeFrom: 1, approxTotal: false, recommended: true, activeBeforeExam: 0, created: g.start < t ? t : g.start });
+  });
+  refreshUntouchedPlan();
+  return `${r.name}을 넣었어요. ${prettyDate(r.start)}부터 오늘 할 공부에 같이 나와요.`;
+}
+
 function renderGoals() {
   const t = today();
   const goals = (state.goals || []).slice().sort((a, b) => a.start.localeCompare(b.start));
@@ -1702,8 +1911,9 @@ function renderGoals() {
     : { name: '여름방학 선행', start: `${year}-07-20`, end: `${year}-08-20` };
   return `
     <p class="sub">시험이 아니어도 다음 학기 내용을 미리 끝내는 계획이에요. 기간 안에서 개념 → 문제 → 심화 순서로 나눠서, 하루 분량이 오늘 할 공부에 같이 들어가요. 시험 3주 전부터는 시험 공부를 먼저 넣어요.</p>
+    ${recommendCard()}
     ${goals.map(goalCard).join('')}
-    <details class="card fold"${goals.length ? '' : ' open'}>
+    <details class="card fold"${goals.length || recommendedGoal() ? '' : ' open'}>
       <summary>+ 새 선행·방학 계획 만들기</summary>
       <form data-form="goal" class="inline-form">
         <label>이름</label><input name="name" value="${esc(suggest.name)}" required>
@@ -1846,7 +2056,8 @@ function reviewList() {
           <div><span class="tag">${esc(x.subject)}</span><span class="meta">${{ question: '모르는 문제', test: '시험지 오답' }[x.w.kind] || '틀린 문제'}${x.w.unit ? ` · ${esc(x.w.unit)}` : ''}</span> ${when}
             ${x.w.img ? `<img class="wrong-img" src="${x.w.img}" alt="문제 사진">` : ''}
             ${x.w.note ? `<div class="meta">${esc(x.w.note)}</div>` : ''}
-            ${x.w.concept ? `<div class="meta">다시 볼 개념: ${esc(x.w.concept)}</div>` : ''}
+            ${x.w.concept && !x.w.basic ? `<div class="meta">다시 볼 개념: ${esc(x.w.concept)}</div>` : ''}
+            ${diagHtml(x.w, false)}
             ${stepsHtml(x.w, false)}</div>
         </li>`;
     }
@@ -1966,7 +2177,39 @@ function renderProjects() {
 // ---------- 화면: 분석 ----------
 
 function renderAnalysis() {
-  return weeklyReport();
+  return weeklyReport() + causeReport();
+}
+
+// 최근 두 달 오답을 원인별로 모아, 무엇을 고쳐야 하는지 보여준다
+function causeReport() {
+  const from = addDays(today(), -60);
+  const list = state.wrongs.filter((w) => w.cause && (w.date || '') >= from);
+  if (!list.length) return '';
+  const bySubject = {};
+  list.forEach((w) => {
+    const b = bySubject[w.subject] || (bySubject[w.subject] = { n: 0, c: {}, basics: {} });
+    b.n += 1;
+    b.c[w.cause] = (b.c[w.cause] || 0) + 1;
+    if (w.basic) b.basics[w.basic] = (b.basics[w.basic] || 0) + 1;
+  });
+  const keys = Object.keys(CAUSES);
+  const rows = Object.entries(bySubject).sort((a, b) => b[1].n - a[1].n).map(([name, b]) => {
+    const top = keys.slice().sort((x, y) => (b.c[y] || 0) - (b.c[x] || 0))[0];
+    const basics = Object.entries(b.basics).sort((x, y) => y[1] - x[1]).slice(0, 3).map(([k]) => k);
+    return `
+      <div class="cause-row">
+        <div class="cause-head"><strong>${esc(name)}</strong><span class="meta">오답 ${b.n}개</span></div>
+        <div class="cause-bar">${keys.filter((k) => b.c[k]).map((k) => `<span class="c-${k}" style="flex:${b.c[k]}" title="${esc(CAUSES[k])} ${b.c[k]}">${b.c[k]}</span>`).join('')}</div>
+        ${b.n >= 3 ? `<p class="cause-tip">${esc(CAUSE_TIPS[top])}</p>` : ''}
+        ${basics.length ? `<div class="meta">자주 부족한 기본: ${esc(basics.join(' · '))}</div>` : ''}
+      </div>`;
+  }).join('');
+  return `
+    <section class="card">
+      <h2>왜 틀렸나 <span class="meta">(최근 두 달)</span></h2>
+      <div class="cause-legend">${keys.map((k) => `<span><i class="c-${k}"></i>${esc(CAUSES[k])}</span>`).join('')}</div>
+      ${rows}
+    </section>`;
 }
 
 function checkinHistory() {
@@ -2218,6 +2461,11 @@ document.addEventListener('click', async (e) => {
       ui.popup = false;
       changed = false;
       break;
+    case 'goal-recommend': {
+      const msg = addRecommendedGoal();
+      if (msg) toast(msg);
+      break;
+    }
     case 'goal-del': {
       const g = (state.goals || []).find((x) => x.id === id);
       if (!g || !confirm(`${g.name}을(를) 지울까요? 넣은 책도 함께 빠져요.`)) return;

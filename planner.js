@@ -107,6 +107,16 @@ function daysLeftFor(state, subject, today) {
 }
 
 // ---------- 공부 계획표: 책마다 역할과 기간 ----------
+
+// 시험 4일 전부터 전날까지는 마무리 기간. 학교 진도가 덜 끝났어도 이때부터는 정리 위주로 간다
+const FINAL_DAYS = 4;
+
+// 마무리 기간 하루하루 할 일 (남은 날 → 할 일)
+function finalStep(left) {
+  if (left >= 3) return { key: 'wrongs', title: '틀린 문제·별표 문제만 2회독', how: '처음부터 다시 풀지 말고, 틀렸던 문제와 별표 친 문제만 → 또 틀리면 원인 한 줄' };
+  if (left === 2) return { key: 'sweep', title: '범위 전체 훑기', how: '목차를 보며 단원마다 핵심을 백지에 말해 보기 → 막힌 곳만 책 펴기, 기출 틀린 문제 다시 보기' };
+  return { key: 'eve', title: '시험 전날 정리', how: '내 실수 목록 · 핵심 카드 · 공식·빈칸 한 번씩. 새 문제는 풀지 않기' };
+}
 // 과외 선생님 순서: 교과서 개념 → 기본 문제집 → 심화(업그레이드) → 기출 → 반복(2·3회독)
 
 const ROLES = ['concept', 'basic', 'advanced', 'past', 'review', 'weekly'];
@@ -129,10 +139,11 @@ function goalOf(state, m) {
 }
 
 // 선행 기간 안에서 역할별로 기간을 나눈다 (개념 먼저, 문제는 조금 늦게 시작해 겹치게)
-function goalWindows(goal, role, today) {
+// part: 책마다 정한 구간 (추천 계획에서 대수 먼저, 미적분I 나중처럼 순서를 줄 때)
+function goalWindows(goal, role, today, part) {
   const span = Math.max(1, diffDays(goal.start, goal.end) + 1);
   const at = (f) => addDays(goal.start, Math.round((span - 1) * f));
-  const parts = { concept: [0, 0.5], basic: [0.1, 0.85], advanced: [0.55, 1], past: [0.8, 1] }[role] || [0, 1];
+  const parts = part || { concept: [0, 0.5], basic: [0.1, 0.85], advanced: [0.55, 1], past: [0.8, 1] }[role] || [0, 1];
   let start = at(parts[0]);
   let end = at(parts[1]);
   if (end < today) end = today;
@@ -142,17 +153,18 @@ function goalWindows(goal, role, today) {
 
 function bookWindows(state, m, subject, today) {
   const goal = goalOf(state, m);
-  if (goal) return goalWindows(goal, roleOf(m), today);
+  if (goal) return goalWindows(goal, roleOf(m), today, m.goalPart);
   const exam = examDateFor(state, subject);
   if (!exam || exam < today) return [{ pass: 1, start: today, end: addDays(today, 27) }];
   const at = (n) => addDays(exam, -n);
   const role = roleOf(m);
   const hasAdvanced = state.materials.some((x) => x.subjectId === m.subjectId && !x.archived && roleOf(x) === 'advanced');
   let list;
-  if (role === 'concept') list = [[1, today, at(22)], [2, at(14), at(8)], [3, at(3), at(1)]];
+  // 3회독은 마무리 기간(시험 4일 전~전날)에 범위 전체를 빠르게 훑는다
+  if (role === 'concept') list = [[1, today, at(22)], [2, at(14), at(6)], [3, at(FINAL_DAYS), at(1)]];
   else if (role === 'basic') list = [[1, today, hasAdvanced ? at(22) : at(15)]];
   else if (role === 'advanced') list = [[1, at(21), at(11)]];
-  else if (role === 'past') list = [[1, m.kind === '지문' ? at(14) : at(10), at(3)]];
+  else if (role === 'past') list = [[1, m.kind === '지문' ? at(14) : at(10), at(FINAL_DAYS + 1)]];
   else list = [[1, today, at(1)]];
   return list.map(([pass, start, end]) => {
     const e = end < today ? today : end;
@@ -245,7 +257,8 @@ function deadlineDays(state, m, subject, today) {
   return Math.max(today > w.end ? 2 : 1, diffDays(today, w.end) + 1);
 }
 
-function materialCandidate(state, m, subject, today) {
+// maxMin: 한 번에 앉는 최대 시간 (방학처럼 긴 날은 2시간)
+function materialCandidate(state, m, subject, today, maxMin = 90) {
   const rem = remaining(state, m, today);
   if (rem === 0) return null;
   const goal = goalOf(state, m);
@@ -265,8 +278,8 @@ function materialCandidate(state, m, subject, today) {
   } else {
     units = Math.round(45 / mpu); // 총량이나 시험일을 모르면 45분 분량
   }
-  // 한 번 앉으면 최소 30분, 최대 90분
-  let minutes = clamp(units * mpu, 30, 90);
+  // 한 번 앉으면 최소 30분, 최대 90분 (긴 날은 120분)
+  let minutes = clamp(units * mpu, 30, maxMin);
   units = Math.max(1, Math.floor(minutes / mpu));
   if (rem != null) units = Math.min(units, rem);
   minutes = Math.round(units * mpu);
@@ -318,6 +331,13 @@ function materialCandidate(state, m, subject, today) {
   if (subject.stage === '오답' && !['오답', '기출'].includes(m.kind)) stageFit = 0.7;
   if (subject.stage === '암기' && ['암기', '단어'].includes(m.kind)) stageFit = 1.2;
 
+  // 마무리 기간에는 새 진도(기본·심화 문제집)를 줄이되, 학교 진도가 남았으면 조금씩은 넣는다
+  const role = roleOf(m);
+  if (!goal && examLeft != null && examLeft <= FINAL_DAYS && (role === 'basic' || role === 'advanced')) {
+    stageFit *= 0.5;
+    reasons.push('마무리 기간 · 새 진도는 조금만');
+  }
+
   const importance = 0.6 + subject.importance * 0.2;
   // 시험이 3주 안이면 선행은 뒤로 미룬다
   const goalFactor = goal ? (examLeft != null && examLeft <= 21 ? 0.4 : 0.8) : 1;
@@ -364,6 +384,41 @@ function wrongPendingCandidate(state, subject, today) {
   };
 }
 
+// 마무리 기간(시험 4일 전~전날)에 과목마다 하루 한 번 들어가는 정리 공부
+function finalCandidate(state, subject, today) {
+  const left = daysLeftFor(state, subject, today);
+  if (left == null || left < 1 || left > FINAL_DAYS) return null;
+  const step = finalStep(left);
+  const importance = 0.6 + subject.importance * 0.2;
+  const isMath = subject.name.includes('수학');
+  let amount = 1;
+  let unit = '번';
+  let minutes = left === 1 ? 45 : 60;
+  if (step.key === 'wrongs') {
+    // 다시 볼 틀린 문제를 남은 이틀에 나눈다. 적으면 별표 문제로 채운다
+    const open = state.wrongs.filter((w) => w.subject === subject.name && w.due).length + (subject.wrongPending || 0);
+    const mpu = isMath ? 5 : 2.5;
+    amount = clamp(Math.ceil(open / (left - 2)), 10, Math.floor(90 / mpu));
+    unit = '문제';
+    minutes = Math.round(amount * mpu);
+  }
+  return {
+    id: makeId(),
+    type: 'final',
+    finalKey: step.key,
+    subjectId: subject.id,
+    title: `${subject.name} · 마무리: ${step.title}`,
+    amount,
+    unit,
+    minutes,
+    detail: step.how,
+    reasons: [`시험 D-${left}`, '마무리 기간'],
+    // 시험이 가까운 과목부터
+    score: importance * (8 + 2 * (FINAL_DAYS + 1 - left)),
+    status: 'todo',
+  };
+}
+
 // "오늘 떠올릴 것" 카드(복습·오답 사진)에 쓸 시간. 할 공부 목록에는 따로 넣지 않고 시간만 비워 둔다
 function recallMinutes(state, today) {
   const logs = state.logs.filter((l) => l.due && l.due <= today).length;
@@ -403,16 +458,21 @@ function generatePlan(state, today, budget, opts = {}) {
     left -= t.minutes;
   }
 
+  // 6시간 넘게 공부하는 날(방학)은 한 과목에 세 번까지, 한 번에 2시간까지
+  const long = budget >= 360;
   const candidates = [];
   state.subjects.forEach((s) => {
-    const w = wrongPendingCandidate(state, s, today);
+    const f = finalCandidate(state, s, today);
+    if (f && !exclude.has(`final:${s.id}`)) candidates.push(f);
+    // 마무리 첫 이틀은 틀린 문제 2회독이 쌓인 오답 정리를 대신한다
+    const w = f && f.finalKey === 'wrongs' ? null : wrongPendingCandidate(state, s, today);
     if (w && !exclude.has(`wrong:${s.id}`)) candidates.push(w);
   });
   state.materials.forEach((m) => {
     if (exclude.has(m.id) || !isActive(state, m, today)) return;
     const subject = state.subjects.find((s) => s.id === m.subjectId);
     if (!subject) return;
-    const c = materialCandidate(state, m, subject, today);
+    const c = materialCandidate(state, m, subject, today, long ? 120 : 90);
     if (c) candidates.push(c);
   });
   candidates.sort((a, b) => b.score - a.score);
@@ -420,7 +480,7 @@ function generatePlan(state, today, budget, opts = {}) {
   const perSubject = {};
   for (const c of candidates) {
     if (left < 15) break;
-    if ((perSubject[c.subjectId] || 0) >= 2) continue;
+    if ((perSubject[c.subjectId] || 0) >= (long ? 3 : 2)) continue;
     if (c.minutes > left) {
       const material = state.materials.find((m) => m.id === c.materialId);
       const mpu = material ? material.minPerUnit : c.minutes / c.amount;
@@ -466,7 +526,7 @@ function applySession(state, session) {
 
   if (subject) {
     subject.lastStudied = session.date > (subject.lastStudied || '') ? session.date : subject.lastStudied;
-    if (session.type === 'wrongPending') {
+    if (session.type === 'wrongPending' || (session.type === 'final' && session.finalKey === 'wrongs')) {
       subject.wrongPending = Math.max(0, (subject.wrongPending || 0) - (session.amount || 0) + (session.wrong || 0));
     } else if (session.wrong) {
       subject.wrongPending = (subject.wrongPending || 0) + session.wrong;
@@ -594,7 +654,7 @@ function recommend(state, subject, today) {
 
 if (typeof module !== 'undefined') {
   module.exports = {
-    STAGES, KINDS, PROJECT_STAGES, LOG_INTERVALS, WRONG_INTERVALS,
+    STAGES, KINDS, PROJECT_STAGES, LOG_INTERVALS, WRONG_INTERVALS, FINAL_DAYS, finalStep,
     toKey, addDays, diffDays, weekStart, dayIndexMon,
     remaining, needMinutes, recallMinutes, deadlineDays, goalOf, roleOf, bookWindows, currentWindow, ROLES, ROLE_LABEL, daysLeftFor, guideFor, KIND_METHOD, completionFactor, effectiveBudget, defaultAvailable,
     generatePlan, applySession, subjectSnapshot, recommend, trapsFor, isActive,
