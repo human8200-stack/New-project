@@ -15,6 +15,7 @@
 2. **로그인 방법** 탭 → **이메일/비밀번호** → 첫 번째 스위치(**사용 설정**)만 켜고 **저장**.
    (아래의 "이메일 링크"는 켜지 않습니다. 앱이 아이디를 이메일 모양으로 바꿔 쓰는 것이라 실제 메일은 가지 않습니다.)
 3. **설정** 탭 → **승인된 도메인 → 도메인 추가** → `human8200-stack.github.io` 추가.
+4. **템플릿** 탭 → 아래쪽 **템플릿 언어**를 **한국어**로 바꿉니다. 비밀번호 찾기·이메일 인증 메일이 한국어로 갑니다.
 
 ## 3. 데이터베이스 만들기
 
@@ -29,13 +30,25 @@
 
 ```
 rules_version = '2';
+
+// households/<uid>: 계정마다 기록 문서 하나. 자기 계정의 기록만 읽고 쓸 수 있다.
+// ids/<아이디>: 아이디 → 계정(uid)과 비밀번호 찾기용 이메일. 아이디를 알아야만 하나씩 읽을 수 있고 목록은 볼 수 없다.
 service cloud.firestore {
   match /databases/{database}/documents {
     match /households/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
+
       match /images/{imageId} {
         allow read, write: if request.auth != null && request.auth.uid == uid;
       }
+    }
+
+    match /ids/{id} {
+      allow get: if true;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid
+        && id.matches('^[a-z0-9_]{3,20}$');
+      allow update: if request.auth != null && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == request.auth.uid;
     }
   }
 }
@@ -72,7 +85,9 @@ appId: "..."
 
 - 각 기기는 인터넷이 없어도 계속 쓸 수 있고, 연결되면 맞춰집니다.
 - 두 기기에서 **동시에** 고치면 더 나중에 고친 쪽이 남습니다.
-- 비밀번호를 바꾸려면 로그인된 기기의 설정 → **비밀번호 바꾸기**.
-  비밀번호를 잊었으면 Firebase → Authentication → 사용자 목록에서 그 아이디(`아이디@study-routine.app`)를 찾아 지우고 다시 만들 수 있습니다. 기록은 다른 기기에 남아 있으면 그 기기에서 다시 올라갑니다.
+- **한 번 로그인하면 계속 로그인된 채로** 열립니다. 로그아웃을 누르거나 비밀번호가 바뀌었을 때만 다시 로그인합니다.
+- **비밀번호 찾기**: 계정을 만들 때(또는 나중에 설정에서) **부모님 이메일**을 등록하고, 그 메일로 온 **인증 링크를 눌러 두면** 됩니다.
+  잊었을 때 로그인 화면의 **비밀번호를 잊었어요**에 아이디를 넣으면 부모님 메일로 재설정 링크가 갑니다. 메일이 안 보이면 스팸함을 확인해 주세요 (`noreply@프로젝트이름.firebaseapp.com`에서 옵니다).
+- 이메일을 등록하지 않았다면 로그인된 다른 기기의 설정 → **비밀번호 바꾸기**를 쓰거나, Firebase → Authentication → 사용자에서 그 계정의 비밀번호를 초기화할 수 있습니다 (Claude에게 부탁해도 됩니다).
 - 친구 기록도 이 Firebase 프로젝트에 저장됩니다. 프로젝트를 만든 부모님은 Firebase 화면에서 저장된 기록을 열어볼 수 있으니 친구네에 미리 알려 주세요.
 - 오답 사진은 기록과 따로 저장되고, 다른 기기에서는 처음 열 때 내려받습니다.
