@@ -1,0 +1,68 @@
+# 사진 읽기 AI 서버(worker/)를 Cloudflare에 올린다.
+# 컴퓨터 없이 휴대폰으로: 저장소 Settings → Secrets and variables → Actions에
+# CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, ANTHROPIC_API_KEY, FAMILY_CODE를 넣고
+# Actions → "AI 서버 올리기" → Run workflow를 누른다. 다 되면 요약에 서버 주소가 나온다.
+name: AI 서버 올리기
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 비밀 값이 다 있는지 확인
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          FAMILY_CODE: ${{ secrets.FAMILY_CODE }}
+        run: |
+          missing=""
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID ANTHROPIC_API_KEY FAMILY_CODE; do
+            if [ -z "${!name}" ]; then missing="$missing $name"; fi
+          done
+          if [ -n "$missing" ]; then
+            echo "### 비밀 값이 빠졌어요:$missing" >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::비밀 값이 빠졌어요:$missing"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 설치
+        working-directory: worker
+        run: npm install --no-audit --no-fund
+
+      - name: 올리기
+        id: deploy
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx wrangler deploy | tee deploy.log
+          url=$(grep -oE 'https://[a-zA-Z0-9.-]+\.workers\.dev' deploy.log | head -n 1)
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: API 키와 가족 코드 넣기
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          FAMILY_CODE: ${{ secrets.FAMILY_CODE }}
+        run: |
+          printf '%s' "$ANTHROPIC_API_KEY" | npx wrangler secret put ANTHROPIC_API_KEY
+          printf '%s' "$FAMILY_CODE" | npx wrangler secret put FAMILY_CODE
+
+      - name: 서버 주소 알려 주기
+        run: |
+          echo "### AI 서버를 올렸어요" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "주소: ${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "앱 → 설정 → AI 연결에 이 주소와 가족 코드를 넣으면 돼요." >> "$GITHUB_STEP_SUMMARY"

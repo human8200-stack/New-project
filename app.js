@@ -62,7 +62,7 @@ function freshState() {
 }
 
 // sw.js의 CACHE 이름과 같이 올린다. 설정 맨 아래에 보여서 휴대폰이 새 버전인지 알 수 있다
-const APP_VERSION = 'v22';
+const APP_VERSION = 'v23';
 
 let state;
 const ui = { revealed: null, tab: 'today', openForm: null, openBook: null, openSubject: null, setup: false, planView: 'exam', popup: false };
@@ -840,12 +840,12 @@ async function initAi() {
 }
 
 function aiReady() {
-  return !!ai.sample || !!(state.settings.aiUrl && state.settings.aiCode);
+  return !!ai.sample || !!(aiUrl() && state.settings.aiCode);
 }
 
 // 사진을 읽을 수 있는지 (Claude 화면이 사진을 지원하거나, 우리 집 AI 서버가 있을 때)
 function photoAiReady() {
-  return (!!ai.sample && ai.canImages) || !!(state.settings.aiUrl && state.settings.aiCode);
+  return (!!ai.sample && ai.canImages) || !!(aiUrl() && state.settings.aiCode);
 }
 
 const AI_ERRORS = {
@@ -911,6 +911,11 @@ function diagOf(x) {
   return { cause, basic: String(x.basic || ''), checks };
 }
 
+// 설정에 직접 넣은 주소가 먼저, 없으면 firebase-config.js에 넣어 둔 우리 집 서버 주소
+function aiUrl() {
+  return state.settings.aiUrl || window.AI_URL || '';
+}
+
 function blobToBase64(blob) {
   return new Promise((resolve, reject) => {
     const r = new FileReader();
@@ -933,7 +938,7 @@ async function askEndpoint(prompt, jpegs) {
   const images = await Promise.all(jpegs.map(async (d) => ({ media_type: 'image/jpeg', data: await blobToBase64(dataUrlToBlob(d)) })));
   let res;
   try {
-    res = await fetch(state.settings.aiUrl, {
+    res = await fetch(aiUrl(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Family-Code': state.settings.aiCode },
       body: JSON.stringify({ prompt, images }),
@@ -2136,9 +2141,9 @@ function renderSettings() {
     ${syncCard()}
     <section class="card">
       <h2>AI 연결 (사진 읽기)</h2>
-      <p class="sub">사진 정리와 핵심 카드에 쓰는 우리 집 전용 AI 서버예요. 부모님께 받은 주소와 가족 코드를 넣어 주세요.</p>
+      <p class="sub">사진 정리와 핵심 카드에 쓰는 우리 집 전용 AI 서버예요. ${window.AI_URL ? '부모님께 받은 가족 코드만 넣어 주세요.' : '부모님께 받은 주소와 가족 코드를 넣어 주세요.'}</p>
       <form data-form="ai">
-        <label>AI 서버 주소</label><input name="aiUrl" value="${esc(state.settings.aiUrl || '')}" placeholder="https://study-ai.○○○.workers.dev">
+        ${window.AI_URL ? `<input type="hidden" name="aiUrl" value="${esc(state.settings.aiUrl || '')}">` : `<label>AI 서버 주소</label><input name="aiUrl" value="${esc(state.settings.aiUrl || '')}" placeholder="https://study-ai.○○○.workers.dev">`}
         <label>가족 코드</label><input name="aiCode" value="${esc(state.settings.aiCode || '')}" placeholder="서버를 만들 때 정한 코드">
         <div style="margin-top:12px"><button class="btn primary" type="submit">저장</button></div>
       </form>
