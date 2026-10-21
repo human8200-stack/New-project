@@ -1321,6 +1321,195 @@ function bookEditor(m) {
     </form>`;
 }
 
+// ---------- 시험 범위 넣기: 사진 · 붙여넣기 · 직접, 어느 쪽이든 한 곳에 저장 ----------
+
+const SUBJECT_ALIASES = [
+  ['통합사회', ['통합사회', '통사']],
+  ['통합과학', ['통합과학', '통과']],
+  ['한국사', ['한국사', '역사']],
+  ['국어', ['국어']],
+  ['수학', ['수학', '공통수학']],
+  ['영어', ['영어']],
+  ['정보', ['정보']],
+  ['통합사회', ['사회']],
+  ['통합과학', ['과학']],
+];
+
+// 과목 이름이 나오는 자리를 찾아, 다음 과목 이름 전까지를 그 과목의 범위 글로 본다
+function findSubjectMentions(text) {
+  const names = state.subjects.map((s) => s.name);
+  const hits = [];
+  SUBJECT_ALIASES.forEach(([name, words]) => {
+    if (!names.includes(name)) return;
+    words.forEach((w) => {
+      let i = text.indexOf(w);
+      while (i >= 0) {
+        const covered = hits.some((h) => i >= h.at && i < h.at + h.len);
+        if (!covered) hits.push({ name, at: i, len: w.length });
+        i = text.indexOf(w, i + w.length);
+      }
+    });
+  });
+  // 다른 과목 이름 안에 들어 있는 짧은 이름(예: '통합사회' 속 '사회')은 버린다
+  return hits
+    .filter((h) => !hits.some((o) => o !== h && o.len > h.len && h.at >= o.at && h.at < o.at + o.len))
+    .sort((a, b) => a.at - b.at);
+}
+
+function parseDateIn(seg) {
+  const m = seg.match(/(?:^|[^\d.p])(1[0-2]|0?[1-9])\s*(?:월\s*|[./]\s*)([0-3]?\d)\s*일?(?![\d~])/);
+  if (!m) return '';
+  const t = today();
+  let year = Number(t.slice(0, 4));
+  const month = Number(m[1]);
+  const day = Number(m[2]);
+  if (!day || day > 31) return '';
+  // 지난달 날짜면 내년으로 본다 (예: 10월에 쓴 '2/20')
+  if (month < Number(t.slice(5, 7)) - 1) year += 1;
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+function parsePagesIn(seg) {
+  const m = seg.match(/p\.?\s*(\d{1,3})\s*[~\-–∼]\s*p?\.?\s*(\d{1,3})/i)
+    || seg.match(/(\d{1,3})\s*(?:쪽|p|페이지)?\s*[~\-–∼]\s*(\d{1,3})\s*(?:쪽|p\b|페이지)/i);
+  if (!m) return null;
+  const from = Number(m[1]);
+  const to = Number(m[2]);
+  return to > from ? { from, to } : null;
+}
+
+const PAGE_RE = /(교과서\s*)?(p\.?\s*\d{1,3}\s*[~\-–∼]\s*p?\.?\s*\d{1,3}|\d{1,3}\s*[~\-–∼]\s*\d{1,3}\s*(쪽|p\b|페이지))/i;
+const DATE_RE = /(1[0-2]|0?[1-9])\s*(월\s*|[./]\s*)[0-3]?\d\s*일?(\s*\([월화수목금토일]\))?/;
+
+function memoOf(seg) {
+  return seg.replace(PAGE_RE, '').replace(DATE_RE, '').replace(/\d\s*교시/g, '')
+    .replace(/\s+/g, ' ').trim().replace(/^[\s:：\-·,)\]/]+|[\s:：\-·,(\[/]+$/g, '').trim().slice(0, 60);
+}
+
+// 붙여넣은 공지 글을 과목별 {날짜, 쪽, 메모}로 나눈다 (AI 없이)
+// 한 줄에 과목이 하나면 그 줄 전체가 그 과목 것, 여러 개면 과목 이름 사이로 나눈다
+function parseRangeText(text) {
+  const out = {};
+  let last = null;
+  String(text || '').replace(/\r/g, '').split('\n').forEach((line) => {
+    const hits = findSubjectMentions(line);
+    if (!hits.length) {
+      // 과목 없이 쪽수만 있는 다음 줄은 앞 과목에 붙인다
+      if (last && !out[last].from && parsePagesIn(line)) Object.assign(out[last], parsePagesIn(line));
+      return;
+    }
+    const lineDate = parseDateIn(line);
+    hits.forEach((h, i) => {
+      const start = i === 0 ? 0 : h.at;
+      const end = i + 1 < hits.length ? hits[i + 1].at : line.length;
+      const seg = (line.slice(start, h.at) + ' ' + line.slice(h.at + h.len, end));
+      const row = out[h.name] || { subject: h.name, date: '', from: null, to: null, memo: '' };
+      row.date = row.date || parseDateIn(seg) || lineDate;
+      const pages = parsePagesIn(seg);
+      if (pages && !row.from) Object.assign(row, pages);
+      const memo = memoOf(seg);
+      if (memo) row.memo = row.memo ? `${row.memo}, ${memo}`.slice(0, 80) : memo;
+      out[h.name] = row;
+      last = h.name;
+    });
+  });
+  return Object.values(out);
+}
+
+function rangeTextOf(s) {
+  const m = pageMaterial(s.id);
+  if (s.examRange) return s.examRange;
+  if (m && !m.approxTotal && m.total) return `교과서 p.${m.rangeFrom || 1}~${bookTo(m)}`;
+  return '';
+}
+
+// 한 과목의 시험일과 범위를 저장하고 교과서 범위를 맞춘다
+function setSubjectRange(s, { date, from, to, memo }) {
+  if (date) s.examDate = date;
+  const m = pageMaterial(s.id);
+  if (from && to && to > from) {
+    if (m) {
+      const at = m.done ? (m.rangeFrom || 1) + m.done - 1 : 0; // 지금까지 본 쪽 번호
+      m.rangeFrom = from;
+      m.total = to - from + 1;
+      m.approxTotal = false;
+      m.done = at ? Math.max(0, Math.min(m.total, at - from + 1)) : 0;
+    }
+    const rest = memoOf(memo || '');
+    s.examRange = `교과서 p.${from}~${to}${rest ? ` · ${rest}` : ''}`;
+  } else if (memo) {
+    s.examRange = memo;
+  }
+}
+
+function afterRangeChange() {
+  const dates = state.subjects.map((x) => x.examDate).filter(Boolean).sort();
+  if (dates.length) state.settings.examDate = dates[0];
+  refreshUntouchedPlan();
+}
+
+function rangeSummary() {
+  const exam = state.settings.examDate;
+  return state.subjects.map((s) => {
+    const r = rangeTextOf(s);
+    const d = s.examDate || exam;
+    return `
+      <li class="range-row${r ? '' : ' missing'}">
+        <span class="range-subject">${esc(s.name)}</span>
+        <span class="range-date">${d ? prettyDate(d) : '날짜 없음'}</span>
+        <span class="range-text">${r ? esc(r) : '범위 아직 없음'}</span>
+        ${r ? '<span class="range-ok" aria-label="넣음">✓</span>' : `<button class="chip-btn small-chip" data-action="range-open" data-id="manual">넣기</button>`}
+      </li>`;
+  }).join('');
+}
+
+function rangeCard() {
+  if (!ui.rangeOpen) return '';
+  const mode = ui.rangeMode || 'paste';
+  const tabs = [['photo', '사진 찍기'], ['paste', '글 붙여넣기'], ['manual', '직접 넣기']].map(([k, l]) => `<button class="${mode === k ? 'on' : ''}" data-action="range-mode" data-id="${k}">${l}</button>`).join('');
+  let body = '';
+  if (mode === 'photo') {
+    body = photoAiReady()
+      ? `<p class="sub">범위 공지나 시험 시간표를 찍어 올리면 과목별 날짜와 쪽수를 채워요.</p>
+         <label class="btn big primary wide photo-pick">공지 사진 고르기<input class="file-hidden" type="file" accept="image/*" multiple data-action="ai-photos"></label>`
+      : '<p class="sub">사진을 읽으려면 AI 연결이 필요해요(설정 → AI 연결). 지금은 "글 붙여넣기"나 "직접 넣기"를 써 주세요.</p>';
+  } else if (mode === 'paste') {
+    const preview = ui.rangePreview;
+    body = `
+      <p class="sub">학교 알리미나 단톡방에 온 범위 글을 복사해서 그대로 붙여넣으세요.</p>
+      <form data-form="range-paste">
+        <textarea name="text" rows="6" placeholder="예)&#10;12/8 수학: 교과서 p.10~96&#10;12/9 영어 3~5과, 모의고사 2회&#10;12/10 한국사 60~169쪽">${esc(ui.rangeText || '')}</textarea>
+        <button class="btn primary" type="submit" style="margin-top:8px">읽기</button>
+      </form>
+      ${preview ? (preview.length ? `
+        <ul class="range-preview">${preview.map((r) => `<li><strong>${esc(r.subject)}</strong> ${r.date ? prettyDate(r.date) : '<span class="meta">날짜 없음</span>'} · ${r.from ? `p.${r.from}~${r.to}` : ''}${r.memo && !r.from ? esc(r.memo) : r.memo ? ` <span class="meta">${esc(r.memo)}</span>` : ''}</li>`).join('')}</ul>
+        <button class="btn big primary wide" data-action="range-apply">이대로 넣기</button>` : '<p class="warn-text">과목 이름을 찾지 못했어요. "수학 p.10~96"처럼 과목 이름이 들어 있는지 확인해 주세요.</p>') : ''}`;
+  } else {
+    const exam = state.settings.examDate;
+    body = `
+      <form data-form="range-manual" class="range-manual">
+        ${state.subjects.map((s) => {
+    const m = pageMaterial(s.id);
+    const from = m && !m.approxTotal ? m.rangeFrom || 1 : '';
+    const to = m && !m.approxTotal ? bookTo(m) : '';
+    return `
+          <div class="manual-row">
+            <div class="manual-top"><strong>${esc(s.name)}</strong><input type="date" name="date-${s.id}" value="${esc(s.examDate || exam || '')}" aria-label="${esc(s.name)} 시험일"></div>
+            <div class="edit-line">${m ? `<span>교과서 p.</span><input type="number" name="from-${s.id}" min="1" value="${from}" aria-label="시작 쪽"><span>~</span><input type="number" name="to-${s.id}" min="1" value="${to}" aria-label="끝 쪽">` : ''}
+              <input class="memo" name="memo-${s.id}" value="${esc(s.examRange && !/^교과서 p\./.test(s.examRange) ? s.examRange : '')}" placeholder="${m ? '메모 (선택)' : '범위 (예: 3~5과)'}"></div>
+          </div>`;
+  }).join('')}
+        <button class="btn big primary wide" type="submit">저장</button>
+      </form>`;
+  }
+  return `
+    <section class="card range-card">
+      <div class="range-card-top"><h2>시험 범위 넣기</h2><button class="linklike small" data-action="range-close">닫기</button></div>
+      <div class="switch">${tabs}</div>
+      ${body}
+    </section>`;
+}
+
 function examHeader() {
   const t = today();
   const exam = state.settings.examDate;
@@ -1328,12 +1517,6 @@ function examHeader() {
   const dates = state.subjects.map((s) => ({ s, d: s.examDate || exam })).filter((x) => x.d).sort((a, b) => a.d.localeCompare(b.d));
   const last = dates.length ? dates[dates.length - 1].d : null;
   const phase = exam && left >= 0 ? phasesFor(exam).find((p) => p.now) : null;
-  const editors = state.subjects.map((s) => `
-    <div class="exam-row">
-      <span class="exam-subject">${esc(s.name)}</span>
-      <input type="date" value="${esc(s.examDate || exam || '')}" data-action="exam-date" data-id="${s.id}" aria-label="${esc(s.name)} 시험일">
-      <input class="exam-range-input" value="${esc(s.examRange || '')}" data-action="exam-range" data-id="${s.id}" placeholder="시험 범위 (예: 교과서 p.10~96, 학습지 1~6)" aria-label="${esc(s.name)} 시험 범위">
-    </div>`).join('');
   return `
     <section class="card exam-head">
       <div class="exam-top">
@@ -1343,14 +1526,11 @@ function examHeader() {
         </div>
         ${left != null && left >= 0 ? `<div class="exam-dday">D-${left || 'Day'}</div>` : ''}
       </div>
-      ${dates.length ? `<div class="exam-chips">${dates.map(({ s, d }) => `<span class="exam-chip"><strong>${esc(s.name)}</strong> ${prettyDate(d)}</span>`).join('')}</div>` : ''}
       ${phase ? `<div class="phase-now"><strong>${esc(phase.name)}</strong> (~${prettyDate(phase.to)}) · ${esc(phase.desc)}</div>` : ''}
-      <details class="exam-edit"${exam ? '' : ' open'}>
-        <summary>시험 날짜와 범위 고치기</summary>
-
-        ${editors}
-      </details>
-    </section>`;
+      <ul class="range-list">${rangeSummary()}</ul>
+      <button class="btn big wide range-open" data-action="range-open">시험 범위 넣기</button>
+    </section>
+    ${rangeCard()}`;
 }
 
 function planSwitch() {
@@ -1795,6 +1975,11 @@ async function render() {
   if (!VIEWS[ui.tab]) ui.tab = 'today';
   document.getElementById('view').innerHTML = VIEWS[ui.tab]();
   document.getElementById('popup').innerHTML = popupHtml();
+  if (ui.scrollToRange) {
+    ui.scrollToRange = false;
+    const card = document.querySelector('.range-card');
+    if (card) card.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
   renderTimerBar();
   document.querySelector('.tabs').hidden = !state.setupDone;
   document.getElementById('fab').hidden = !state.setupDone || !!ui.setup || !['today', 'plan', 'review'].includes(ui.tab);
@@ -1863,6 +2048,34 @@ document.addEventListener('click', async (e) => {
   let changed = true;
 
   switch (action) {
+    case 'range-open':
+      ui.rangeOpen = true;
+      ui.scrollToRange = true;
+      if (id) ui.rangeMode = id;
+      changed = false;
+      break;
+    case 'range-close':
+      ui.rangeOpen = false;
+      ui.rangePreview = null;
+      changed = false;
+      break;
+    case 'range-mode':
+      ui.rangeMode = id;
+      changed = false;
+      break;
+    case 'range-apply': {
+      const rows = ui.rangePreview || [];
+      rows.forEach((r) => {
+        const subj = state.subjects.find((x) => x.name === r.subject);
+        if (subj) setSubjectRange(subj, r);
+      });
+      afterRangeChange();
+      ui.rangeOpen = false;
+      ui.rangePreview = null;
+      ui.rangeText = '';
+      toast(`${rows.length}과목 시험 범위를 넣었어요. 계획표가 다시 계산됐어요.`);
+      break;
+    }
     case 'review-filter':
       ui.reviewSubject = id;
       changed = false;
@@ -2213,6 +2426,23 @@ document.addEventListener('submit', async (e) => {
     }
     msg = applyCheckin(feel, f.getAll('hard'), num(f.get('tomorrow'), 0));
     ui.showCheckin = false;
+  } else if (kind === 'range-paste') {
+    ui.rangeText = f.get('text') || '';
+    ui.rangePreview = parseRangeText(ui.rangeText);
+    await render();
+    return;
+  } else if (kind === 'range-manual') {
+    state.subjects.forEach((x) => {
+      const date = f.get(`date-${x.id}`) || '';
+      const from = num(f.get(`from-${x.id}`), 0);
+      const to = num(f.get(`to-${x.id}`), 0);
+      const memo = (f.get(`memo-${x.id}`) || '').trim();
+      if (date) x.examDate = date;
+      if ((from && to) || memo) setSubjectRange(x, { date, from, to, memo });
+    });
+    afterRangeChange();
+    ui.rangeOpen = false;
+    msg = '시험 범위를 저장했어요. 계획표가 다시 계산됐어요.';
   } else if (kind === 'goal-time') {
     const g = (state.goals || []).find((x) => x.id === form.dataset.id);
     if (!g) return;
