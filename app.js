@@ -409,10 +409,10 @@ function recallSection() {
       <button class="btn big good" data-action="log-ok" data-id="${item.id}">기억났어요</button>
       <button class="btn big bad" data-action="log-miss" data-id="${item.id}">헷갈려요</button>`;
   } else {
-    meta = `${esc(item.subject)}${item.unit ? ` · ${esc(item.unit)}` : ''} · ${daysAgoText(item.date)} 틀린 문제`;
+    meta = `${esc(item.subject)}${item.unit ? ` · ${esc(item.unit)}` : ''} · ${daysAgoText(item.date)} ${{ question: '물어본 문제', test: `시험지 ${esc(item.problemNo || '')}번` }[item.kind] || '틀린 문제'}`;
     question = '이 문제를 다시 풀어 보세요.';
     extra = item.img ? `<img class="wrong-img" src="${item.img}" alt="다시 풀 오답 문제">` : '';
-    answer = item.note ? `지난번에 꼬인 곳: ${esc(item.note)}` : '풀이를 확인해 보세요.';
+    answer = `${item.note ? `${item.kind === 'question' ? '핵심 개념' : '지난번에 꼬인 곳'}: ${esc(item.note)}` : '풀이를 확인해 보세요.'}${stepsHtml(item, false)}`;
     buttons = `
       <button class="btn big good" data-action="wrong-ok" data-id="${item.id}">맞혔어요</button>
       <button class="btn big bad" data-action="wrong-miss" data-id="${item.id}">또 틀렸어요</button>`;
@@ -838,13 +838,18 @@ ${books}
    {"type":"lesson","photo":번호,"subject":과목,"pages":"p.58~61","endPage":61,"topic":"단원·주제 한 줄","cards":[{"q":"책을 덮고 답할 수 있는 구체적인 복습 질문","a":"1~2문장 답"}]}  (cards 2~3개, 사진 내용만 근거로)
 2. "solved" 학생이 풀고 채점한 문제집·학습지 쪽
    {"type":"solved","photo":번호,"subject":과목,"book":"위 책 목록에서 가장 가까운 이름 (없으면 표지에 보이는 이름)","solved":푼 문제 수,"wrong":틀린 문제 수,"last":마지막 문제 번호 숫자}
-3. "wrong" 틀린 문제 하나를 크게 찍은 것
-   {"type":"wrong","photo":번호,"subject":과목,"unit":"단원","why":"이 문제에서 놓치기 쉬운 점 한 줄"}
-4. "exam" 시험 범위·시험 시간표 공지
+3. "wrong" 틀린 문제 하나를 크게 찍은 것 (✗ 표시나 고친 답이 있음)
+   {"type":"wrong","photo":번호,"subject":과목,"unit":"단원","why":"이 문제에서 놓치기 쉬운 점 한 줄","steps":["풀이 1단계","2단계","…"],"answer":"정답"}
+4. "test" 채점한 시험지·모의고사·학습지 전체 (여러 문제에 ✗ 표시)
+   {"type":"test","photo":번호,"subject":과목,"title":"시험 이름 (보이면)","total":전체 문항 수 또는 null,"wrong":[{"no":"문제 번호","unit":"단원","why":"놓친 점 한 줄","concept":"다시 볼 개념 한 줄"}]}
+5. "question" 학생이 모르는 문제 (풀이 흔적이 없거나 ? 표시, 풀다 멈춘 문제)
+   {"type":"question","photo":번호,"subject":과목,"unit":"단원","concept":"이 문제에 필요한 핵심 개념 한 줄","steps":["풀이 1단계","2단계","…"],"answer":"정답","tip":"비슷한 문제에서 먼저 확인할 점 한 줄"}
+   (풀이는 고등학교 1학년이 따라갈 수 있게 단계마다 한 문장으로, 3~6단계)
+6. "exam" 시험 범위·시험 시간표 공지
    {"type":"exam","photo":번호,"exams":[{"subject":과목,"date":"YYYY-MM-DD 또는 null","range":"범위 한 줄","startPage":교과서 시작 쪽 숫자 또는 null,"endPage":교과서 마지막 쪽 숫자 또는 null}]}
-5. "book" 책 표지·목차·맨 뒤쪽
+7. "book" 책 표지·목차·맨 뒤쪽
    {"type":"book","photo":번호,"subject":과목,"book":"책 이름","unit":"문제" 또는 "쪽","total":전체 문제 수 또는 쪽 수 (모르면 null)}
-6. 알 수 없으면 {"type":"other","photo":번호}
+8. 알 수 없으면 {"type":"other","photo":번호}
 
 과목은 반드시 위 과목 목록의 글자 그대로 씁니다. 숫자를 읽을 수 없으면 null로 둡니다.
 JSON 하나로만 답하세요: {"items":[...]}`;
@@ -1014,10 +1019,43 @@ function applyPhotoItems(items, jpegs) {
         nextPassIfDone(m);
       }
       lines.push(`${s.name} · ${m.name} ${solved}문제${wrong != null ? ` (틀림 ${wrong})` : ''} → 진도에 반영`);
-    } else if (x.type === 'wrong' && s) {
+    } else if ((x.type === 'wrong' || x.type === 'question') && s) {
       const img = jpegs[(Number(x.photo) || 1) - 1] || '';
-      state.wrongs.push({ id: uid(), date: t, subject: s.name, unit: String(x.unit || ''), trap: '', note: String(x.why || ''), img, step: 0, due: addDays(t, WRONG_INTERVALS[0]), history: [] });
-      lines.push(`${s.name} · 틀린 문제 → 2일 뒤 다시 풀기로 저장`);
+      const steps = (Array.isArray(x.steps) ? x.steps : []).map(String).filter(Boolean).slice(0, 8);
+      const isQ = x.type === 'question';
+      state.wrongs.push({
+        id: uid(), date: t, subject: s.name, unit: String(x.unit || ''), trap: '', kind: isQ ? 'question' : 'wrong',
+        note: String((isQ ? x.concept : x.why) || ''), tip: String(x.tip || ''), steps, answer: String(x.answer || ''),
+        img, step: 0, due: addDays(t, WRONG_INTERVALS[0]), history: [],
+      });
+      lines.push({
+        text: isQ ? `${s.name}${x.unit ? ` · ${x.unit}` : ''} 모르는 문제 → 풀이를 보고, 2일 뒤 혼자 다시 풀기` : `${s.name} · 틀린 문제 → 2일 뒤 다시 풀기로 저장`,
+        concept: String((isQ ? x.concept : x.why) || ''), steps, answer: String(x.answer || ''), tip: String(x.tip || ''),
+      });
+    } else if (x.type === 'test' && s) {
+      const img = jpegs[(Number(x.photo) || 1) - 1] || '';
+      const wrongs = (Array.isArray(x.wrong) ? x.wrong : []).filter((w) => w && (w.no || w.why)).slice(0, 30);
+      wrongs.forEach((w) => {
+        state.wrongs.push({
+          id: uid(), date: t, subject: s.name, unit: String(w.unit || ''), trap: '', kind: 'test', problemNo: String(w.no || ''),
+          note: `${w.no ? `${w.no}번 · ` : ''}${w.why || ''}`, concept: String(w.concept || ''), img,
+          step: 0, due: addDays(t, WRONG_INTERVALS[0]), history: [],
+        });
+      });
+      // 다시 볼 개념은 복습 카드로도 만든다
+      wrongs.filter((w) => w.concept).slice(0, 5).forEach((w) => {
+        state.logs.push({ id: uid(), created: Date.now(), date: t, subject: s.name, kind: '시험', text: `${x.title || '시험지'} ${w.no ? `${w.no}번` : ''}`.trim(), q: `${w.unit ? `[${w.unit}] ` : ''}${w.concept}`, a: String(w.why || ''), step: 0, due: addDays(t, 1), history: [] });
+      });
+      // 정답률에만 반영한다 (틀린 문제는 위에서 하나씩 저장했으니 '쌓인 오답' 수는 늘리지 않음)
+      const total = Number(x.total) || null;
+      if (total && wrongs.length <= total) {
+        const acc = (total - wrongs.length) / total;
+        s.accuracy = s.accuracy == null ? acc : Math.round((0.7 * s.accuracy + 0.3 * acc) * 100) / 100;
+      }
+      lines.push({
+        text: `${s.name}${x.title ? ` ${x.title}` : ' 시험지'} · 틀린 문제 ${wrongs.length}개${wrongs.length ? ` (${wrongs.map((w) => w.no).filter(Boolean).join(', ')}번)` : ''} → 다시 풀 목록에 저장`,
+        list: wrongs.map((w) => `${w.no ? `${w.no}번` : ''}${w.unit ? ` [${w.unit}]` : ''} ${w.why || ''}${w.concept ? ` → 다시 볼 개념: ${w.concept}` : ''}`.trim()),
+      });
     } else if (x.type === 'exam') {
       const exams = Array.isArray(x.exams) ? x.exams : [];
       const dates = [];
@@ -1057,6 +1095,23 @@ function applyPhotoItems(items, jpegs) {
   return lines;
 }
 
+function stepsHtml(o, open) {
+  if (!o.steps || !o.steps.length) return '';
+  return `
+    <details class="solution"${open ? ' open' : ''}>
+      <summary>풀이 보기</summary>
+      ${o.concept ? `<p class="sol-concept"><strong>핵심 개념</strong> ${esc(o.concept)}</p>` : ''}
+      <ol class="sol-steps">${o.steps.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>
+      ${o.answer ? `<p class="sol-answer"><strong>답</strong> ${esc(o.answer)}</p>` : ''}
+      ${o.tip ? `<p class="meta">다음에 먼저 확인할 것: ${esc(o.tip)}</p>` : ''}
+    </details>`;
+}
+
+function reportItem(l) {
+  if (typeof l === 'string') return `<li>${esc(l)}</li>`;
+  return `<li>${esc(l.text)}${l.list && l.list.length ? `<ul class="report-sub">${l.list.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}${stepsHtml(l, true)}</li>`;
+}
+
 // 어느 화면에서나 같은 사진 버튼
 function photoCard(compact) {
   if (ai.busy) return '<section class="card photo-card"><p class="ai-busy">사진을 읽고 정리하는 중이에요… (30초쯤 걸려요)</p></section>';
@@ -1064,7 +1119,7 @@ function photoCard(compact) {
     return `
       <section class="card photo-card done">
         <h2>이렇게 정리했어요</h2>
-        <ul class="report">${ai.report.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>
+        <ul class="report">${ai.report.map(reportItem).join('')}</ul>
         <div class="recall-buttons">
           <button class="btn big primary" data-action="ai-ok">좋아요</button>
           <button class="btn big" data-action="ai-undo">되돌리기</button>
@@ -1321,6 +1376,195 @@ function bookEditor(m) {
     </form>`;
 }
 
+// ---------- 시험 범위 넣기: 사진 · 붙여넣기 · 직접, 어느 쪽이든 한 곳에 저장 ----------
+
+const SUBJECT_ALIASES = [
+  ['통합사회', ['통합사회', '통사']],
+  ['통합과학', ['통합과학', '통과']],
+  ['한국사', ['한국사', '역사']],
+  ['국어', ['국어']],
+  ['수학', ['수학', '공통수학']],
+  ['영어', ['영어']],
+  ['정보', ['정보']],
+  ['통합사회', ['사회']],
+  ['통합과학', ['과학']],
+];
+
+// 과목 이름이 나오는 자리를 찾아, 다음 과목 이름 전까지를 그 과목의 범위 글로 본다
+function findSubjectMentions(text) {
+  const names = state.subjects.map((s) => s.name);
+  const hits = [];
+  SUBJECT_ALIASES.forEach(([name, words]) => {
+    if (!names.includes(name)) return;
+    words.forEach((w) => {
+      let i = text.indexOf(w);
+      while (i >= 0) {
+        const covered = hits.some((h) => i >= h.at && i < h.at + h.len);
+        if (!covered) hits.push({ name, at: i, len: w.length });
+        i = text.indexOf(w, i + w.length);
+      }
+    });
+  });
+  // 다른 과목 이름 안에 들어 있는 짧은 이름(예: '통합사회' 속 '사회')은 버린다
+  return hits
+    .filter((h) => !hits.some((o) => o !== h && o.len > h.len && h.at >= o.at && h.at < o.at + o.len))
+    .sort((a, b) => a.at - b.at);
+}
+
+function parseDateIn(seg) {
+  const m = seg.match(/(?:^|[^\d.p])(1[0-2]|0?[1-9])\s*(?:월\s*|[./]\s*)([0-3]?\d)\s*일?(?![\d~])/);
+  if (!m) return '';
+  const t = today();
+  let year = Number(t.slice(0, 4));
+  const month = Number(m[1]);
+  const day = Number(m[2]);
+  if (!day || day > 31) return '';
+  // 지난달 날짜면 내년으로 본다 (예: 10월에 쓴 '2/20')
+  if (month < Number(t.slice(5, 7)) - 1) year += 1;
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+function parsePagesIn(seg) {
+  const m = seg.match(/p\.?\s*(\d{1,3})\s*[~\-–∼]\s*p?\.?\s*(\d{1,3})/i)
+    || seg.match(/(\d{1,3})\s*(?:쪽|p|페이지)?\s*[~\-–∼]\s*(\d{1,3})\s*(?:쪽|p\b|페이지)/i);
+  if (!m) return null;
+  const from = Number(m[1]);
+  const to = Number(m[2]);
+  return to > from ? { from, to } : null;
+}
+
+const PAGE_RE = /(교과서\s*)?(p\.?\s*\d{1,3}\s*[~\-–∼]\s*p?\.?\s*\d{1,3}|\d{1,3}\s*[~\-–∼]\s*\d{1,3}\s*(쪽|p\b|페이지))/i;
+const DATE_RE = /(1[0-2]|0?[1-9])\s*(월\s*|[./]\s*)[0-3]?\d\s*일?(\s*\([월화수목금토일]\))?/;
+
+function memoOf(seg) {
+  return seg.replace(PAGE_RE, '').replace(DATE_RE, '').replace(/\d\s*교시/g, '')
+    .replace(/\s+/g, ' ').trim().replace(/^[\s:：\-·,)\]/]+|[\s:：\-·,(\[/]+$/g, '').trim().slice(0, 60);
+}
+
+// 붙여넣은 공지 글을 과목별 {날짜, 쪽, 메모}로 나눈다 (AI 없이)
+// 한 줄에 과목이 하나면 그 줄 전체가 그 과목 것, 여러 개면 과목 이름 사이로 나눈다
+function parseRangeText(text) {
+  const out = {};
+  let last = null;
+  String(text || '').replace(/\r/g, '').split('\n').forEach((line) => {
+    const hits = findSubjectMentions(line);
+    if (!hits.length) {
+      // 과목 없이 쪽수만 있는 다음 줄은 앞 과목에 붙인다
+      if (last && !out[last].from && parsePagesIn(line)) Object.assign(out[last], parsePagesIn(line));
+      return;
+    }
+    const lineDate = parseDateIn(line);
+    hits.forEach((h, i) => {
+      const start = i === 0 ? 0 : h.at;
+      const end = i + 1 < hits.length ? hits[i + 1].at : line.length;
+      const seg = (line.slice(start, h.at) + ' ' + line.slice(h.at + h.len, end));
+      const row = out[h.name] || { subject: h.name, date: '', from: null, to: null, memo: '' };
+      row.date = row.date || parseDateIn(seg) || lineDate;
+      const pages = parsePagesIn(seg);
+      if (pages && !row.from) Object.assign(row, pages);
+      const memo = memoOf(seg);
+      if (memo) row.memo = row.memo ? `${row.memo}, ${memo}`.slice(0, 80) : memo;
+      out[h.name] = row;
+      last = h.name;
+    });
+  });
+  return Object.values(out);
+}
+
+function rangeTextOf(s) {
+  const m = pageMaterial(s.id);
+  if (s.examRange) return s.examRange;
+  if (m && !m.approxTotal && m.total) return `교과서 p.${m.rangeFrom || 1}~${bookTo(m)}`;
+  return '';
+}
+
+// 한 과목의 시험일과 범위를 저장하고 교과서 범위를 맞춘다
+function setSubjectRange(s, { date, from, to, memo }) {
+  if (date) s.examDate = date;
+  const m = pageMaterial(s.id);
+  if (from && to && to > from) {
+    if (m) {
+      const at = m.done ? (m.rangeFrom || 1) + m.done - 1 : 0; // 지금까지 본 쪽 번호
+      m.rangeFrom = from;
+      m.total = to - from + 1;
+      m.approxTotal = false;
+      m.done = at ? Math.max(0, Math.min(m.total, at - from + 1)) : 0;
+    }
+    const rest = memoOf(memo || '');
+    s.examRange = `교과서 p.${from}~${to}${rest ? ` · ${rest}` : ''}`;
+  } else if (memo) {
+    s.examRange = memo;
+  }
+}
+
+function afterRangeChange() {
+  const dates = state.subjects.map((x) => x.examDate).filter(Boolean).sort();
+  if (dates.length) state.settings.examDate = dates[0];
+  refreshUntouchedPlan();
+}
+
+function rangeSummary() {
+  const exam = state.settings.examDate;
+  return state.subjects.map((s) => {
+    const r = rangeTextOf(s);
+    const d = s.examDate || exam;
+    return `
+      <li class="range-row${r ? '' : ' missing'}">
+        <span class="range-subject">${esc(s.name)}</span>
+        <span class="range-date">${d ? prettyDate(d) : '날짜 없음'}</span>
+        <span class="range-text">${r ? esc(r) : '범위 아직 없음'}</span>
+        ${r ? '<span class="range-ok" aria-label="넣음">✓</span>' : `<button class="chip-btn small-chip" data-action="range-open" data-id="manual">넣기</button>`}
+      </li>`;
+  }).join('');
+}
+
+function rangeCard() {
+  if (!ui.rangeOpen) return '';
+  const mode = ui.rangeMode || 'paste';
+  const tabs = [['photo', '사진 찍기'], ['paste', '글 붙여넣기'], ['manual', '직접 넣기']].map(([k, l]) => `<button class="${mode === k ? 'on' : ''}" data-action="range-mode" data-id="${k}">${l}</button>`).join('');
+  let body = '';
+  if (mode === 'photo') {
+    body = photoAiReady()
+      ? `<p class="sub">범위 공지나 시험 시간표를 찍어 올리면 과목별 날짜와 쪽수를 채워요.</p>
+         <label class="btn big primary wide photo-pick">공지 사진 고르기<input class="file-hidden" type="file" accept="image/*" multiple data-action="ai-photos"></label>`
+      : '<p class="sub">사진을 읽으려면 AI 연결이 필요해요(설정 → AI 연결). 지금은 "글 붙여넣기"나 "직접 넣기"를 써 주세요.</p>';
+  } else if (mode === 'paste') {
+    const preview = ui.rangePreview;
+    body = `
+      <p class="sub">학교 알리미나 단톡방에 온 범위 글을 복사해서 그대로 붙여넣으세요.</p>
+      <form data-form="range-paste">
+        <textarea name="text" rows="6" placeholder="예)&#10;12/8 수학: 교과서 p.10~96&#10;12/9 영어 3~5과, 모의고사 2회&#10;12/10 한국사 60~169쪽">${esc(ui.rangeText || '')}</textarea>
+        <button class="btn primary" type="submit" style="margin-top:8px">읽기</button>
+      </form>
+      ${preview ? (preview.length ? `
+        <ul class="range-preview">${preview.map((r) => `<li><strong>${esc(r.subject)}</strong> ${r.date ? prettyDate(r.date) : '<span class="meta">날짜 없음</span>'} · ${r.from ? `p.${r.from}~${r.to}` : ''}${r.memo && !r.from ? esc(r.memo) : r.memo ? ` <span class="meta">${esc(r.memo)}</span>` : ''}</li>`).join('')}</ul>
+        <button class="btn big primary wide" data-action="range-apply">이대로 넣기</button>` : '<p class="warn-text">과목 이름을 찾지 못했어요. "수학 p.10~96"처럼 과목 이름이 들어 있는지 확인해 주세요.</p>') : ''}`;
+  } else {
+    const exam = state.settings.examDate;
+    body = `
+      <form data-form="range-manual" class="range-manual">
+        ${state.subjects.map((s) => {
+    const m = pageMaterial(s.id);
+    const from = m && !m.approxTotal ? m.rangeFrom || 1 : '';
+    const to = m && !m.approxTotal ? bookTo(m) : '';
+    return `
+          <div class="manual-row">
+            <div class="manual-top"><strong>${esc(s.name)}</strong><input type="date" name="date-${s.id}" value="${esc(s.examDate || exam || '')}" aria-label="${esc(s.name)} 시험일"></div>
+            <div class="edit-line">${m ? `<span>교과서 p.</span><input type="number" name="from-${s.id}" min="1" value="${from}" aria-label="시작 쪽"><span>~</span><input type="number" name="to-${s.id}" min="1" value="${to}" aria-label="끝 쪽">` : ''}
+              <input class="memo" name="memo-${s.id}" value="${esc(s.examRange && !/^교과서 p\./.test(s.examRange) ? s.examRange : '')}" placeholder="${m ? '메모 (선택)' : '범위 (예: 3~5과)'}"></div>
+          </div>`;
+  }).join('')}
+        <button class="btn big primary wide" type="submit">저장</button>
+      </form>`;
+  }
+  return `
+    <section class="card range-card">
+      <div class="range-card-top"><h2>시험 범위 넣기</h2><button class="linklike small" data-action="range-close">닫기</button></div>
+      <div class="switch">${tabs}</div>
+      ${body}
+    </section>`;
+}
+
 function examHeader() {
   const t = today();
   const exam = state.settings.examDate;
@@ -1328,12 +1572,6 @@ function examHeader() {
   const dates = state.subjects.map((s) => ({ s, d: s.examDate || exam })).filter((x) => x.d).sort((a, b) => a.d.localeCompare(b.d));
   const last = dates.length ? dates[dates.length - 1].d : null;
   const phase = exam && left >= 0 ? phasesFor(exam).find((p) => p.now) : null;
-  const editors = state.subjects.map((s) => `
-    <div class="exam-row">
-      <span class="exam-subject">${esc(s.name)}</span>
-      <input type="date" value="${esc(s.examDate || exam || '')}" data-action="exam-date" data-id="${s.id}" aria-label="${esc(s.name)} 시험일">
-      <input class="exam-range-input" value="${esc(s.examRange || '')}" data-action="exam-range" data-id="${s.id}" placeholder="시험 범위 (예: 교과서 p.10~96, 학습지 1~6)" aria-label="${esc(s.name)} 시험 범위">
-    </div>`).join('');
   return `
     <section class="card exam-head">
       <div class="exam-top">
@@ -1343,14 +1581,11 @@ function examHeader() {
         </div>
         ${left != null && left >= 0 ? `<div class="exam-dday">D-${left || 'Day'}</div>` : ''}
       </div>
-      ${dates.length ? `<div class="exam-chips">${dates.map(({ s, d }) => `<span class="exam-chip"><strong>${esc(s.name)}</strong> ${prettyDate(d)}</span>`).join('')}</div>` : ''}
       ${phase ? `<div class="phase-now"><strong>${esc(phase.name)}</strong> (~${prettyDate(phase.to)}) · ${esc(phase.desc)}</div>` : ''}
-      <details class="exam-edit"${exam ? '' : ' open'}>
-        <summary>시험 날짜와 범위 고치기</summary>
-
-        ${editors}
-      </details>
-    </section>`;
+      <ul class="range-list">${rangeSummary()}</ul>
+      <button class="btn big wide range-open" data-action="range-open">시험 범위 넣기</button>
+    </section>
+    ${rangeCard()}`;
 }
 
 function planSwitch() {
@@ -1608,9 +1843,11 @@ function reviewList() {
     if (x.kind === 'wrong') {
       return `
         <li class="item review-item">
-          <div><span class="tag">${esc(x.subject)}</span><span class="meta">틀린 문제${x.w.unit ? ` · ${esc(x.w.unit)}` : ''}</span> ${when}
-            ${x.w.img ? `<img class="wrong-img" src="${x.w.img}" alt="틀린 문제">` : ''}
-            ${x.w.note ? `<div class="meta">${esc(x.w.note)}</div>` : ''}</div>
+          <div><span class="tag">${esc(x.subject)}</span><span class="meta">${{ question: '모르는 문제', test: '시험지 오답' }[x.w.kind] || '틀린 문제'}${x.w.unit ? ` · ${esc(x.w.unit)}` : ''}</span> ${when}
+            ${x.w.img ? `<img class="wrong-img" src="${x.w.img}" alt="문제 사진">` : ''}
+            ${x.w.note ? `<div class="meta">${esc(x.w.note)}</div>` : ''}
+            ${x.w.concept ? `<div class="meta">다시 볼 개념: ${esc(x.w.concept)}</div>` : ''}
+            ${stepsHtml(x.w, false)}</div>
         </li>`;
     }
     return `
@@ -1795,6 +2032,11 @@ async function render() {
   if (!VIEWS[ui.tab]) ui.tab = 'today';
   document.getElementById('view').innerHTML = VIEWS[ui.tab]();
   document.getElementById('popup').innerHTML = popupHtml();
+  if (ui.scrollToRange) {
+    ui.scrollToRange = false;
+    const card = document.querySelector('.range-card');
+    if (card) card.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
   renderTimerBar();
   document.querySelector('.tabs').hidden = !state.setupDone;
   document.getElementById('fab').hidden = !state.setupDone || !!ui.setup || !['today', 'plan', 'review'].includes(ui.tab);
@@ -1863,6 +2105,34 @@ document.addEventListener('click', async (e) => {
   let changed = true;
 
   switch (action) {
+    case 'range-open':
+      ui.rangeOpen = true;
+      ui.scrollToRange = true;
+      if (id) ui.rangeMode = id;
+      changed = false;
+      break;
+    case 'range-close':
+      ui.rangeOpen = false;
+      ui.rangePreview = null;
+      changed = false;
+      break;
+    case 'range-mode':
+      ui.rangeMode = id;
+      changed = false;
+      break;
+    case 'range-apply': {
+      const rows = ui.rangePreview || [];
+      rows.forEach((r) => {
+        const subj = state.subjects.find((x) => x.name === r.subject);
+        if (subj) setSubjectRange(subj, r);
+      });
+      afterRangeChange();
+      ui.rangeOpen = false;
+      ui.rangePreview = null;
+      ui.rangeText = '';
+      toast(`${rows.length}과목 시험 범위를 넣었어요. 계획표가 다시 계산됐어요.`);
+      break;
+    }
     case 'review-filter':
       ui.reviewSubject = id;
       changed = false;
@@ -2213,6 +2483,23 @@ document.addEventListener('submit', async (e) => {
     }
     msg = applyCheckin(feel, f.getAll('hard'), num(f.get('tomorrow'), 0));
     ui.showCheckin = false;
+  } else if (kind === 'range-paste') {
+    ui.rangeText = f.get('text') || '';
+    ui.rangePreview = parseRangeText(ui.rangeText);
+    await render();
+    return;
+  } else if (kind === 'range-manual') {
+    state.subjects.forEach((x) => {
+      const date = f.get(`date-${x.id}`) || '';
+      const from = num(f.get(`from-${x.id}`), 0);
+      const to = num(f.get(`to-${x.id}`), 0);
+      const memo = (f.get(`memo-${x.id}`) || '').trim();
+      if (date) x.examDate = date;
+      if ((from && to) || memo) setSubjectRange(x, { date, from, to, memo });
+    });
+    afterRangeChange();
+    ui.rangeOpen = false;
+    msg = '시험 범위를 저장했어요. 계획표가 다시 계산됐어요.';
   } else if (kind === 'goal-time') {
     const g = (state.goals || []).find((x) => x.id === form.dataset.id);
     if (!g) return;

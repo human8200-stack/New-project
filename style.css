@@ -502,3 +502,38 @@ details.subject-syl[open] > summary { margin-bottom: 8px; }
 .review-q { font-weight: 600; margin-top: 4px; }
 .review-item .wrong-img { margin-top: 8px; }
 .switch button { font-size: 14px; padding: 9px 4px; }
+
+/* ---------- 시험 범위 넣기 ---------- */
+
+.range-list { list-style: none; margin: 14px 0 12px; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.range-row { display: flex; align-items: baseline; gap: 8px; padding: 6px 0; border-top: 1px solid color-mix(in srgb, var(--btn-text) 14%, transparent); font-size: 14px; }
+.range-row:first-child { border-top: 0; }
+.range-subject { flex: 0 0 64px; font-weight: 700; }
+.range-date { flex: 0 0 70px; opacity: 0.8; font-variant-numeric: tabular-nums; }
+.range-text { flex: 1; min-width: 0; }
+.range-row.missing .range-text { opacity: 0.6; }
+.range-ok { color: var(--hl); font-weight: 800; }
+.small-chip { font-size: 12px; padding: 3px 10px; background: var(--hl); color: var(--hl-text); }
+.exam-head .range-open { background: var(--hl); color: var(--hl-text); }
+.range-card { box-shadow: 0 0 0 2px var(--hl), var(--shadow); }
+.range-card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.range-card-top h2 { margin: 0; }
+.range-card .switch { box-shadow: none; background: var(--bg); }
+.range-card textarea { min-height: 140px; font-size: 15px; line-height: 1.6; }
+.range-preview { list-style: none; margin: 12px 0; padding: 12px; border-radius: 12px; background: var(--bg); display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.manual-row { padding: 10px 0; border-top: 1px solid var(--line); }
+.manual-row:first-child { border-top: 0; }
+.manual-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
+.manual-top input[type="date"] { width: auto; padding: 6px 10px; }
+.manual-row .memo { flex: 1 1 160px; min-width: 0; padding: 7px 10px; font-size: 14px; }
+.range-manual .btn { margin-top: 12px; }
+
+/* ---------- 풀이 ---------- */
+.solution { margin-top: 8px; background: var(--bg); border-radius: 12px; padding: 10px 12px; }
+.solution summary { font-weight: 700; color: var(--accent); font-size: 14px; }
+.sol-concept, .sol-answer { margin: 8px 0; font-size: 14px; }
+.sol-steps { margin: 6px 0; padding-left: 22px; font-size: 14px; }
+.sol-steps li { margin: 4px 0; }
+.sol-answer strong, .sol-concept strong { background: linear-gradient(transparent 58%, var(--hl-mark) 58%); margin-right: 4px; }
+.report-sub { margin: 6px 0 4px; padding-left: 18px; font-size: 14px; color: var(--muted); }
+.recall-a .solution { background: var(--card); }
