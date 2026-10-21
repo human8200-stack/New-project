@@ -483,9 +483,6 @@ function taskRow(task, index, isFirst) {
         ${!done ? `<div class="todo-how">${how ? `${esc(how)} · ` : ''}${hm(task.minutes)}</div>${why}
         <div class="todo-miss">
           ${state.timer && state.timer.taskId === task.id ? '<span class="timer-on">재는 중…</span>' : `<button class="start-btn" data-action="timer-start" data-id="${task.id}">▶ 시작</button>`}
-          <button class="miss-btn" data-action="miss-task" data-id="${task.id}">못 했어요</button>
-          ${task.type !== 'project' ? `<button class="miss-btn" data-action="half-task" data-id="${task.id}">절반쯤 했어요</button>` : ''}
-          <button class="linklike small" data-action="open-task" data-id="${task.id}">${ui.openForm === task.id ? '닫기' : '직접 입력'}</button>
         </div>` : ''}
         ${ui.openForm === task.id ? taskForm(task) : ''}
       </div>
@@ -635,7 +632,10 @@ function weeklyReport() {
         <div><span>정답률</span><strong>${now.acc == null ? '-' : pct(now.acc)}</strong>${diffText(now.acc, before.acc, '%')}</div>
         <div><span>공부한 날</span><strong>${now.days}일</strong></div>
       </div>
-      ${subjectRows ? `<ul class="report-subjects">${subjectRows}</ul>` : ''}
+      ${subjectRows ? `<h3>과목별 공부 시간</h3><ul class="report-subjects">${subjectRows}</ul>` : ''}
+      <h3>배지</h3>
+      <div class="badges">${BADGES.map(([id, name]) => `<span class="badge-item${earnedBadges().some(([b]) => b === id) ? ' on' : ''}">${esc(name)}</span>`).join('')}</div>
+      ${checkinHistory()}
     </section>`;
 }
 
@@ -1173,9 +1173,8 @@ function renderToday() {
 
   return `
     ${glanceCard()}
-    ${photoCard(false)}
-    ${recallSection()}
-    ${keyCardButtons(plan.tasks.map((x) => x.subjectId))}
+    ${photoCard(true)}
+    ${recallLine(plan)}
 
     <section class="card plan-card">
       <div class="plan-top">
@@ -1183,20 +1182,11 @@ function renderToday() {
         <span class="meta">${doneCount}/${plan.tasks.length} · 약 ${hm(planned)}</span>
       </div>
       <div class="progress"><div style="width:${rate}%"></div></div>
-      <p class="sub">▶ 시작을 누르면 시간과 진도가 기록돼요. 못 한 것만 알려 주세요.</p>
+      <p class="sub">▶ 시작을 누르면 시간과 진도가 기록돼요. 못 한 건 저녁 체크인에서 알려 주세요.</p>
       <ol class="todo">${plan.tasks.map((x, i) => taskRow(x, i, x === firstTodo)).join('') || '<li class="empty">오늘 배정할 공부가 없어요.</li>'}</ol>
     </section>
 
-    ${checkinCard(plan)}
-
-    <details class="card fold">
-      <summary>오늘 시간이 부족해요</summary>
-      <form data-form="replan" class="inline-form">
-        <label>지금부터 쓸 수 있는 시간</label>
-        ${chips('minutes', [[30, '30분'], [60, '1시간'], [90, '1시간 30분'], [120, '2시간'], [180, '3시간']], 60)}
-        <button class="btn primary" type="submit" style="margin-top:8px">남은 시간에 맞춰 다시 짜기</button>
-      </form>
-    </details>`;
+    ${checkinCard(plan)}`;
 }
 
 // ---------- 계획: 과외 선생님이 짜 준 이번 시험 계획 ----------
@@ -1369,11 +1359,15 @@ function planSwitch() {
     <div class="switch" role="tablist">
       <button class="${v === 'exam' ? 'on' : ''}" data-action="plan-view" data-id="exam">시험 대비</button>
       <button class="${v === 'goal' ? 'on' : ''}" data-action="plan-view" data-id="goal">선행 · 방학</button>
+      <button class="${v === 'project' ? 'on' : ''}" data-action="plan-view" data-id="project">수행평가</button>
     </div>`;
 }
 
 function renderPlanTab() {
-  return (ui.planView || 'exam') === 'goal' ? `${planSwitch()}${renderGoals()}` : renderSyllabus();
+  const v = ui.planView || 'exam';
+  if (v === 'goal') return `${planSwitch()}${renderGoals()}`;
+  if (v === 'project') return `${planSwitch()}${renderProjects()}`;
+  return renderSyllabus();
 }
 
 function renderSyllabus() {
@@ -1558,6 +1552,19 @@ function keyCardButtons(subjectIds) {
 
 // ---------- 앱을 열면 뜨는 한 장 ----------
 
+function recallLine(plan) {
+  const n = recallItems().length;
+  if (n) {
+    return `<button class="recall-line" data-action="popup-open"><span class="recall-line-dot"></span><span><strong>떠올릴 카드 ${n}장</strong> 남았어요</span><span class="recall-line-go">지금 보기 ›</span></button>`;
+  }
+  // 카드를 다 봤으면 오늘 공부하는 과목의 핵심 카드를 권한다
+  const subj = plan.tasks.map((x) => x.subjectId).find(Boolean);
+  if (aiReady() && subj) {
+    return `<button class="recall-line done" data-action="key-cards" data-id="${subj}"${ai.busy ? ' disabled' : ''}><span class="recall-line-dot"></span><span>오늘 카드는 다 봤어요</span><span class="recall-line-go">${ai.busy ? '만드는 중…' : `${esc(subjectById(subj).name)} 핵심 카드 받기 ›`}</span></button>`;
+  }
+  return '<div class="recall-line done static"><span class="recall-line-dot"></span><span>오늘 떠올릴 카드는 다 봤어요</span></div>';
+}
+
 function popupHtml() {
   if (!ui.popup || !state.setupDone || ui.setup) return '';
   const items = recallItems();
@@ -1579,51 +1586,49 @@ function renderReviewTab() {
     <section class="card">
       <h2>핵심 카드</h2>
       <p class="sub">과목을 고르면 지금 범위에서 외울 카드를 만들어요.</p>
-      ${aiReady() ? keyCardButtons(state.subjects.map((x) => x.id)) : '<p class="sub">AI 연결이 필요해요. Claude 안에서 열거나 설정 → AI 연결을 해 주세요.</p>'}
+      ${aiReady() ? keyCardButtons(state.subjects.map((x) => x.id)) : '<p class="sub">AI 연결이 필요해요. 설정 → AI 연결을 해 주세요.</p>'}
       ${ai.busy ? '<p class="ai-busy">만드는 중이에요…</p>' : ''}
       ${ai.error ? `<p class="warn-text">${esc(ai.error)}</p>` : ''}
     </section>
-    ${renderWrongs()}
-    ${renderCards()}`;
+    ${reviewList()}`;
 }
 
-function renderWrongs() {
-  const list = state.wrongs.slice().sort((a, b) => (a.due || '9').localeCompare(b.due || '9'));
-  const items = list.map((w) => `
-    <li class="item" style="display:block">
-      <div><span class="tag">${esc(w.subject)}</span>${w.unit ? `<span class="tag">${esc(w.unit)}</span>` : ''}<span class="meta">${w.due ? `다시 풀 날 ${prettyDate(w.due)}` : '다 맞혀서 졸업'}</span></div>
-      ${w.img ? `<img class="wrong-img" src="${w.img}" alt="틀린 문제">` : ''}
-      ${w.note ? `<div class="meta">${esc(w.note)}</div>` : ''}
-    </li>`).join('');
+// 틀린 문제와 복습 카드를 한 목록으로
+function reviewList() {
+  const f = ui.reviewSubject || '';
+  const items = [
+    ...state.wrongs.map((w) => ({ kind: 'wrong', subject: w.subject, due: w.due, created: w.date, w })),
+    ...state.logs.map((l) => ({ kind: 'card', subject: l.subject, due: l.due, created: l.date, l })),
+  ].filter((x) => !f || x.subject === f)
+    .sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999') || (b.created || '').localeCompare(a.created || ''))
+    .slice(0, 80);
+  const names = [...new Set(state.wrongs.map((w) => w.subject).concat(state.logs.map((l) => l.subject)))].filter(Boolean);
+  const rows = items.map((x) => {
+    const when = x.due ? (x.due <= today() ? '<span class="tag warn">오늘</span>' : `<span class="meta">${prettyDate(x.due)}</span>`) : '<span class="meta">졸업</span>';
+    if (x.kind === 'wrong') {
+      return `
+        <li class="item review-item">
+          <div><span class="tag">${esc(x.subject)}</span><span class="meta">틀린 문제${x.w.unit ? ` · ${esc(x.w.unit)}` : ''}</span> ${when}
+            ${x.w.img ? `<img class="wrong-img" src="${x.w.img}" alt="틀린 문제">` : ''}
+            ${x.w.note ? `<div class="meta">${esc(x.w.note)}</div>` : ''}</div>
+        </li>`;
+    }
+    return `
+      <li class="item review-item">
+        <div><span class="tag">${esc(x.subject)}</span>${x.l.source === 'ai' ? '<span class="meta">핵심 카드</span>' : '<span class="meta">복습 카드</span>'} ${when}
+          <div class="review-q">${esc(x.l.q || x.l.text)}</div>
+          ${x.l.a ? `<details><summary class="meta">답 보기</summary><div>${esc(x.l.a)}</div></details>` : ''}</div>
+        <div class="actions"><button class="linklike small" data-action="log-del" data-id="${x.l.id}">지우기</button></div>
+      </li>`;
+  }).join('');
   return `
     <section class="card">
-      <h2>틀린 문제 모음</h2>
-      <p class="sub">카메라로 찍은 틀린 문제가 모여요. 2·7·14·30일 뒤에 다시 나와요.</p>
-      ${photoCard(true)}
-      <ul class="list">${items || '<li class="empty">아직 없어요.</li>'}</ul>
-    </section>`;
-}
-
-function renderCards() {
-  const list = state.logs.slice().sort((a, b) => b.created - a.created).slice(0, 60);
-  const items = list.map((l) => `
-    <li class="item">
-      <div><span class="tag">${esc(l.subject)}</span>${esc(l.q || l.text)}<div class="meta">${esc(l.q ? l.text : '')} · ${l.due ? `다음 복습 ${prettyDate(l.due)}` : '외웠어요'}</div></div>
-      <div class="actions"><button class="btn small" data-action="log-del" data-id="${l.id}">지우기</button></div>
-    </li>`).join('');
-  return `
-    <section class="card">
-      <h2>복습 카드 모음</h2>
-
-      <form data-form="log">
-        <div class="row">
-          <div><label>과목</label><select name="subject">${options(state.subjects.map((s) => s.name))}</select></div>
-          <div style="flex:3 1 260px"><label>질문</label><input name="q" placeholder="예: 원과 직선이 두 점에서 만나는 조건은?" required></div>
-        </div>
-        <label>답</label><input name="a" placeholder="예: 중심과 직선 사이 거리 < 반지름">
-        <div style="margin-top:12px"><button class="btn primary" type="submit">카드 만들기</button></div>
-      </form>
-      <ul class="list" style="margin-top:12px">${items || '<li class="empty">아직 없어요.</li>'}</ul>
+      <h2>다시 볼 것</h2>
+      <div class="chips review-filter">
+        <button class="chip-btn${f ? '' : ' on'}" data-action="review-filter" data-id="">전체</button>
+        ${names.map((n) => `<button class="chip-btn${f === n ? ' on' : ''}" data-action="review-filter" data-id="${esc(n)}">${esc(n)}</button>`).join('')}
+      </div>
+      <ul class="list">${rows || '<li class="empty">아직 없어요. 카메라로 틀린 문제를 찍거나 핵심 카드를 받아 보세요.</li>'}</ul>
     </section>`;
 }
 
@@ -1641,7 +1646,7 @@ function renderSettings() {
     ${syncCard()}
     <section class="card">
       <h2>AI 연결 (사진 읽기)</h2>
-      <p class="sub">${ai.sample ? 'Claude 안에서 열어서 지금은 Claude가 사진을 읽어요. 따로 설정하지 않아도 돼요.' : 'Claude 밖에서 사진을 읽으려면 우리 집 전용 AI 서버 주소와 가족 코드가 필요해요. 저장소의 AI_SETUP.md 순서대로 만들 수 있어요.'}</p>
+      <p class="sub">사진 정리와 핵심 카드에 쓰는 우리 집 전용 AI 서버예요. 부모님께 받은 주소와 가족 코드를 넣어 주세요.</p>
       <form data-form="ai">
         <label>AI 서버 주소</label><input name="aiUrl" value="${esc(state.settings.aiUrl || '')}" placeholder="https://study-ai.○○○.workers.dev">
         <label>가족 코드</label><input name="aiCode" value="${esc(state.settings.aiCode || '')}" placeholder="서버를 만들 때 정한 코드">
@@ -1724,15 +1729,7 @@ function renderProjects() {
 // ---------- 화면: 분석 ----------
 
 function renderAnalysis() {
-  const badges = earnedBadges();
-  const top = `
-    ${weeklyReport()}
-    <section class="card">
-      <h2>배지</h2>
-      <div class="badges">${BADGES.map(([id, name]) => `<span class="badge-item${badges.some(([b]) => b === id) ? ' on' : ''}">${esc(name)}</span>`).join('')}</div>
-    </section>
-    ${checkinHistory()}`;
-  return top + renderAnalysisBody();
+  return weeklyReport();
 }
 
 function checkinHistory() {
@@ -1740,97 +1737,12 @@ function checkinHistory() {
   if (!days.length) return '';
   const label = Object.fromEntries(FEELS);
   return `
-    <section class="card">
-      <h2>최근 체크인</h2>
+      <h3>최근 체크인</h3>
       <ul class="report">${days.map((d) => {
     const c = state.checkins[d];
     const hard = (c.hard || []).map((id) => (subjectById(id) || {}).name).filter(Boolean);
     return `<li>${prettyDate(d)} · ${esc(label[c.feel] || '')}${hard.length ? ` · 어려움: ${esc(hard.join(', '))}` : ''}</li>`;
-  }).join('')}</ul>
-    </section>`;
-}
-
-function renderAnalysisBody() {
-  const t = today();
-  const days = [];
-  for (let i = 13; i >= 0; i--) days.push(addDays(t, -i));
-
-  const dayRows = days.map((d) => {
-    const plan = state.plans[d];
-    const planned = plan ? plan.tasks.reduce((a, x) => a + x.minutes, 0) : 0;
-    const actual = state.sessions.filter((s) => s.date === d).reduce((a, s) => a + (s.minutes || 0), 0);
-    return { d, planned, actual };
-  }).filter((r) => r.planned || r.actual);
-
-  const maxMin = Math.max(1, ...dayRows.map((r) => Math.max(r.planned, r.actual)));
-  const trend = dayRows.length ? dayRows.map((r) => `
-    <div class="bar2">
-      <span class="name">${prettyDate(r.d)}</span>
-      <span class="tracks">
-        <span class="plan" style="width:${(r.planned / maxMin) * 100}%"></span>
-        <span class="act" style="width:${(r.actual / maxMin) * 100}%"></span>
-      </span>
-      <span class="num">${r.planned ? `${Math.round((r.actual / r.planned) * 100)}%` : '-'}</span>
-    </div>`).join('') : '<div class="empty">기록이 쌓이면 보여 줘요.</div>';
-
-  // 계획 과제 단위 달성률: 과목별, 시간대별
-  const from = days[0];
-  const planned = [];
-  Object.keys(state.plans).filter((d) => d >= from && d < t).forEach((d) => {
-    state.plans[d].tasks.forEach((x) => planned.push({ d, x }));
-  });
-  const bySubject = {};
-  planned.forEach(({ x }) => {
-    if (!x.subjectId || !x.amount) return;
-    const k = x.subjectId;
-    bySubject[k] = bySubject[k] || { plan: 0, act: 0 };
-    bySubject[k].plan += 1;
-    bySubject[k].act += x.actual && x.actual.amount != null ? Math.min(1, x.actual.amount / x.amount) : 0;
-  });
-  const subjRows = state.subjects.map((s) => {
-    const r = bySubject[s.id];
-    const minutes = state.sessions.filter((x) => x.subjectId === s.id && x.date >= from).reduce((a, x) => a + (x.minutes || 0), 0);
-    return `<tr><td>${esc(s.name)}</td><td>${r ? pct(r.act / r.plan) : '-'}</td><td>${hm(minutes)}</td></tr>`;
-  }).join('');
-
-  const bySlot = {};
-  state.sessions.filter((s) => s.date >= from && s.planned && s.planned.amount).forEach((s) => {
-    bySlot[s.slot] = bySlot[s.slot] || { n: 0, sum: 0 };
-    bySlot[s.slot].n += 1;
-    bySlot[s.slot].sum += Math.min(1, (s.amount || 0) / s.planned.amount);
-  });
-  const slotText = SLOTS.filter((k) => bySlot[k]).map((k) => `${k} ${pct(bySlot[k].sum / bySlot[k].n)}`).join(' · ') || '-';
-
-  const speedRows = state.materials.filter((m) => state.sessions.some((s) => s.materialId === m.id)).map((m) => {
-    const subject = subjectById(m.subjectId);
-    return `<tr><td>${esc(subject ? subject.name : '')}</td><td>${esc(m.name)}</td><td>${m.minPerUnit}분 / ${esc(m.unit)}</td><td>${pct(m.accuracy)}</td></tr>`;
-  }).join('');
-
-  const worst = Object.entries(bySubject).filter(([, r]) => r.plan >= 3).sort((a, b) => a[1].act / a[1].plan - b[1].act / b[1].plan)[0];
-  const worstText = worst && worst[1].act / worst[1].plan < 0.7
-    ? `<p class="warn-text">${esc(subjectById(worst[0]).name)} 계획이 자주 밀려요 (달성 ${pct(worst[1].act / worst[1].plan)}). 그 과목은 한 번에 배정하는 양이 실제 속도에 맞춰 줄어들고 있어요. 시간대도 바꿔 보세요.</p>`
-    : '';
-
-  return `
-    <div class="card">
-      <h2>계획 시간 vs 실제 시간 (최근 2주)</h2>
-      <p class="sub"><span class="key plan"></span> 계획 <span class="key act"></span> 실제 · 오른쪽은 달성률</p>
-      ${trend}
-      <p class="meta">최근 7일 수행률 ${Math.round(completionFactor(state, t) * 100)}% → 다음 계획 양에 반영돼요.</p>
-    </div>
-    <div class="grid2">
-      <div class="card">
-        <h2>과목별 계획 달성률</h2>
-        ${worstText}
-        <table class="dash"><thead><tr><th>과목</th><th>달성률</th><th>공부 시간</th></tr></thead><tbody>${subjRows}</tbody></table>
-        <p class="meta">시간대별 달성률: ${slotText}</p>
-      </div>
-      <div class="card">
-        <h2>교재별 실제 속도</h2>
-        <p class="sub">기록할 때마다 자동 보정돼요.</p>
-        ${speedRows ? `<table class="dash"><thead><tr><th>과목</th><th>교재</th><th>속도</th><th>정확도</th></tr></thead><tbody>${speedRows}</tbody></table>` : '<div class="empty">아직 기록이 없어요.</div>'}
-      </div>
-    </div>`;
+  }).join('')}</ul>`;
 }
 
 // ---------- 기기 동기화 카드 ----------
@@ -1951,6 +1863,10 @@ document.addEventListener('click', async (e) => {
   let changed = true;
 
   switch (action) {
+    case 'review-filter':
+      ui.reviewSubject = id;
+      changed = false;
+      break;
     case 'go-tab':
       ui.tab = id;
       changed = false;
@@ -2024,6 +1940,10 @@ document.addEventListener('click', async (e) => {
     case 'key-cards':
       makeKeyCards(id);
       return;
+    case 'popup-open':
+      ui.popup = true;
+      changed = false;
+      break;
     case 'popup-close':
       ui.popup = false;
       changed = false;
@@ -2049,20 +1969,6 @@ document.addEventListener('click', async (e) => {
       if (!task) return;
       completeTask(task, { amount: task.amount, minutes: task.minutes });
       toast('잘했어요!');
-      break;
-    }
-    case 'miss-task': {
-      const task = findTask(id);
-      if (!task) return;
-      task.status = 'skipped';
-      toast('괜찮아요. 내일 계획에 다시 넣을게요.');
-      break;
-    }
-    case 'half-task': {
-      const task = findTask(id);
-      if (!task) return;
-      completeTask(task, { amount: Math.max(1, Math.floor(task.amount / 2)), minutes: Math.round(task.minutes / 2), auto: true });
-      toast('절반만 기록했어요. 나머지는 다음 계획에 다시 들어가요.');
       break;
     }
     case 'log-ok':
