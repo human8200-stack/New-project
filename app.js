@@ -62,7 +62,7 @@ function freshState() {
 }
 
 // sw.js의 CACHE 이름과 같이 올린다. 설정 맨 아래에 보여서 휴대폰이 새 버전인지 알 수 있다
-const APP_VERSION = 'v24';
+const APP_VERSION = 'v25';
 
 let state;
 const ui = { revealed: null, tab: 'today', openForm: null, openBook: null, openSubject: null, setup: false, planView: 'exam', popup: false };
@@ -840,12 +840,12 @@ async function initAi() {
 }
 
 function aiReady() {
-  return !!ai.sample || !!(aiUrl() && state.settings.aiCode);
+  return !!ai.sample || !!myKey() || !!(aiUrl() && state.settings.aiCode);
 }
 
 // 사진을 읽을 수 있는지 (Claude 화면이 사진을 지원하거나, 우리 집 AI 서버가 있을 때)
 function photoAiReady() {
-  return (!!ai.sample && ai.canImages) || !!(aiUrl() && state.settings.aiCode);
+  return (!!ai.sample && ai.canImages) || !!myKey() || !!(aiUrl() && state.settings.aiCode);
 }
 
 const AI_ERRORS = {
@@ -855,7 +855,10 @@ const AI_ERRORS = {
   invalid_json: '정리 결과를 읽지 못했어요. 한 번 더 올려 주세요.',
   session_expired: 'Claude에 다시 로그인해 주세요.',
   bad_code: 'AI 연결의 가족 코드가 맞지 않아요. 설정에서 확인해 주세요.',
-  network: 'AI 서버에 연결하지 못했어요. 인터넷과 설정의 AI 연결 주소를 확인해 주세요.',
+  network: 'AI에 연결하지 못했어요. 인터넷 연결을 확인해 주세요.',
+  bad_key: 'Claude API 키가 맞지 않아요. 설정 → AI 연결에서 다시 넣어 주세요.',
+  no_credit: '이 API 키 계정에 잔액이 없어요. platform.claude.com → Billing에서 충전해 주세요.',
+  upstream_error: 'AI가 잠깐 답하지 못했어요. 잠시 뒤에 다시 해 주세요.',
 };
 
 function photoPrompt(count) {
@@ -911,6 +914,54 @@ function diagOf(x) {
   return { cause, basic: String(x.basic || ''), checks };
 }
 
+// 각자의 Claude API 키. 동기화되지 않게 기록(state)이 아니라 이 기기 저장소에만 둔다
+function myKey() {
+  try {
+    return localStorage.getItem('claudeKey') || '';
+  } catch (e) {
+    return '';
+  }
+}
+
+function setMyKey(key) {
+  try {
+    if (key) localStorage.setItem('claudeKey', key);
+    else localStorage.removeItem('claudeKey');
+  } catch (e) {
+    toast('이 기기에 키를 저장하지 못했어요.');
+  }
+}
+
+// 내 키로 Claude에 바로 묻는다. SDK는 vendor/anthropic-sdk.mjs (worker의 @anthropic-ai/sdk를 묶은 것)
+let anthropicModule = null;
+async function askDirect(prompt, images) {
+  if (!anthropicModule) anthropicModule = await import('./vendor/anthropic-sdk.mjs');
+  const Anthropic = anthropicModule.default;
+  const client = new Anthropic({ apiKey: myKey(), dangerouslyAllowBrowser: true });
+  const content = images.map((img) => ({ type: 'image', source: { type: 'base64', media_type: img.media_type, data: img.data } }));
+  content.push({ type: 'text', text: prompt });
+  let response;
+  try {
+    response = await client.beta.messages.create({
+      model: 'claude-opus-5-5',
+      max_tokens: 16000,
+      output_config: { effort: 'low' },
+      betas: ['server-side-fallback-2026-07-01'],
+      fallbacks: 'default',
+      messages: [{ role: 'user', content }],
+    });
+  } catch (e) {
+    if (e instanceof Anthropic.AuthenticationError) throw { code: 'bad_key' };
+    if (e instanceof Anthropic.PermissionDeniedError) throw { code: 'bad_key' };
+    if (e instanceof Anthropic.RateLimitError) throw { code: 'rate_limited' };
+    if (e instanceof Anthropic.BadRequestError && /credit|balance/i.test(e.message)) throw { code: 'no_credit' };
+    if (e instanceof Anthropic.APIConnectionError) throw { code: 'network' };
+    throw { code: 'upstream_error' };
+  }
+  if (response.stop_reason === 'refusal') throw { code: 'image_rejected' };
+  return response.content.filter((b) => b.type === 'text').map((b) => b.text).join('');
+}
+
 // 설정에 직접 넣은 주소가 먼저, 없으면 firebase-config.js에 넣어 둔 우리 집 서버 주소
 function aiUrl() {
   return state.settings.aiUrl || window.AI_URL || '';
@@ -934,8 +985,10 @@ function dataUrlToBlob(dataUrl) {
 }
 
 // 우리 집 전용 AI 서버(worker/)로 보낸다
+// 내 키가 있으면 Claude에 바로, 없으면 가족 서버로. 답에서 JSON만 꺼낸다
 async function askEndpoint(prompt, jpegs) {
   const images = await Promise.all(jpegs.map(async (d) => ({ media_type: 'image/jpeg', data: await blobToBase64(dataUrlToBlob(d)) })));
+  if (myKey()) return parseJsonText(await askDirect(prompt, images));
   let res;
   try {
     res = await fetch(aiUrl(), {
@@ -949,7 +1002,10 @@ async function askEndpoint(prompt, jpegs) {
   if (res.status === 401) throw { code: 'bad_code' };
   if (!res.ok) throw { code: 'upstream_error' };
   const body = await res.json();
-  const text = String(body.text || '');
+  return parseJsonText(String(body.text || ''));
+}
+
+function parseJsonText(text) {
   const start = text.indexOf('{');
   const end = text.lastIndexOf('}');
   if (start < 0 || end < start) throw { code: 'invalid_json' };
@@ -2139,15 +2195,7 @@ function renderSettings() {
       </form>
     </section>
     ${syncCard()}
-    <section class="card">
-      <h2>AI 연결 (사진 읽기)</h2>
-      <p class="sub">사진 정리와 핵심 카드에 쓰는 우리 집 전용 AI 서버예요. ${window.AI_URL ? '부모님께 받은 가족 코드만 넣어 주세요.' : '부모님께 받은 주소와 가족 코드를 넣어 주세요.'}</p>
-      <form data-form="ai">
-        ${window.AI_URL ? `<input type="hidden" name="aiUrl" value="${esc(state.settings.aiUrl || '')}">` : `<label>AI 서버 주소</label><input name="aiUrl" value="${esc(state.settings.aiUrl || '')}" placeholder="https://study-ai.○○○.workers.dev">`}
-        <label>가족 코드</label><input name="aiCode" value="${esc(state.settings.aiCode || '')}" placeholder="서버를 만들 때 정한 코드">
-        <div style="margin-top:12px"><button class="btn primary" type="submit">저장</button></div>
-      </form>
-    </section>
+    ${aiKeyCard()}
     <section class="card">
       <h2>백업</h2>
       <div class="row">
@@ -2310,11 +2358,40 @@ function syncCard() {
     </div>`;
 }
 
+// 사진 읽기: 각자 자기 Claude API 키로 쓴다 (사용료도 그 키의 계정으로). 키는 이 기기에만 둔다
+function aiKeyCard() {
+  const key = myKey();
+  return `
+    <section class="card">
+      <h2>AI 연결 (사진 읽기)</h2>
+      <p class="sub">사진 정리와 핵심 카드는 각자 Claude API 키로 써요. 사용료는 그 키의 계정으로 나가요.</p>
+      ${key ? `
+        <p class="sub"><span class="tag">연결됨</span> 이 기기에 저장된 키 · ${esc(key.slice(0, 10))}…${esc(key.slice(-4))}</p>
+        <button class="linklike small" data-action="my-key-clear">이 기기에서 키 지우기</button>` : `
+        <form data-form="my-key">
+          <input type="password" name="key" placeholder="sk-ant-로 시작하는 API 키" autocomplete="off" autocapitalize="off" spellcheck="false" required>
+          <div style="margin-top:10px"><button class="btn primary" type="submit">저장</button></div>
+        </form>
+        <p class="meta">부모님이 platform.claude.com → API Keys에서 만들어 주세요. 키는 이 기기에만 저장되고 다른 기기로 넘어가지 않아요. 아이패드와 휴대폰에 각각 넣어 주세요.</p>`}
+      ${!key && aiUrl() && state.settings.aiCode ? '<p class="meta">키가 없으면 가족 서버의 AI를 써요.</p>' : ''}
+    </section>`;
+}
+
+// 동기화 서버에 들어가는 가족 코드 (서버 주소가 미리 들어 있지 않으면 주소도)
+function familyForm() {
+  return `
+    <form data-form="ai" style="margin-top:6px">
+      ${window.AI_URL ? `<input type="hidden" name="aiUrl" value="${esc(state.settings.aiUrl || '')}">` : `<label>서버 주소</label><input name="aiUrl" value="${esc(state.settings.aiUrl || '')}" placeholder="https://study-ai.○○○.workers.dev">`}
+      <label>가족 코드</label><input name="aiCode" value="${esc(state.settings.aiCode || '')}" placeholder="부모님께 받은 코드" autocapitalize="off" autocomplete="off">
+      <div style="margin-top:10px"><button class="btn primary" type="submit">저장</button></div>
+    </form>`;
+}
+
 // 우리 집 서버로 맞추기: 연결 코드 하나를 두 기기에 넣는다
 function codeSyncCard(c) {
   let body;
   if (c.status === 'needsAi') {
-    body = `<p class="sub" style="margin:0">${esc(c.statusText())}</p>`;
+    body = `<p class="sub" style="margin:0">부모님께 받은 가족 코드를 넣으면 이 기기 기록에 연결 코드가 생겨요.</p>${familyForm()}`;
   } else if (c.id) {
     body = `
       <p class="sub">${esc(c.statusText())}</p>
@@ -2487,6 +2564,10 @@ document.addEventListener('click', async (e) => {
       break;
     case 'welcome-close':
       state.welcome = false;
+      break;
+    case 'my-key-clear':
+      if (!confirm('이 기기에서 Claude API 키를 지울까요?')) return;
+      setMyKey('');
       break;
     case 'cloud-share': {
       const code = window.cloud ? window.cloud.displayCode() : '';
@@ -2721,7 +2802,11 @@ document.addEventListener('change', async (e) => {
   if (!action) return;
 
   if (action === 'ai-photos') {
-    if (el.files && el.files.length) runPhotos(el.files);
+    if (el.files && el.files.length) {
+      const files = Array.from(el.files);
+      el.value = ''; // 같은 사진을 다시 골라도 다시 읽게
+      runPhotos(files);
+    }
     return;
   }
   if (action === 'exam-date') {
@@ -2928,6 +3013,16 @@ document.addEventListener('submit', async (e) => {
     if (window.cloud && window.cloud.refresh) setTimeout(() => window.cloud.refresh(), 0);
   } else if (kind === 'member') {
     if (window.cloud) await window.cloud.addMember(f.get('email'));
+    return;
+  } else if (kind === 'my-key') {
+    const key = (f.get('key') || '').trim();
+    if (!/^sk-ant-[A-Za-z0-9_-]{20,}$/.test(key)) {
+      toast('sk-ant-로 시작하는 키를 그대로 붙여 넣어 주세요.');
+      return;
+    }
+    setMyKey(key);
+    toast('이 기기에 키를 저장했어요. 이제 사진을 읽을 수 있어요.');
+    render();
     return;
   } else if (kind === 'cloud-link') {
     if (!window.cloud || !window.cloud.link) return;

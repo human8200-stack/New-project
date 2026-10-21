@@ -79,6 +79,8 @@ export default {
     const parts = new URL(request.url).pathname.split('/').filter(Boolean);
     if (parts[0] === 'sync') return handleSync(request, env, parts.slice(1));
     if (request.method !== 'POST') return reply(env, 405, { error: 'POST만 받아요' });
+    // 사진 읽기는 각자 자기 API 키로 앱에서 바로 할 수 있어서, 서버 키는 넣어도 되고 안 넣어도 된다
+    if (!env.ANTHROPIC_API_KEY) return reply(env, 501, { error: '이 서버에는 AI 키가 없어요. 앱 설정에 각자 API 키를 넣어 주세요' });
 
     let body;
     try {
