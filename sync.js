@@ -1,7 +1,7 @@
 // 기기 간 동기화: Firebase (아이디·비밀번호 로그인 + Firestore)
 // 기록은 각 기기 IndexedDB에 먼저 저장되고(오프라인에서도 동작), 로그인하면 Firestore 문서 하나로 맞춘다.
 // Firebase 로그인은 이메일 형식이 필요해서, 아이디를 "아이디@study-routine.app"으로 바꿔 쓴다 (실제 메일은 가지 않는다).
-// 비밀번호 찾기용으로 부모님 이메일을 등록하면, 그 메일 인증을 마친 뒤부터 계정 이메일이 부모님 이메일로 바뀐다.
+// 비밀번호 찾기용 이메일(본인이나 부모님)을 등록하면, 그 메일 인증을 마친 뒤부터 계정 이메일이 그 이메일로 바뀐다.
 // 그래서 ids/<아이디> 문서에 아이디 → 계정 이메일을 적어 두고, 로그인할 때 찾아 쓴다.
 // 충돌은 "더 최근에 사람이 바꾼 쪽"이 이긴다. 오답 사진은 문서 크기 제한(1MB) 때문에 따로 저장한다.
 
@@ -90,7 +90,7 @@ function maskEmail(email) {
 }
 window.maskEmail = maskEmail;
 
-// 로그인한 아이디를 기기에 기억한다 (계정 이메일이 부모님 이메일로 바뀐 뒤에도 아이디를 보여 주려고)
+// 로그인한 아이디를 기기에 기억한다 (계정 이메일이 찾기용 이메일로 바뀐 뒤에도 아이디를 보여 주려고)
 function readStoredId() {
   try {
     return localStorage.getItem('authId') || '';
@@ -261,7 +261,7 @@ async function start(config) {
       setStatus('signedOut');
       return;
     }
-    // 아이디는 처음 만든 아이디 이메일에서 (부모님 이메일로 바뀐 뒤에도 기억해 둔 아이디를 쓴다)
+    // 아이디는 처음 만든 아이디 이메일에서 (찾기용 이메일로 바뀐 뒤에도 기억해 둔 아이디를 쓴다)
     const fromEmail = String(user.email || '').endsWith(`@${ID_DOMAIN}`) ? String(user.email).split('@')[0] : '';
     cloud.userId = fromEmail || readStoredId() || '';
     if (cloud.userId) storeId(cloud.userId);
@@ -291,7 +291,7 @@ async function start(config) {
     }
   }
 
-  // 부모님 이메일로 인증 메일을 보낸다. 링크를 누르면 계정 이메일이 그 주소로 바뀌어 비밀번호 찾기가 된다
+  // 찾기용 이메일로 인증 메일을 보낸다. 링크를 누르면 계정 이메일이 그 주소로 바뀌어 비밀번호 찾기가 된다
   async function startRecovery(user, id, email) {
     await fb.verifyBeforeUpdateEmail(user, email);
     await fb.setDoc(fb.doc(db, 'ids', id), { uid: user.uid, email }, { merge: true });
@@ -325,7 +325,7 @@ async function start(config) {
           }
         }
       } else {
-        // 부모님 이메일 인증을 마친 계정은 그 이메일로, 아니면 아이디 이메일로 로그인한다
+        // 찾기용 이메일 인증을 마친 계정은 그 이메일로, 아니면 아이디 이메일로 로그인한다
         const info = await lookup(clean);
         storeId(clean);
         try {
@@ -336,7 +336,7 @@ async function start(config) {
         }
       }
       window.app.toast(make
-        ? `${clean} 계정을 만들었어요.${recovery ? ' 부모님 이메일로 온 인증 메일의 링크를 눌러 주세요.' : ''} 다른 기기에서는 같은 아이디로 로그인하세요.`
+        ? `${clean} 계정을 만들었어요.${recovery ? ' 등록한 이메일로 온 인증 메일의 링크를 눌러 주세요.' : ''} 다른 기기에서는 같은 아이디로 로그인하세요.`
         : `${clean}로 로그인했어요.`);
       return true;
     } catch (e) {
@@ -365,7 +365,7 @@ async function start(config) {
     }
   };
 
-  // 비밀번호를 잊었을 때: 등록한 부모님 이메일로 재설정 링크를 보낸다
+  // 비밀번호를 잊었을 때: 등록한 이메일로 재설정 링크를 보낸다
   cloud.sendReset = async (id) => {
     const clean = String(id || '').trim().toLowerCase();
     const info = ID_RE.test(clean) ? await lookup(clean) : null;
