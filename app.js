@@ -61,6 +61,9 @@ function freshState() {
   };
 }
 
+// sw.js의 CACHE 이름과 같이 올린다. 설정 맨 아래에 보여서 휴대폰이 새 버전인지 알 수 있다
+const APP_VERSION = 'v21';
+
 let state;
 const ui = { revealed: null, tab: 'today', openForm: null, openBook: null, openSubject: null, setup: false, planView: 'exam', popup: false };
 
@@ -2156,7 +2159,8 @@ function renderSettings() {
       <h2>처음부터 다시</h2>
       <p class="sub">모든 기록을 지우고 처음 화면으로 돌아가요.</p>
       <button class="btn bad" data-action="reset">모두 지우기</button>
-    </section>`;
+    </section>
+    <p class="meta app-version">버전 ${APP_VERSION} · <button class="linklike small" data-action="force-update">새 버전 받기</button> (기록은 그대로예요)</p>`;
 }
 
 // ---------- 화면: 수행평가 ----------
@@ -2444,6 +2448,20 @@ document.addEventListener('click', async (e) => {
     case 'welcome-close':
       state.welcome = false;
       break;
+    case 'force-update': {
+      // 저장해 둔 앱 파일만 지우고 새로 받는다. 공부 기록(IndexedDB)은 건드리지 않는다
+      toast('새 버전을 받는 중이에요…');
+      (async () => {
+        try {
+          const regs = navigator.serviceWorker ? await navigator.serviceWorker.getRegistrations() : [];
+          await Promise.all(regs.map((r) => r.unregister()));
+          const keys = window.caches ? await caches.keys() : [];
+          await Promise.all(keys.map((k) => caches.delete(k)));
+        } catch (e) { /* 그래도 새로 연다 */ }
+        location.reload();
+      })();
+      return;
+    }
     case 'redo-setup':
       ui.setup = true;
       ui.tab = 'today';
@@ -2883,6 +2901,19 @@ document.addEventListener('submit', async (e) => {
   await render();
   initAi();
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    // 새 버전이 자리 잡으면 한 번 새로 연다. 처음 설치할 때는 새로 열지 않는다
+    const hadController = !!navigator.serviceWorker.controller;
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!hadController || reloaded) return;
+      reloaded = true;
+      location.reload();
+    });
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((reg) => {
+      // 홈 화면 앱은 닫지 않고 다시 켜는 일이 많아서, 화면에 돌아올 때마다 새 버전을 확인한다
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') reg.update().catch(() => {});
+      });
+    }).catch(() => {});
   }
 })();

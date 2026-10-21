@@ -618,3 +618,4 @@ img { max-width: 100%; height: auto; }
 .welcome-x { border: 0; background: none; color: var(--muted); font-size: 20px; width: 36px; height: 36px; cursor: pointer; }
 .glance-btn { font: inherit; color: inherit; text-align: left; border: 0; cursor: pointer; }
 .glance-btn small { color: var(--accent); font-weight: 600; }
+.app-version { text-align: center; margin: 8px 0 24px; }
