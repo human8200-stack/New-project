@@ -1229,31 +1229,38 @@ function renderSetup() {
     : chips(`prog-${m.id}`, PROGRESS_CHOICES, nearest(PROGRESS_CHOICES, ratio))}
         </div>`;
     }).join('');
+    // 과목마다 접어 두고, 바꿀 게 있을 때만 연다
+    const names = mats.filter((m) => !m.archived).map((m) => m.name.replace(/\s*\(.*?\)/g, ''));
     return `
-      <fieldset class="setup-group">
-        <legend>${esc(s.name)}</legend>
+      <details class="setup-subject">
+        <summary><strong>${esc(s.name)}</strong><span class="meta">${esc(names.join(' · '))}</span></summary>
         ${books}
         <input class="add-book" name="add-${s.id}" placeholder="+ 다른 책 이름 (있으면)">
-      </fieldset>`;
+      </details>`;
   }).join('');
   return `
     <section class="card setup">
       <h2>처음 한 번만 골라 주세요</h2>
-      <p class="sub">숫자를 쓸 필요는 없어요. 버튼만 고르면 시험까지의 공부 계획을 바로 만들어요. 쓰지 않는 책은 체크를 끄세요.</p>
+      <p class="sub">세 가지만 고르면 오늘 할 공부가 바로 나와요.</p>
       <form data-form="setup">
         <fieldset class="setup-group">
-          <legend>다음 시험</legend>
-          <div class="setup-row"><input type="date" name="examDate" value="${esc(state.settings.examDate)}"><span class="meta">시험 첫날. 과목별 날짜는 나중에 시간표 사진으로 넣어도 돼요.</span></div>
+          <legend>1. 다음 시험 첫날</legend>
+          <input type="date" name="examDate" value="${esc(state.settings.examDate)}" aria-label="다음 시험 첫날">
+          <p class="meta">모르면 비워 두세요. 과목별 날짜와 범위는 나중에 계획표에서 넣어요.</p>
         </fieldset>
         <fieldset class="setup-group">
-          <legend>학교·학원 끝나고 공부할 수 있는 시간</legend>
+          <legend>2. 학교·학원 끝나고 공부할 수 있는 시간</legend>
           <div class="setup-row"><span class="setup-label">평일</span>${timeChooser('weekday', WEEKDAY_CHOICES, wd[1])}</div>
           <div class="setup-row"><span class="setup-label">주말</span>${timeChooser('weekend', WEEKEND_CHOICES, wd[0])}</div>
         </fieldset>
-        <p class="sub">공부하는 책과, 지금 어디까지 했는지 골라 주세요.</p>
-        ${groups}
+        <fieldset class="setup-group">
+          <legend>3. 쓰는 책</legend>
+          <p class="meta">기본 책이 들어 있어요. 다르면 과목을 눌러 바꾸고, 이미 푼 책은 어디까지 했는지 골라 주세요.</p>
+          ${groups}
+        </fieldset>
         <button class="btn big primary wide" type="submit">계획 만들기</button>
       </form>
+      <button class="linklike small setup-login" data-action="go-tab" data-id="settings">아이패드에서 이미 쓰고 있어요 → 로그인해서 불러오기</button>
     </section>`;
 }
 
@@ -1295,8 +1302,8 @@ function phasesFor(examDate) {
   const at = (n) => addDays(examDate, -n);
   const phases = [
     { name: '1단계 · 진도 끝내기', from: t, to: at(22), desc: '교과서 개념을 끝내고, 문제집을 한 번 다 풀어요. 틀린 문제는 사진으로 올려 두세요.' },
-    { name: '2단계 · 기출과 약점', from: at(21), to: at(8), desc: '족보닷컴 군포고 기출을 풀고, 자주 틀리는 유형만 다시 봐요. 영어는 시험 범위 지문 전체를 분석해요.' },
-    { name: '3단계 · 마무리', from: at(7), to: at(1), desc: '새 문제집은 시작하지 않아요. 오답과 암기만 반복하고, 시험 시간에 맞춰 기출을 한 번 더 풀어요.' },
+    { name: '2단계 · 기출과 약점', from: at(21), to: at(FINAL_DAYS + 1), desc: '족보닷컴 군포고 기출을 풀고, 자주 틀리는 유형만 다시 봐요. 영어는 시험 범위 지문 전체를 분석해요.' },
+    { name: '3단계 · 마무리', from: at(FINAL_DAYS), to: at(1), desc: '틀린 문제·별표 문제만 2회독 → 범위 전체 훑기 → 전날 실수 목록과 핵심 카드. 새 진도는 조금만 해요.' },
   ];
   return phases.filter((p) => p.to >= p.from || p === phases[phases.length - 1]).map((p) => ({
     ...p,
@@ -2082,7 +2089,10 @@ function reviewList() {
 
 function renderSettings() {
   const wd = state.settings.weekdayMinutes;
+  // 처음 설정 전에는 아래 탭이 없으니 돌아갈 길을 둔다
+  const back = state.setupDone ? '' : '<button class="btn wide back-btn" data-action="go-tab" data-id="today">← 처음 설정으로 돌아가기</button>';
   return `
+    ${back}
     <section class="card">
       <h2>공부할 수 있는 시간</h2>
       <form data-form="time">
@@ -2676,8 +2686,8 @@ document.addEventListener('submit', async (e) => {
     state.setupDone = true;
     ui.setup = false;
     delete state.plans[t];
-    ui.tab = 'plan';
-    msg = '계획을 만들었어요. 이번 시험은 이렇게 공부하면 돼요.';
+    ui.tab = 'today';
+    msg = '계획을 만들었어요. 오늘 할 공부부터 시작해요.';
     window.scrollTo(0, 0);
   } else if (kind === 'task') {
     const task = findTask(form.dataset.id);

@@ -592,3 +592,21 @@ details.subject-syl[open] > summary { margin-bottom: 8px; }
 .rec-books li { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 14px; }
 .rec-why { margin: 4px 0 12px; }
 .rec-why ul { margin: 6px 0 0; padding-left: 18px; font-size: 14px; display: grid; gap: 4px; }
+
+/* 처음 설정: 과목마다 접기 */
+.setup-subject { border-top: 1px solid var(--line); padding: 2px 0; }
+.setup-subject summary { display: flex; flex-direction: column; gap: 2px; padding: 12px 0; cursor: pointer; list-style: none; }
+.setup-subject summary::-webkit-details-marker { display: none; }
+.setup-subject summary strong::after { content: " ›"; color: var(--muted); }
+.setup-subject[open] summary strong::after { content: " ⌄"; }
+.setup-subject .add-book { margin: 4px 0 12px; }
+
+/* 아이폰 화면 폭에 맞추기 */
+main, .card { min-width: 0; }
+main { overflow-x: clip; }
+.card, .todo-title, .syl-title, .meta, .sub { overflow-wrap: anywhere; }
+input[type="date"] { -webkit-appearance: none; appearance: none; display: block; min-width: 0; max-width: 100%; min-height: 46px; text-align: left; }
+input[type="date"]::-webkit-date-and-time-value { text-align: left; }
+img { max-width: 100%; height: auto; }
+.back-btn { margin: 4px 0 12px; background: var(--card); box-shadow: var(--shadow); }
+.setup-login { display: block; margin: 14px auto 0; }
