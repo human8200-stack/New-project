@@ -1,7 +1,7 @@
 rules_version = '2';
 
-// 계정마다 기록 문서 하나 (households/<로그인한 계정의 uid>).
-// 자기 계정의 기록만 읽고 쓸 수 있다. 다른 사람 기록은 볼 수 없다.
+// households/<uid>: 계정마다 기록 문서 하나. 자기 계정의 기록만 읽고 쓸 수 있다.
+// ids/<아이디>: 아이디 → 계정(uid)과 비밀번호 찾기용 이메일. 아이디를 알아야만 하나씩 읽을 수 있고 목록은 볼 수 없다.
 service cloud.firestore {
   match /databases/{database}/documents {
     match /households/{uid} {
@@ -10,6 +10,14 @@ service cloud.firestore {
       match /images/{imageId} {
         allow read, write: if request.auth != null && request.auth.uid == uid;
       }
+    }
+
+    match /ids/{id} {
+      allow get: if true;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid
+        && id.matches('^[a-z0-9_]{3,20}$');
+      allow update: if request.auth != null && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == request.auth.uid;
     }
   }
 }

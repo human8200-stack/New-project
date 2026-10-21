@@ -62,7 +62,7 @@ function freshState() {
 }
 
 // sw.js의 CACHE 이름과 같이 올린다. 설정 맨 아래에 보여서 휴대폰이 새 버전인지 알 수 있다
-const APP_VERSION = 'v28';
+const APP_VERSION = 'v29';
 
 let state;
 const ui = { revealed: null, tab: 'today', openForm: null, openBook: null, openSubject: null, setup: false, planView: 'exam', popup: false };
@@ -2353,7 +2353,22 @@ function aiKeyCard() {
     </section>`;
 }
 
-// 아이디·비밀번호로 로그인하면 기기마다 같은 기록 (우리 집 서버)
+// 비밀번호 찾기용 이메일: 등록됨(인증 완료) / 인증 기다리는 중 / 없음
+function recoveryLine(c) {
+  const mask = window.maskEmail || ((e) => e);
+  const status = c.recoveryEmail
+    ? (c.recoveryVerified ? `비밀번호 찾기용 이메일: ${esc(mask(c.recoveryEmail))}` : `비밀번호 찾기용 이메일: ${esc(mask(c.recoveryEmail))} <span class="warn-text">(메일의 인증 링크를 눌러 주세요)</span>`)
+    : '<span class="warn-text">비밀번호 찾기용 이메일이 없어요.</span> 잊었을 때를 위해 부모님 이메일을 등록해 두세요.';
+  return `
+    <p class="meta">${status} <button class="linklike small" data-action="auth-recovery-open">${c.recoveryEmail ? '바꾸기' : '등록하기'}</button></p>
+    ${ui.recoveryOpen ? `
+      <form data-form="auth-recovery" class="row" style="margin-top:4px">
+        <div style="flex:3 1 200px"><input type="email" name="email" placeholder="부모님 이메일" autocapitalize="off" autocomplete="email" required></div>
+        <div><button class="btn primary" type="submit">인증 메일 보내기</button></div>
+      </form>` : ''}`;
+}
+
+// 아이디·비밀번호로 로그인하면 기기마다 같은 기록 (Firebase 또는 우리 집 서버)
 function loginSyncCard(c) {
   let body;
   if (c.status === 'noServer') {
@@ -2361,7 +2376,8 @@ function loginSyncCard(c) {
   } else if (c.userId) {
     body = `
       <p class="sub"><span class="tag">${esc(c.userId)}</span> 로그인됨 · ${esc(c.statusText())}</p>
-      <p class="meta">다른 기기에서도 같은 아이디로 로그인하면 기록이 저절로 맞춰져요.</p>
+      <p class="meta">다른 기기에서도 같은 아이디로 한 번만 로그인하면, 그다음부터는 로그인된 채로 기록이 저절로 맞춰져요.</p>
+      ${c.canRecover ? recoveryLine(c) : ''}
       <div class="row" style="margin-top:8px">
         <button class="btn" data-action="auth-logout">로그아웃</button>
         <button class="linklike small" data-action="auth-pw-open">비밀번호 바꾸기</button>
@@ -2379,6 +2395,7 @@ function loginSyncCard(c) {
         <label>아이디 (영어 소문자·숫자)</label><input name="id" value="${esc(ui.authId || '')}" autocapitalize="off" autocomplete="username" spellcheck="false" required>
         <label>비밀번호 (6자 이상)</label><input type="password" name="password" autocomplete="new-password" required>
         <label>비밀번호 한 번 더</label><input type="password" name="password2" autocomplete="new-password" required>
+        ${c.canRecover ? '<label>비밀번호 찾기용 이메일 (부모님 이메일, 선택)</label><input type="email" name="recovery" placeholder="비밀번호를 잊었을 때 이 메일로 찾아요" autocapitalize="off" autocomplete="email">' : ''}
         ${c.needsInvite === false ? '' : `<label>가족 코드</label><input name="invite" value="${esc(state.settings.aiCode || '')}" placeholder="부모님께 받은 코드" autocapitalize="off" autocomplete="off" required>`}
         <div style="margin-top:12px"><button class="btn primary" type="submit">계정 만들기</button></div>
       </form>
@@ -2392,7 +2409,20 @@ function loginSyncCard(c) {
         <div style="margin-top:10px"><button class="btn primary" type="submit">로그인</button></div>
       </form>
       ${c.status === 'error' ? `<p class="warn-text">${esc(c.error)}</p>` : ''}
-      <button class="linklike small" data-action="auth-mode" data-id="signup" style="margin-top:10px">처음이에요 → 계정 만들기</button>`;
+      <div class="row" style="margin-top:10px">
+        <button class="linklike small" data-action="auth-mode" data-id="signup">처음이에요 → 계정 만들기</button>
+        ${c.canRecover ? '<button class="linklike small" data-action="auth-mode" data-id="forgot">비밀번호를 잊었어요</button>' : ''}
+      </div>`;
+  }
+  if (ui.authMode === 'forgot' && !c.userId && c.canRecover) {
+    body = `
+      <p class="sub">아이디를 넣으면, 계정을 만들 때 등록한 부모님 이메일로 비밀번호를 새로 정하는 링크를 보내요.</p>
+      <form data-form="auth-forgot">
+        <input name="id" value="${esc(ui.authId || '')}" placeholder="아이디" autocapitalize="off" autocomplete="username" spellcheck="false" required>
+        <div style="margin-top:10px"><button class="btn primary" type="submit">재설정 메일 보내기</button></div>
+      </form>
+      <p class="meta">메일의 링크에서 새 비밀번호를 정한 뒤, 여기로 돌아와 로그인하면 돼요. 이메일을 등록하지 않았다면 로그인된 다른 기기의 설정에서 비밀번호를 바꿔 주세요.</p>
+      <button class="linklike small" data-action="auth-mode" data-id="login" style="margin-top:10px">← 로그인으로</button>`;
   }
   return `
     <div class="card">
@@ -2557,6 +2587,10 @@ document.addEventListener('click', async (e) => {
       break;
     case 'auth-mode':
       ui.authMode = id;
+      changed = false;
+      break;
+    case 'auth-recovery-open':
+      ui.recoveryOpen = !ui.recoveryOpen;
       changed = false;
       break;
     case 'auth-pw-open':
@@ -3009,13 +3043,22 @@ document.addEventListener('submit', async (e) => {
         return;
       }
       const invite = (f.get('invite') || '').trim();
-      if (await window.cloud.signUp(id, password, invite) && invite) {
+      if (await window.cloud.signUp(id, password, invite, (f.get('recovery') || '').trim()) && invite) {
         state.settings.aiCode = invite; // 서버 AI를 쓸 때도 같은 코드
         await save();
       }
     } else {
       await window.cloud.logIn(id, password);
     }
+    render();
+    return;
+  } else if (kind === 'auth-forgot') {
+    ui.authId = (f.get('id') || '').trim().toLowerCase();
+    if (window.cloud && window.cloud.sendReset && await window.cloud.sendReset(ui.authId)) ui.authMode = 'login';
+    render();
+    return;
+  } else if (kind === 'auth-recovery') {
+    if (window.cloud && window.cloud.setRecovery && await window.cloud.setRecovery(f.get('email'))) ui.recoveryOpen = false;
     render();
     return;
   } else if (kind === 'auth-password') {

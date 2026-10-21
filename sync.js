@@ -1,6 +1,8 @@
 // 기기 간 동기화: Firebase (아이디·비밀번호 로그인 + Firestore)
 // 기록은 각 기기 IndexedDB에 먼저 저장되고(오프라인에서도 동작), 로그인하면 Firestore 문서 하나로 맞춘다.
 // Firebase 로그인은 이메일 형식이 필요해서, 아이디를 "아이디@study-routine.app"으로 바꿔 쓴다 (실제 메일은 가지 않는다).
+// 비밀번호 찾기용으로 부모님 이메일을 등록하면, 그 메일 인증을 마친 뒤부터 계정 이메일이 부모님 이메일로 바뀐다.
+// 그래서 ids/<아이디> 문서에 아이디 → 계정 이메일을 적어 두고, 로그인할 때 찾아 쓴다.
 // 충돌은 "더 최근에 사람이 바꾼 쪽"이 이긴다. 오답 사진은 문서 크기 제한(1MB) 때문에 따로 저장한다.
 
 const SDK = window.FIREBASE_SDK || 'https://www.gstatic.com/firebasejs/10.12.2';
@@ -28,6 +30,9 @@ const deviceId = readDeviceId();
 const cloud = {
   mode: 'login',
   needsInvite: false,
+  canRecover: true,
+  recoveryEmail: '', // 등록한 비밀번호 찾기용 이메일 (인증 전이면 verified: false)
+  recoveryVerified: false,
   status: 'unconfigured', // unconfigured | loading | signedOut | connecting | pushing | synced | error
   userId: '',
   lastSync: 0,
@@ -37,6 +42,8 @@ const cloud = {
   logIn() {},
   logOut() {},
   changePassword() {},
+  sendReset() {},
+  setRecovery() {},
   statusText() {
     switch (this.status) {
       case 'loading': return '연결 준비 중…';
@@ -71,8 +78,31 @@ function friendlyError(e) {
   if (code === 'auth/too-many-requests') return '여러 번 틀렸어요. 잠시 뒤에 다시 해 주세요.';
   if (code === 'auth/operation-not-allowed') return 'Firebase에서 이메일/비밀번호 로그인이 꺼져 있어요 (FIREBASE_SETUP.md 2번).';
   if (code === 'auth/network-request-failed' || code === 'unavailable') return '인터넷 연결을 확인해 주세요.';
+  if (code === 'auth/requires-recent-login') return '보안을 위해 로그아웃했다가 다시 로그인한 뒤 해 주세요.';
+  if (code === 'auth/missing-email' || code === 'auth/invalid-new-email') return '이메일 주소를 다시 확인해 주세요.';
   if (code === 'permission-denied') return '권한이 없어요. Firestore 규칙을 게시했는지 확인해 주세요 (FIREBASE_SETUP.md 4번).';
   return (e && e.message) || '알 수 없는 오류';
+}
+
+function maskEmail(email) {
+  const [name, domain] = String(email).split('@');
+  return `${name.slice(0, 2)}${'*'.repeat(Math.max(1, name.length - 2))}@${domain}`;
+}
+window.maskEmail = maskEmail;
+
+// 로그인한 아이디를 기기에 기억한다 (계정 이메일이 부모님 이메일로 바뀐 뒤에도 아이디를 보여 주려고)
+function readStoredId() {
+  try {
+    return localStorage.getItem('authId') || '';
+  } catch (e) {
+    return '';
+  }
+}
+
+function storeId(id) {
+  try {
+    localStorage.setItem('authId', id);
+  } catch (e) { /* 다음 로그인 때 다시 적는다 */ }
 }
 
 function hasOwnRecords(state) {
@@ -231,7 +261,13 @@ async function start(config) {
       setStatus('signedOut');
       return;
     }
-    cloud.userId = String(user.email || '').split('@')[0];
+    // 아이디는 처음 만든 아이디 이메일에서 (부모님 이메일로 바뀐 뒤에도 기억해 둔 아이디를 쓴다)
+    const fromEmail = String(user.email || '').endsWith(`@${ID_DOMAIN}`) ? String(user.email).split('@')[0] : '';
+    cloud.userId = fromEmail || readStoredId() || '';
+    if (cloud.userId) storeId(cloud.userId);
+    const info = cloud.userId ? await lookup(cloud.userId) : null;
+    cloud.recoveryEmail = (info && info.email) || '';
+    cloud.recoveryVerified = !!cloud.recoveryEmail && String(user.email || '').toLowerCase() === cloud.recoveryEmail.toLowerCase();
     setStatus('connecting');
     try {
       ref = await openHousehold(user);
@@ -245,7 +281,25 @@ async function start(config) {
     return `${String(id || '').trim().toLowerCase()}@${ID_DOMAIN}`;
   }
 
-  async function enter(make, id, password) {
+  // 아이디 → 계정 정보 (uid, 비밀번호 찾기용 이메일). 아이디를 알아야만 읽을 수 있고, 목록은 볼 수 없다
+  async function lookup(id) {
+    try {
+      const snap = await fb.getDoc(fb.doc(db, 'ids', id));
+      return snap.exists() ? snap.data() : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // 부모님 이메일로 인증 메일을 보낸다. 링크를 누르면 계정 이메일이 그 주소로 바뀌어 비밀번호 찾기가 된다
+  async function startRecovery(user, id, email) {
+    await fb.verifyBeforeUpdateEmail(user, email);
+    await fb.setDoc(fb.doc(db, 'ids', id), { uid: user.uid, email }, { merge: true });
+    cloud.recoveryEmail = email;
+    cloud.recoveryVerified = false;
+  }
+
+  async function enter(make, id, password, recovery) {
     const clean = String(id || '').trim().toLowerCase();
     if (!ID_RE.test(clean)) {
       window.app.toast('아이디는 영어 소문자·숫자 3~20자로 정해 주세요.');
@@ -254,9 +308,36 @@ async function start(config) {
     setStatus('connecting');
     try {
       justLoggedIn = !make;
-      if (make) await fb.createUserWithEmailAndPassword(auth, emailOf(clean), password);
-      else await fb.signInWithEmailAndPassword(auth, emailOf(clean), password);
-      window.app.toast(make ? `${clean} 계정을 만들었어요. 다른 기기에서 같은 아이디로 로그인하세요.` : `${clean}로 로그인했어요.`);
+      if (make) {
+        if (await lookup(clean)) {
+          const err = new Error('exists');
+          err.code = 'auth/email-already-in-use';
+          throw err;
+        }
+        storeId(clean);
+        const cred = await fb.createUserWithEmailAndPassword(auth, emailOf(clean), password);
+        await fb.setDoc(fb.doc(db, 'ids', clean), { uid: cred.user.uid, email: '' });
+        if (recovery) {
+          try {
+            await startRecovery(cred.user, clean, recovery);
+          } catch (e) {
+            window.app.toast(`계정은 만들었지만 이메일 등록은 못 했어요: ${friendlyError(e)}`);
+          }
+        }
+      } else {
+        // 부모님 이메일 인증을 마친 계정은 그 이메일로, 아니면 아이디 이메일로 로그인한다
+        const info = await lookup(clean);
+        storeId(clean);
+        try {
+          await fb.signInWithEmailAndPassword(auth, info && info.email ? info.email : emailOf(clean), password);
+        } catch (e) {
+          if (!(info && info.email)) throw e;
+          await fb.signInWithEmailAndPassword(auth, emailOf(clean), password); // 아직 인증 전
+        }
+      }
+      window.app.toast(make
+        ? `${clean} 계정을 만들었어요.${recovery ? ' 부모님 이메일로 온 인증 메일의 링크를 눌러 주세요.' : ''} 다른 기기에서는 같은 아이디로 로그인하세요.`
+        : `${clean}로 로그인했어요.`);
       return true;
     } catch (e) {
       justLoggedIn = false;
@@ -266,9 +347,45 @@ async function start(config) {
     }
   }
 
-  cloud.signUp = (id, password) => enter(true, id, password);
+  cloud.signUp = (id, password, invite, recovery) => enter(true, id, password, String(recovery || '').trim());
   cloud.logIn = (id, password) => enter(false, id, password);
   cloud.logOut = () => fb.signOut(auth);
+
+  cloud.setRecovery = async (email) => {
+    const user = auth.currentUser;
+    if (!user || !cloud.userId) return false;
+    try {
+      await startRecovery(user, cloud.userId, String(email || '').trim());
+      window.app.toast('인증 메일을 보냈어요. 메일의 링크를 누르면 등록이 끝나요.');
+      window.app.syncChanged();
+      return true;
+    } catch (e) {
+      window.app.toast(friendlyError(e));
+      return false;
+    }
+  };
+
+  // 비밀번호를 잊었을 때: 등록한 부모님 이메일로 재설정 링크를 보낸다
+  cloud.sendReset = async (id) => {
+    const clean = String(id || '').trim().toLowerCase();
+    const info = ID_RE.test(clean) ? await lookup(clean) : null;
+    if (!info) {
+      window.app.toast('그런 아이디가 없어요. 아이디를 다시 확인해 주세요.');
+      return false;
+    }
+    if (!info.email) {
+      window.app.toast('이 아이디는 비밀번호 찾기용 이메일이 없어요. 로그인된 다른 기기에서 비밀번호를 바꿔 주세요.');
+      return false;
+    }
+    try {
+      await fb.sendPasswordResetEmail(auth, info.email);
+      window.app.toast(`${maskEmail(info.email)}로 비밀번호 재설정 메일을 보냈어요. (인증을 마친 이메일만 받을 수 있어요)`);
+      return true;
+    } catch (e) {
+      window.app.toast(friendlyError(e));
+      return false;
+    }
+  };
 
   cloud.changePassword = async (old, password) => {
     const user = auth.currentUser;
