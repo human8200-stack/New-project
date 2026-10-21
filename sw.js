@@ -1,5 +1,5 @@
 // 오프라인에서도 열리도록 앱 파일을 캐시한다 (네트워크 우선)
-const CACHE = 'study-routine-v17';
+const CACHE = 'study-routine-v18';
 const FILES = ['./', 'index.html', 'style.css', 'planner.js', 'seed.js', 'app.js', 'firebase-config.js', 'sync.js', 'manifest.webmanifest', 'icon.svg'];
 
 self.addEventListener('install', (e) => {
@@ -13,8 +13,9 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   // 같은 주소의 앱 파일만 캐시한다. Firebase 통신은 건드리지 않는다
   if (e.request.method !== 'GET' || new URL(e.request.url).origin !== self.location.origin) return;
+  // no-cache: GitHub Pages가 10분 동안 옛 파일을 주지 않게 매번 새 버전인지 확인한다
   e.respondWith(
-    fetch(e.request)
+    fetch(e.request, { cache: 'no-cache' })
       .then((res) => {
         const copy = res.clone();
         caches.open(CACHE).then((c) => c.put(e.request, copy));
