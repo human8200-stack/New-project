@@ -66,7 +66,7 @@ function freshState() {
 }
 
 // sw.js의 CACHE 이름과 같이 올린다. 설정 맨 아래에 보여서 휴대폰이 새 버전인지 알 수 있다
-const APP_VERSION = 'v50';
+const APP_VERSION = 'v51';
 
 let state;
 const ui = { revealed: null, tab: 'today', openForm: null, openBook: null, openSubject: null, setup: false, planView: 'exam', popup: false };
@@ -3188,6 +3188,18 @@ function markShown(key) {
   } catch (e) { /* 저장 못 하면 다음에 한 번 더 보여도 괜찮다 */ }
 }
 
+// 팝업이 3초 넘게 떠 있었거나 눌렀을 때만 "봤음". 뜨자마자 앱이 다시 열리면 다음에 또 보여 준다
+const shownTimers = {};
+function markShownSoon(key) {
+  if (shownTimers[key]) return;
+  shownTimers[key] = setTimeout(() => {
+    shownTimers[key] = null;
+    const el = document.getElementById('popup');
+    const still = el && el.innerHTML.trim() && (key === AI_ASK_KEY) === !!el.querySelector('.ai-ask');
+    if (still) markShown(key);
+  }, 3000);
+}
+
 async function render() {
   if (!state) return; // 아직 불러오는 중
   if (ensurePlan()) await save({ touch: false });
@@ -3195,7 +3207,7 @@ async function render() {
   document.getElementById('view').innerHTML = VIEWS[ui.tab]();
   const popup = popupHtml();
   document.getElementById('popup').innerHTML = popup;
-  if (popup) markShown(popup.includes('ai-ask') ? AI_ASK_KEY : POPUP_KEY);
+  if (popup) markShownSoon(popup.includes('ai-ask') ? AI_ASK_KEY : POPUP_KEY);
   if (ui.scrollToAi) {
     ui.scrollToAi = false;
     const card = document.querySelector('.ai-key-card');
@@ -3466,6 +3478,7 @@ document.addEventListener('click', async (e) => {
       return;
     }
     case 'ai-ask-yes':
+      markShown(AI_ASK_KEY);
       ui.aiAsk = false;
       ui.aiFocus = true;
       ui.tab = 'settings';
@@ -3473,10 +3486,12 @@ document.addEventListener('click', async (e) => {
       changed = false;
       break;
     case 'ai-ask-later':
+      markShown(AI_ASK_KEY);
       ui.aiAsk = false;
       changed = false;
       break;
     case 'ai-ask-off':
+      markShown(AI_ASK_KEY);
       ui.aiAsk = false;
       state.aiAskOff = true;
       toast('다시 묻지 않을게요. 나중에 설정 → AI 연결에서 할 수 있어요.');
@@ -3544,6 +3559,7 @@ document.addEventListener('click', async (e) => {
       changed = false;
       break;
     case 'popup-close':
+      markShown(POPUP_KEY);
       ui.popup = false;
       ui.askOpen = false;
       changed = false;
@@ -4027,10 +4043,23 @@ document.addEventListener('submit', async (e) => {
     // 새 버전이 자리 잡으면 한 번 새로 연다. 처음 설치할 때는 새로 열지 않는다
     const hadController = !!navigator.serviceWorker.controller;
     let reloaded = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (!hadController || reloaded) return;
+    // 팝업을 보고 있거나 글을 쓰는 중이면 바로 새로 열지 않고, 앱을 내렸을 때 새로 연다
+    // (화면의 코드는 이미 새 버전이라 급하지 않다)
+    let waiting = false;
+    const busyNow = () => !!document.getElementById('popup').innerHTML.trim()
+      || ['INPUT', 'TEXTAREA', 'SELECT'].includes((document.activeElement || {}).tagName);
+    const reloadNow = () => {
+      if (reloaded) return;
       reloaded = true;
       location.reload();
+    };
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!hadController || reloaded) return;
+      if (busyNow()) waiting = true;
+      else reloadNow();
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (waiting && document.visibilityState === 'hidden') reloadNow();
     });
     navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((reg) => {
       // 홈 화면 앱은 닫지 않고 다시 켜는 일이 많아서, 화면에 돌아올 때마다 새 버전을 확인한다
