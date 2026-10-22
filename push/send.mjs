@@ -1,12 +1,10 @@
-// 계정마다 정한 시간(한국 시간, 기본 16:30)에 "오늘 할 공부" 알림을 보낸다.
-// GitHub Actions(.github/workflows/daily-push.yml)가 30분마다 실행한다. Firebase 유료 요금제(Cloud Functions) 없이 돌아간다.
+// 계정마다 정한 시간(한국 시간, 기본 16:30)에 "오늘 할 공부" 알림을 보낸다. Firebase 유료 요금제(Cloud Functions) 없이 돌아간다.
+// - Netlify 예약 함수(netlify/functions/daily-push.mjs)가 1분마다 실행한다 (거의 정각)
+// - GitHub Actions(.github/workflows/daily-push.yml)가 30분마다 한 번 더 확인한다 (Netlify가 멈췄을 때를 대비)
 // 알림을 켠 계정(households 문서의 pushOn)마다, 정한 시간이 지났고 오늘 아직 안 보냈으면
-// 기록에서 오늘 계획을 만들어 그 계정의 기기들(pushTokens)로 보내고 pushSent에 오늘 날짜를 적는다.
+// 먼저 pushSent에 오늘 날짜를 적어 "내가 보낸다"고 잡은 뒤(둘이 동시에 돌아도 한 번만), 오늘 계획을 만들어 기기들(pushTokens)로 보낸다.
 
-import { createRequire } from 'module';
-
-const require = createRequire(import.meta.url);
-const P = require('../planner.js');
+import P from '../planner.js'; // planner.js는 CommonJS. Node도 Netlify(esbuild)도 그대로 읽는다
 
 const APP_URL = 'https://human8200-stack.github.io/New-project/';
 
@@ -68,6 +66,14 @@ export async function sendAll(db, messaging, today, FieldValue, nowMin = koreaMi
     const data = doc.data();
     const tokens = Array.isArray(data.pushTokens) ? data.pushTokens.filter(Boolean) : [];
     if (!tokens.length || !data.state || !isDue(data, today, nowMin)) continue;
+    // 동시에 도는 다른 실행과 겹치지 않게, 오늘 보낼 차례를 먼저 잡는다
+    const mine = await db.runTransaction(async (tx) => {
+      const fresh = await tx.get(doc.ref);
+      if (!fresh.exists || !isDue(fresh.data(), today, nowMin)) return false;
+      tx.update(doc.ref, { pushSent: today });
+      return true;
+    });
+    if (!mine) continue;
     let note;
     try {
       note = summarize(JSON.parse(data.state), today);
@@ -89,26 +95,31 @@ export async function sendAll(db, messaging, today, FieldValue, nowMin = koreaMi
         if (r.error && DEAD.has(r.error.code)) dead.push(tokens[i]);
       }
     });
-    const update = { pushSent: today };
-    if (dead.length) update.pushTokens = FieldValue.arrayRemove(...dead);
-    await doc.ref.update(update);
+    if (dead.length) await doc.ref.update({ pushTokens: FieldValue.arrayRemove(...dead) });
   }
   return { sent, failed };
 }
 
-async function main() {
+// GitHub Actions와 Netlify가 같이 쓴다
+export async function runOnce() {
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
   if (!raw) {
-    console.log('FIREBASE_SERVICE_ACCOUNT 비밀 값이 없어서 보내지 않았어요 (FIREBASE_SETUP.md 7번).');
-    return;
+    const msg = 'FIREBASE_SERVICE_ACCOUNT 비밀 값이 없어서 보내지 않았어요 (FIREBASE_SETUP.md 7번).';
+    console.log(msg);
+    return { sent: 0, failed: 0, note: msg };
   }
-  const { initializeApp, cert } = await import('firebase-admin/app');
+  const { initializeApp, getApps, cert } = await import('firebase-admin/app');
   const { getFirestore, FieldValue } = await import('firebase-admin/firestore');
   const { getMessaging } = await import('firebase-admin/messaging');
-  initializeApp({ credential: cert(JSON.parse(raw)) });
+  if (!getApps().length) initializeApp({ credential: cert(JSON.parse(raw)) });
   const today = koreaToday();
-  const { sent, failed } = await sendAll(getFirestore(), getMessaging(), today, FieldValue);
-  console.log(`${today}: 보냄 ${sent}, 실패 ${failed}`);
+  const result = await sendAll(getFirestore(), getMessaging(), today, FieldValue);
+  console.log(`${today} ${String(Math.floor(koreaMinutes() / 60)).padStart(2, '0')}:${String(koreaMinutes() % 60).padStart(2, '0')}: 보냄 ${result.sent}, 실패 ${result.failed}`);
+  return result;
+}
+
+async function main() {
+  await runOnce();
 }
 
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop())) {

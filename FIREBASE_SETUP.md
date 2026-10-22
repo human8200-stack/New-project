@@ -83,21 +83,27 @@ appId: "..."
 
 ## 7. 매일 정한 시간에 알림 (선택, 무료)
 
-Firebase 요금제는 그대로(Spark, 무료) 두고, GitHub이 30분마다 확인해서 정한 시간(기본 오후 4시 반)에 알림을 보냅니다.
+Firebase 요금제는 그대로(Spark, 무료) 두고, **Netlify**(무료)가 1분마다 확인해서 정한 시간(기본 오후 4시 반)에 알림을 보냅니다.
+GitHub도 30분마다 한 번 더 확인해서, Netlify가 멈췄을 때 대신 보냅니다 (같은 날 두 번 가지는 않아요).
 
-1. **웹 푸시 키 (Claude에게 보내기)**: 톱니바퀴 → **프로젝트 설정 → 클라우드 메시징** 탭 → 아래 **웹 구성 → 웹 푸시 인증서 → 키 쌍 생성**.
+1. **웹 푸시 키 (Claude에게 보내기)**: Firebase 톱니바퀴 → **프로젝트 설정 → 클라우드 메시징** 탭 → 아래 **웹 구성 → 웹 푸시 인증서 → 키 쌍 생성**.
    생긴 긴 글자(**키 쌍**)를 복사해서 Claude에게 보냅니다. 공개 키라서 보내도 괜찮아요.
-2. **서비스 계정 키 (Claude에게 보내지 말 것)**: **프로젝트 설정 → 서비스 계정** 탭 → **새 비공개 키 생성 → 키 생성**.
-   `.json` 파일이 내려받아집니다. 이 파일은 **비밀번호보다 중요한 열쇠**라서 아무에게도 보내지 마세요.
-   - 파일을 열어 **내용 전체를 복사**합니다 (아이폰·아이패드는 파일 앱에서 열기 → 길게 눌러 전체 선택 → 복사. 어려우면 컴퓨터에서).
-   - Safari 주소창에 `github.com/human8200-stack/New-project/settings/secrets/actions` → **New repository secret**
-     → Name `FIREBASE_SERVICE_ACCOUNT`, Secret에 붙여넣기 → **Add secret**.
-   - 다 넣었으면 내려받은 `.json` 파일은 지워 주세요.
-3. 아이 기기에서 앱 → 설정 → **오늘 할 공부 알림**에서 **알림 시간**을 고르고 **알림 켜기** → 허용. 아이패드·휴대폰 각각 켭니다 (시간은 계정에 하나라 두 기기가 같은 시간에 받아요).
-   (아이폰·아이패드는 **홈 화면에 추가한 앱**에서만 알림을 받을 수 있어요.)
+2. **서비스 계정 키 (아무에게도 보내지 말 것)**: **프로젝트 설정 → 서비스 계정** 탭 → **새 비공개 키 생성 → 키 생성**.
+   `.json` 파일이 내려받아집니다. 이 파일은 **Firebase 전체를 다룰 수 있는 열쇠**라서 채팅으로 보내지 마세요.
+   파일을 열어 **내용 전체를 복사**해 두고(아이폰·아이패드는 파일 앱에서 열기 → 길게 눌러 전체 선택 → 복사. 어려우면 컴퓨터에서), 아래 두 곳에 붙여넣습니다.
+3. **Netlify에 연결 (정확한 시간용)**:
+   - https://app.netlify.com → **Add new project → Import an existing project → GitHub** → `human8200-stack/New-project` 선택.
+   - 설정은 저장소의 `netlify.toml`이 알아서 채웁니다. 그대로 **Deploy**.
+   - 만든 프로젝트 → **Project configuration → Environment variables → Add a variable**
+     → Key `FIREBASE_SERVICE_ACCOUNT`, Value에 2번 내용 붙여넣기 → 저장.
+   - **Deploys → Trigger deploy → Deploy project**로 한 번 다시 올립니다 (환경 변수가 적용되게).
+4. **GitHub에도 (예비용)**: Safari 주소창에 `github.com/human8200-stack/New-project/settings/secrets/actions` → **New repository secret**
+   → Name `FIREBASE_SERVICE_ACCOUNT`, Secret에 2번 내용 붙여넣기 → **Add secret**. 다 넣었으면 내려받은 `.json` 파일은 지워 주세요.
+5. 아이 기기에서 앱 → 설정 → **오늘 할 공부 알림**에서 **알림 시간**(10분 단위)을 고르고 **알림 켜기** → 허용.
+   아이패드·휴대폰 각각 켭니다 (시간은 계정에 하나라 두 기기가 같은 시간에 받아요).
+   아이폰·아이패드는 **홈 화면에 추가한 앱**에서만 알림을 받을 수 있어요.
 
-시험 삼아 바로 보내 보려면 `github.com/human8200-stack/New-project/actions/workflows/daily-push.yml` → **Run workflow**.
-GitHub 예약 실행은 몇 분~30분 늦어질 수 있어서 정한 시간 "쯤"에 옵니다.
+Netlify에서 잘 도는지는 그 프로젝트의 **Logs → Functions → daily-push**에서 1분마다 남는 기록으로 볼 수 있어요.
 
 ## 알아 두기
 
