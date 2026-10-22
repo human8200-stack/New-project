@@ -8,6 +8,7 @@
 const DB_NAME = window.DEMO_STATE ? 'study-routine-demo' : 'study-routine';
 const STORE = 'kv';
 const POPUP_KEY = window.DEMO_STATE ? 'demoPopupDay' : 'popupDay';
+const AI_ASK_KEY = window.DEMO_STATE ? 'demoAiAskDay' : 'aiAskDay';
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 const SLOTS = ['아침', '오후', '저녁', '밤'];
 
@@ -65,7 +66,7 @@ function freshState() {
 }
 
 // sw.js의 CACHE 이름과 같이 올린다. 설정 맨 아래에 보여서 휴대폰이 새 버전인지 알 수 있다
-const APP_VERSION = 'v45';
+const APP_VERSION = 'v46';
 
 let state;
 const ui = { revealed: null, tab: 'today', openForm: null, openBook: null, openSubject: null, setup: false, planView: 'exam', popup: false };
@@ -895,6 +896,12 @@ function autoDiagnose() {
 const ai = { mockFor: null, sample: null, canImages: false, maxImages: 6, busy: false, report: null, undo: null, error: '', pending: null };
 
 async function initAi() {
+  await findSample();
+  ai.checked = true;
+  renderWhenIdle();
+}
+
+async function findSample() {
   if (!window.claude || typeof window.claude.use !== 'function') return;
   const sample = await window.claude.use('sample').catch(() => null);
   if (!sample) return;
@@ -2470,9 +2477,43 @@ function mockById(id) {
   return (state.mocks || []).find((m) => m.id === id);
 }
 
+const MOCK_MINUTES = 50;
+
+// 실제 시험지처럼: 선택형 먼저, 서답형 나중. 배점은 선택형 64점·서답형 36점으로 나눠 100점
+function mockOrder(m) {
+  const list = m.questions.map((q, i) => ({ q, i }));
+  return [...list.filter((x) => x.q.type === '객관식'), ...list.filter((x) => x.q.type !== '객관식')];
+}
+
+function mockPoints(m) {
+  const mc = m.questions.filter((q) => q.type === '객관식').length;
+  const sa = m.questions.length - mc;
+  const saTotal = sa ? (mc ? 36 : 100) : 0;
+  const share = (total, n) => Array.from({ length: n }, (_, k) => Math.floor(total / n) + (k < total % n ? 1 : 0));
+  const mcPts = share(100 - saTotal, mc);
+  const saPts = share(saTotal, sa);
+  const pts = [];
+  let a = 0;
+  let b = 0;
+  m.questions.forEach((q, i) => { pts[i] = q.type === '객관식' ? mcPts[a++] : saPts[b++]; });
+  return pts;
+}
+
+function mockSubmitted(m) {
+  return !!m.submitted || m.questions.every((q) => q.result);
+}
+
 function mockScore(m) {
-  const graded = m.questions.filter((q) => q.result);
-  return { done: graded.length, right: graded.filter((q) => q.result === 'right').length, total: m.questions.filter((q) => q.result !== 'bad').length };
+  const pts = mockPoints(m);
+  const graded = m.questions.map((q, i) => ({ q, p: pts[i] })).filter((x) => x.q.result && x.q.result !== 'bad');
+  const valid = m.questions.map((q, i) => ({ q, p: pts[i] })).filter((x) => x.q.result !== 'bad');
+  const max = valid.reduce((a, x) => a + x.p, 0) || 1;
+  const got = graded.reduce((a, x) => a + (x.q.result === 'right' ? x.p : x.q.result === 'half' ? x.p / 2 : 0), 0);
+  return {
+    done: graded.length, total: valid.length,
+    right: graded.filter((x) => x.q.result === 'right').length,
+    score: Math.round((got / max) * 100),
+  };
 }
 
 // 틀린 예상 문제는 오답처럼 2·7·14·30일 뒤 다시 나온다
@@ -2486,44 +2527,86 @@ function mockWrong(m, q) {
   });
 }
 
-function mockQuestion(m, q, i) {
-  const head = `<div class="mock-no">${i + 1}<span class="meta">${esc(q.type)}${q.topic ? ` · ${esc(q.topic)}` : ''}</span></div>`;
+function mockTimeLeft(m) {
+  if (!m.startedAt) return MOCK_MINUTES;
+  return Math.max(0, MOCK_MINUTES - Math.floor((Date.now() - m.startedAt) / 60000));
+}
+
+function mockQuestion(m, q, i, no, pts, submitted) {
+  const label = q.type === '객관식' ? `${no}.` : `[서답형 ${no}]`;
+  const head = `<div class="mock-no"><span>${label}</span><span class="mock-pt">[${pts}점]</span></div>`;
   const body = `<div class="mock-q">${esc(q.q).replace(/\n/g, '<br>')}</div>`;
-  if (q.result === 'bad') return `<li class="mock-item bad">${head}<p class="meta">이상한 문제라 뺐어요.</p></li>`;
-  const explain = q.result ? `
-    <div class="mock-explain ${q.result}">
-      <strong>${q.result === 'right' ? '맞았어요' : '틀렸어요 → 복습에 넣었어요'}</strong>
-      ${q.type === '서술형' ? `<p><b>모범 답안</b> ${esc(q.answer)}</p>` : ''}
-      ${q.explain ? `<p>${esc(q.explain)}</p>` : ''}
-      ${q.point ? `<p class="meta">자주 나오는 이유: ${esc(q.point)}</p>` : ''}
-    </div>` : '';
+  if (q.result === 'bad') return `<li class="mock-item bad">${head}<p class="meta">이상한 문제라 채점에서 뺐어요.</p></li>`;
   let answerUi = '';
   if (q.type === '객관식') {
     answerUi = `<div class="mock-choices">${q.choices.map((c, k) => {
       const n = k + 1;
-      const cls = q.result ? (n === q.answer ? ' correct' : n === q.picked ? ' picked' : '') : '';
-      return `<button class="mock-choice${cls}" data-action="mock-pick" data-id="${m.id}:${i}:${n}"${q.result ? ' disabled' : ''}><span>${CIRCLED[k]}</span>${esc(c)}</button>`;
+      const cls = submitted ? (n === q.answer ? ' correct' : n === q.picked ? ' picked wrong' : '') : (n === q.picked ? ' picked' : '');
+      return `<button class="mock-choice${cls}" data-action="mock-pick" data-id="${m.id}:${i}:${n}"${submitted ? ' disabled' : ''}><span>${CIRCLED[k]}</span>${esc(c)}</button>`;
     }).join('')}</div>`;
-  } else if (!q.result) {
-    answerUi = q.picked === 'shown'
-      ? `<div class="mock-explain"><p><b>모범 답안</b> ${esc(q.answer)}</p>${q.explain ? `<p>${esc(q.explain)}</p>` : ''}</div>
-         <div class="row"><button class="btn" data-action="mock-self" data-id="${m.id}:${i}:right">맞았어요</button><button class="btn" data-action="mock-self" data-id="${m.id}:${i}:wrong">틀렸어요</button></div>`
-      : `<p class="meta">공책에 답을 써 보고 눌러요.</p><button class="btn" data-action="mock-show" data-id="${m.id}:${i}">모범 답안 보기</button>`;
+  } else {
+    answerUi = `<textarea class="mock-write" data-mock="${m.id}:${i}" rows="3" placeholder="답을 쓰세요 (공책에 써도 돼요)"${submitted ? ' readonly' : ''}>${esc(q.written || '')}</textarea>`;
   }
-  return `<li class="mock-item">${head}${body}${answerUi}${explain}
-    ${q.result ? '' : `<button class="linklike small mock-bad" data-action="mock-bad" data-id="${m.id}:${i}">문제가 이상해요</button>`}</li>`;
+  let result = '';
+  if (submitted) {
+    const mark = q.result === 'right' ? '<strong class="ok-text">○ 맞음</strong>' : q.result === 'half' ? '<strong class="half-text">△ 부분 점수</strong>' : q.result === 'wrong' ? '<strong class="warn-text">✕ 틀림 → 복습에 넣었어요</strong>' : '';
+    result = `
+      <div class="mock-explain ${q.result || ''}">
+        ${mark}
+        ${q.type !== '객관식' ? `<p><b>모범 답안</b> ${esc(q.answer)}</p>` : ''}
+        ${q.explain ? `<p>${esc(q.explain)}</p>` : ''}
+        ${q.point ? `<p class="meta">자주 나오는 이유: ${esc(q.point)}</p>` : ''}
+        ${q.type !== '객관식' && !q.result ? `<p class="meta">모범 답안과 비교해서 채점해요.</p><div class="row mock-self">
+          <button class="btn" data-action="mock-self" data-id="${m.id}:${i}:right">○ 맞음</button>
+          <button class="btn" data-action="mock-self" data-id="${m.id}:${i}:half">△ 부분</button>
+          <button class="btn" data-action="mock-self" data-id="${m.id}:${i}:wrong">✕ 틀림</button></div>` : ''}
+        <button class="linklike small mock-bad" data-action="mock-bad" data-id="${m.id}:${i}">문제가 이상해요 (채점에서 빼기)</button>
+      </div>`;
+  }
+  return `<li class="mock-item">${head}${body}${answerUi}${result}</li>`;
 }
 
 function mockSheet(m) {
+  const submitted = mockSubmitted(m);
+  const pts = mockPoints(m);
+  const order = mockOrder(m);
+  const mcCount = order.filter((x) => x.q.type === '객관식').length;
+  const exam = examGuess(m.date || today());
+  const term = exam && exam.name ? exam.name.replace(/^예상 · /, '') : '';
+  const year = Number((m.date || today()).slice(0, 4));
   const sc = mockScore(m);
-  const finished = sc.done === m.questions.length;
+  const answered = m.questions.filter((q) => (q.type === '객관식' ? q.picked : (q.written || '').trim())).length;
+  let saNo = 0;
+  const items = order.map((x, k) => {
+    const no = x.q.type === '객관식' ? k + 1 : ++saNo;
+    const section = k === 0 && mcCount ? '<li class="mock-section">선택형</li>' : k === mcCount ? '<li class="mock-section">서답형</li>' : '';
+    return section + mockQuestion(m, x.q, x.i, no, pts[x.i], submitted);
+  }).join('');
   return `
     <section class="card mock-sheet">
-      <div class="range-card-top"><h2>${esc(m.subject)} 예상 문제</h2><button class="linklike small" data-action="mock-close">닫기</button></div>
-      <p class="sub">${m.range ? `범위: ${esc(m.range)} · ` : ''}해마다 자주 나오는 유형으로 만든 연습 문제예요. 실제 기출이 아니라 AI가 만든 문제라, 학교 학습지·프린트도 꼭 같이 보세요.</p>
-      <ol class="mock-list">${m.questions.map((q, i) => mockQuestion(m, q, i)).join('')}</ol>
-      <div class="mock-score">${sc.done ? `${sc.done}문제 중 <strong>${sc.right}개</strong> 맞았어요.` : '다 풀면 점수와 틀린 문제가 정리돼요.'}${finished && sc.right < sc.done ? ' 틀린 문제는 복습 목록에서 2일 뒤 다시 나와요.' : ''}</div>
-      ${finished ? `<button class="btn primary wide" data-action="mock-make" data-id="${subjectByName(m.subject).id}"${ai.busy ? ' disabled' : ''}>새 문제 10개 더</button>` : ''}
+      <div class="mock-tools">
+        <button class="linklike small" data-action="mock-close">← 닫기</button>
+        <span class="meta">${submitted ? '채점 완료' : `남은 시간 약 ${mockTimeLeft(m)}분 · ${answered}/${m.questions.length} 답함`}</span>
+        <button class="linklike small" data-action="mock-print">인쇄</button>
+      </div>
+      <div class="paper">
+        <header class="paper-head">
+          <div class="paper-year">${year}학년도 ${esc(term || '정기고사')} 대비 예상 문제</div>
+          <h2 class="paper-title">제1학년 ${esc(m.subject)}</h2>
+          <div class="paper-info">
+            <span>선택형 ${mcCount}문항 · 서답형 ${m.questions.length - mcCount}문항</span>
+            <span>시간 ${MOCK_MINUTES}분 · 100점</span>
+          </div>
+          <div class="paper-name">1학년 (&nbsp;&nbsp;&nbsp;)반 (&nbsp;&nbsp;&nbsp;)번 이름 (&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</div>
+          ${submitted ? `<div class="paper-score"><span>${sc.score}</span>점</div>` : ''}
+        </header>
+        <p class="paper-note">※ ${m.range ? `범위: ${esc(m.range)}. ` : ''}해마다 자주 나오는 유형으로 AI가 만든 예상 문제예요. 실제 기출이 아니니 학습지·프린트도 꼭 보세요.</p>
+        <ol class="mock-list">${items}</ol>
+      </div>
+      ${submitted
+    ? `<div class="mock-score">${sc.total}문항 중 ${sc.right}개 맞음 · <strong>${sc.score}점</strong>${sc.done < sc.total ? ' (서답형 채점이 남았어요)' : ''}</div>
+       <button class="btn primary wide" data-action="mock-make" data-id="${subjectByName(m.subject).id}"${ai.busy ? ' disabled' : ''}>새 시험지 만들기</button>`
+    : `<button class="btn big primary wide" data-action="mock-submit" data-id="${m.id}">답안 제출하고 채점하기</button>`}
     </section>`;
 }
 
@@ -2541,7 +2624,7 @@ function mockCard() {
       ${ai.busy && ai.mockFor ? `<p class="ai-busy">${esc(subjectById(ai.mockFor).name)} 문제를 만드는 중이에요… (30초~1분)</p>` : ''}
       ${recent.length ? `<ul class="mock-recent">${recent.map((m) => {
     const sc = mockScore(m);
-    return `<li><button class="linklike" data-action="mock-open" data-id="${m.id}">${esc(m.subject)} · ${prettyDate(m.date)}</button> <span class="meta">${sc.done === m.questions.length ? `${sc.right}/${sc.total}점` : `${sc.done}/${m.questions.length} 풂`}</span></li>`;
+    return `<li><button class="linklike" data-action="mock-open" data-id="${m.id}">${esc(m.subject)} · ${prettyDate(m.date)}</button> <span class="meta">${mockSubmitted(m) ? `${sc.score}점` : '푸는 중'}</span></li>`;
   }).join('')}</ul>` : ''}
     </section>`;
 }
@@ -2593,7 +2676,7 @@ function popupHtml() {
     <div class="popup" role="dialog" aria-label="어제 공부">${ask}</div>`;
     }
   }
-  if (!ui.popup) return '';
+  if (!ui.popup) return aiAskHtml();
   const items = recallItems();
   if (ui.popupStage !== 'recall') {
     const brief = todayBrief();
@@ -2608,6 +2691,25 @@ function popupHtml() {
     <div class="popup" role="dialog" aria-label="오늘 떠올릴 것">
       <div class="popup-top"><strong>잠깐, 이것부터 떠올려 볼까요?</strong><button class="linklike small" data-action="popup-close">나중에</button></div>
       ${recallSection()}
+    </div>`;
+}
+
+// 아직 AI를 연결하지 않았으면, 다른 팝업이 없을 때 하루 한 번 묻는다. "다시 보지 않기"를 누르면 끝
+function aiAskHtml() {
+  if (!ui.aiAsk || !ai.checked || aiReady() || state.aiAskOff) return '';
+  return `
+    <div class="popup-back" data-action="ai-ask-later"></div>
+    <div class="popup ai-ask" role="dialog" aria-label="AI 연결">
+      <h2>AI를 연결할까요?</h2>
+      <p>연결하면 <strong>카메라로 찍기만 해도</strong> AI가 알아서 정리해요.</p>
+      <ul>
+        <li>틀린 문제 → 왜 틀렸는지, 어떤 기본이 부족한지</li>
+        <li>시험 범위 공지 → 계획에 바로 반영</li>
+        <li>과목별 예상 시험지 · 핵심 카드 만들기</li>
+      </ul>
+      <p class="meta">부모님이 Claude API 키를 한 번 만들어 주시면 돼요. 사진 몇 장에 수십 원이에요.</p>
+      <button class="btn big primary wide" data-action="ai-ask-yes">연결할래요</button>
+      <button class="btn wide" data-action="ai-ask-off" style="margin-top:8px">다시 보지 않기</button>
     </div>`;
 }
 
@@ -2843,8 +2945,13 @@ function aiKeyCard() {
     </section>`;
   }
   return `
-    <section class="card">
+    <section class="card ai-key-card${ui.aiFocus ? ' focus' : ''}">
       <h2>AI 연결 (사진 읽기)</h2>
+      ${ui.aiFocus && !key ? `<ol class="ai-steps">
+        <li><strong>부모님께 안내 보내기</strong>를 눌러 카톡으로 보내요.</li>
+        <li>부모님이 키(sk-ant-…)를 만들어 보내 주시면</li>
+        <li>아래 칸에 붙여 넣고 <strong>저장</strong>. 아이패드·휴대폰 각각 한 번씩.</li>
+      </ol>` : ''}
       <p class="sub">사진 정리와 핵심 카드는 각자 Claude API 키로 써요. 사용료는 그 키의 계정으로 나가요.</p>
       ${key ? `
         <p class="sub"><span class="tag">연결됨</span> 이 기기에 저장된 키 · ${esc(key.slice(0, 10))}…${esc(key.slice(-4))}</p>
@@ -2982,6 +3089,11 @@ async function render() {
   if (!VIEWS[ui.tab]) ui.tab = 'today';
   document.getElementById('view').innerHTML = VIEWS[ui.tab]();
   document.getElementById('popup').innerHTML = popupHtml();
+  if (ui.scrollToAi) {
+    ui.scrollToAi = false;
+    const card = document.querySelector('.ai-key-card');
+    if (card) card.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
   if (ui.scrollToRange) {
     ui.scrollToRange = false;
     const card = document.querySelector('.range-card');
@@ -3235,6 +3347,22 @@ document.addEventListener('click', async (e) => {
     case 'key-cards':
       makeKeyCards(id);
       return;
+    case 'ai-ask-yes':
+      ui.aiAsk = false;
+      ui.aiFocus = true;
+      ui.tab = 'settings';
+      ui.scrollToAi = true;
+      changed = false;
+      break;
+    case 'ai-ask-later':
+      ui.aiAsk = false;
+      changed = false;
+      break;
+    case 'ai-ask-off':
+      ui.aiAsk = false;
+      state.aiAskOff = true;
+      toast('다시 묻지 않을게요. 나중에 설정 → AI 연결에서 할 수 있어요.');
+      break;
     case 'mock-make':
       makeMock(id);
       return;
@@ -3254,26 +3382,45 @@ document.addEventListener('click', async (e) => {
       changed = false;
       break;
     case 'mock-pick':
-    case 'mock-show':
     case 'mock-self':
     case 'mock-bad': {
       const [mid, qi, val] = id.split(':');
       const m = mockById(mid);
       const q = m && m.questions[Number(qi)];
-      if (!q || q.result) return;
+      if (!q) return;
       if (action === 'mock-pick') {
-        q.picked = Number(val);
-        q.result = q.picked === q.answer ? 'right' : 'wrong';
-      } else if (action === 'mock-show') {
-        q.picked = 'shown';
+        if (mockSubmitted(m)) return;
+        if (!m.startedAt) m.startedAt = Date.now();
+        q.picked = q.picked === Number(val) ? null : Number(val);
       } else if (action === 'mock-self') {
+        if (q.result) return;
         q.result = val;
+        if (val === 'wrong') mockWrong(m, q);
       } else {
+        if (q.result === 'wrong') state.wrongs = state.wrongs.filter((w) => !(w.kind === 'mock' && w.note === q.q));
         q.result = 'bad';
       }
-      if (q.result === 'wrong') mockWrong(m, q);
       break;
     }
+    case 'mock-submit': {
+      const m = mockById(id);
+      if (!m || mockSubmitted(m)) return;
+      const blank = m.questions.filter((q) => (q.type === '객관식' ? !q.picked : !(q.written || '').trim())).length;
+      if (blank && !confirm(`아직 안 푼 문제가 ${blank}개 있어요. 그래도 제출할까요?`)) return;
+      m.submitted = true;
+      m.questions.forEach((q) => {
+        if (q.type !== '객관식' || q.result) return;
+        q.result = q.picked === q.answer ? 'right' : 'wrong';
+        if (q.result === 'wrong') mockWrong(m, q);
+      });
+      toast(m.questions.some((q) => q.type !== '객관식') ? '선택형을 채점했어요. 서답형은 모범 답안과 비교해서 ○△✕를 눌러 주세요.' : `채점했어요: ${mockScore(m).score}점`);
+      break;
+    }
+    case 'mock-print':
+      document.body.classList.add('printing-mock');
+      window.print();
+      setTimeout(() => document.body.classList.remove('printing-mock'), 500);
+      return;
     case 'popup-open':
       ui.popup = true;
       changed = false;
@@ -3431,6 +3578,21 @@ document.addEventListener('toggle', (e) => {
     else if (ui.openSubject === d.dataset.subject) ui.openSubject = null;
   }
 }, true);
+
+// 서답형 답: 쓰는 동안은 다시 그리지 않고 저장만 한다
+let mockWriteTimer = null;
+document.addEventListener('input', (e) => {
+  const el = e.target.closest && e.target.closest('.mock-write');
+  if (!el) return;
+  const [mid, qi] = el.dataset.mock.split(':');
+  const m = mockById(mid);
+  const q = m && m.questions[Number(qi)];
+  if (!q || mockSubmitted(m)) return;
+  if (!m.startedAt) m.startedAt = Date.now();
+  q.written = el.value;
+  clearTimeout(mockWriteTimer);
+  mockWriteTimer = setTimeout(() => save(), 800);
+});
 
 document.addEventListener('change', async (e) => {
   const el = e.target;
@@ -3737,6 +3899,10 @@ document.addEventListener('submit', async (e) => {
     if (localStorage.getItem(POPUP_KEY) !== today() || /[?&]from=push/.test(location.search)) {
       ui.popup = true;
       localStorage.setItem(POPUP_KEY, today());
+    }
+    if (localStorage.getItem(AI_ASK_KEY) !== today()) {
+      ui.aiAsk = true;
+      localStorage.setItem(AI_ASK_KEY, today());
     }
   } catch (e) {
     ui.popup = true;
