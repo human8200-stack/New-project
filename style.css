@@ -644,3 +644,11 @@ img { max-width: 100%; height: auto; }
 .brief-list { margin: 0 0 14px; padding-left: 20px; display: grid; gap: 8px; }
 .brief-list li strong { display: block; font-size: 15px; }
 .brief-list li .meta { font-size: 13px; }
+
+/* 어제 공부 묻기 · 책 분량 맞추기 */
+.confirm-buttons { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.confirm-buttons .btn { padding-left: 6px; padding-right: 6px; }
+.size-line { margin-top: 0; }
+.size-row { padding: 10px 0; border-top: 1px solid var(--line); }
+.size-name { font-weight: 600; font-size: 15px; margin-bottom: 6px; }
+.confirm-buttons .btn:not(.primary) { background: var(--accent-soft); }
