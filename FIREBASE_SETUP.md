@@ -33,6 +33,7 @@ rules_version = '2';
 
 // households/<uid>: 계정마다 기록 문서 하나. 자기 계정의 기록만 읽고 쓸 수 있다.
 // ids/<아이디>: 아이디 → 계정(uid)과 비밀번호 찾기용 이메일. 아이디를 알아야만 하나씩 읽을 수 있고 목록은 볼 수 없다.
+// config/<이름>: 알림 공개 키처럼 앱이 읽기만 하는 설정. secrets/는 규칙이 없어서 앱에서는 아무도 못 읽는다 (알림 서버만).
 service cloud.firestore {
   match /databases/{database}/documents {
     match /households/{uid} {
@@ -49,6 +50,10 @@ service cloud.firestore {
         && id.matches('^[a-z0-9_]{3,20}$');
       allow update: if request.auth != null && resource.data.uid == request.auth.uid
         && request.resource.data.uid == request.auth.uid;
+    }
+
+    match /config/{name} {
+      allow get: if true;
     }
   }
 }
@@ -84,26 +89,24 @@ appId: "..."
 ## 7. 매일 정한 시간에 알림 (선택, 무료)
 
 Firebase 요금제는 그대로(Spark, 무료) 두고, **Netlify**(무료)가 1분마다 확인해서 정한 시간(기본 오후 4시 반)에 알림을 보냅니다.
-GitHub도 30분마다 한 번 더 확인해서, Netlify가 멈췄을 때 대신 보냅니다 (같은 날 두 번 가지는 않아요).
+알림 키는 Netlify가 처음 돌 때 스스로 만들어 Firebase에 둡니다. 부모님이 할 일은 아래 두 가지뿐이에요.
 
-1. **웹 푸시 키 (Claude에게 보내기)**: Firebase 톱니바퀴 → **프로젝트 설정 → 클라우드 메시징** 탭 → 아래 **웹 구성 → 웹 푸시 인증서 → 키 쌍 생성**.
-   생긴 긴 글자(**키 쌍**)를 복사해서 Claude에게 보냅니다. 공개 키라서 보내도 괜찮아요.
-2. **서비스 계정 키 (아무에게도 보내지 말 것)**: **프로젝트 설정 → 서비스 계정** 탭 → **새 비공개 키 생성 → 키 생성**.
+1. **서비스 계정 키 받기 (아무에게도 보내지 말 것)**: Firebase 톱니바퀴 → **프로젝트 설정 → 서비스 계정** 탭 → **새 비공개 키 생성 → 키 생성**.
    `.json` 파일이 내려받아집니다. 이 파일은 **Firebase 전체를 다룰 수 있는 열쇠**라서 채팅으로 보내지 마세요.
-   파일을 열어 **내용 전체를 복사**해 두고(아이폰·아이패드는 파일 앱에서 열기 → 길게 눌러 전체 선택 → 복사. 어려우면 컴퓨터에서), 아래 두 곳에 붙여넣습니다.
-3. **Netlify에 연결 (정확한 시간용)**:
+   파일을 열어 **내용 전체를 복사**합니다 (아이폰·아이패드는 파일 앱에서 열기 → 길게 눌러 전체 선택 → 복사. 어려우면 컴퓨터에서).
+2. **Netlify에 연결**:
    - https://app.netlify.com → **Add new project → Import an existing project → GitHub** → `human8200-stack/New-project` 선택.
    - 설정은 저장소의 `netlify.toml`이 알아서 채웁니다. 그대로 **Deploy**.
    - 만든 프로젝트 → **Project configuration → Environment variables → Add a variable**
-     → Key `FIREBASE_SERVICE_ACCOUNT`, Value에 2번 내용 붙여넣기 → 저장.
+     → Key `FIREBASE_SERVICE_ACCOUNT`, Value에 1번 내용 붙여넣기 → 저장.
    - **Deploys → Trigger deploy → Deploy project**로 한 번 다시 올립니다 (환경 변수가 적용되게).
-4. **GitHub에도 (예비용)**: Safari 주소창에 `github.com/human8200-stack/New-project/settings/secrets/actions` → **New repository secret**
-   → Name `FIREBASE_SERVICE_ACCOUNT`, Secret에 2번 내용 붙여넣기 → **Add secret**. 다 넣었으면 내려받은 `.json` 파일은 지워 주세요.
-5. 아이 기기에서 앱 → 설정 → **오늘 할 공부 알림**에서 **알림 시간**(10분 단위)을 고르고 **알림 켜기** → 허용.
-   아이패드·휴대폰 각각 켭니다 (시간은 계정에 하나라 두 기기가 같은 시간에 받아요).
-   아이폰·아이패드는 **홈 화면에 추가한 앱**에서만 알림을 받을 수 있어요.
+   - 다 됐으면 내려받은 `.json` 파일은 지워 주세요.
 
-Netlify에서 잘 도는지는 그 프로젝트의 **Logs → Functions → daily-push**에서 1분마다 남는 기록으로 볼 수 있어요.
+그다음 아이 기기에서 앱 → 설정 → **오늘 할 공부 알림**에서 **알림 시간**(10분 단위)을 고르고 **알림 켜기** → 허용.
+아이패드·휴대폰 각각 켭니다 (시간은 계정에 하나라 두 기기가 같은 시간에 받아요). 아이폰·아이패드는 **홈 화면에 추가한 앱**에서만 받을 수 있어요.
+
+- 잘 도는지는 Netlify 프로젝트의 **Logs → Functions → daily-push**에서 1분마다 남는 기록으로 볼 수 있어요.
+- (선택) 예비 발송: GitHub `Settings → Secrets and variables → Actions`에 같은 이름(`FIREBASE_SERVICE_ACCOUNT`)으로 넣어 두면, Netlify가 멈췄을 때 GitHub이 30분 안에 대신 보냅니다. 같은 날 두 번 가지는 않아요.
 
 ## 알아 두기
 

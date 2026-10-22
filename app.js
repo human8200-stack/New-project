@@ -62,7 +62,7 @@ function freshState() {
 }
 
 // sw.js의 CACHE 이름과 같이 올린다. 설정 맨 아래에 보여서 휴대폰이 새 버전인지 알 수 있다
-const APP_VERSION = 'v37';
+const APP_VERSION = 'v38';
 
 let state;
 const ui = { revealed: null, tab: 'today', openForm: null, openBook: null, openSubject: null, setup: false, planView: 'exam', popup: false };
@@ -2579,7 +2579,6 @@ function pushCard() {
     <select data-action="push-time" aria-label="알림 시간">${times.map((x) => `<option value="${x}"${x === (c.pushTime || '16:30') ? ' selected' : ''}>${esc((window.timeLabel || ((y) => y))(x))}</option>`).join('')}</select>
     <p class="meta" style="margin-top:4px">아이패드·휴대폰이 같은 시간에 받아요. 보통 정한 시간 1분 안에 와요.</p>`;
   if (!c.userId) body = '<p class="sub" style="margin:0">위에서 로그인하면 켤 수 있어요.</p>';
-  else if (!window.FIREBASE_VAPID) body = '<p class="sub" style="margin:0">부모님이 알림 설정(FIREBASE_SETUP.md 7번)을 마치면 켤 수 있어요.</p>';
   else if (c.pushOn) {
     body = `<p class="sub"><span class="tag">켜짐</span> 매일 ${esc(label)}쯤 이 기기로 오늘 할 공부를 알려 드려요.</p>
       ${picker}
