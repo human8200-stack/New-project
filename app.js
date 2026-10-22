@@ -8,7 +8,7 @@
 const DB_NAME = window.DEMO_STATE ? 'study-routine-demo' : 'study-routine';
 const STORE = 'kv';
 const POPUP_KEY = window.DEMO_STATE ? 'demoPopupDay' : 'popupDay';
-const AI_ASK_KEY = window.DEMO_STATE ? 'demoAiAskDay' : 'aiAskShown';
+const AI_ASK_KEY = window.DEMO_STATE ? 'demoAiAsked' : 'aiAskShown';
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 const SLOTS = ['아침', '오후', '저녁', '밤'];
 
@@ -66,7 +66,7 @@ function freshState() {
 }
 
 // sw.js의 CACHE 이름과 같이 올린다. 설정 맨 아래에 보여서 휴대폰이 새 버전인지 알 수 있다
-const APP_VERSION = 'v52';
+const APP_VERSION = 'v53';
 
 let state;
 const ui = { revealed: null, tab: 'today', openForm: null, openBook: null, openSubject: null, setup: false, planView: 'exam', popup: false };
@@ -2793,7 +2793,7 @@ function popupHtml() {
     </div>`;
 }
 
-// 아직 AI를 연결하지 않았으면, 다른 팝업이 없을 때 하루 한 번 묻는다. "다시 보지 않기"를 누르면 끝
+// 이 기기에서 처음 한 번만 묻는다 (다른 팝업이 없을 때). 어느 쪽을 눌러도 다시 묻지 않는다
 function aiAskHtml() {
   if (!ui.aiAsk || !ai.checked || aiReady() || state.aiAskOff) return '';
   return `
@@ -2808,7 +2808,8 @@ function aiAskHtml() {
       </ul>
       <p class="meta">부모님이 Claude API 키를 한 번 만들어 주시면 돼요. 사진 몇 장에 수십 원이에요.</p>
       <button class="btn big primary wide" data-action="ai-ask-yes">연결할래요</button>
-      <button class="btn wide" data-action="ai-ask-off" style="margin-top:8px">다시 보지 않기</button>
+      <button class="btn wide" data-action="ai-ask-later" style="margin-top:8px">나중에 할게요</button>
+      <p class="meta ai-ask-later-note">한 번만 물어봐요. 나중에는 오른쪽 위 <strong>⚙ 설정 → AI 연결</strong>에서 언제든 할 수 있어요.</p>
     </div>`;
 }
 
@@ -3477,11 +3478,7 @@ document.addEventListener('click', async (e) => {
     case 'ai-ask-later':
       ui.aiAsk = false;
       changed = false;
-      break;
-    case 'ai-ask-off':
-      ui.aiAsk = false;
-      state.aiAskOff = true;
-      toast('다시 묻지 않을게요. 나중에 설정 → AI 연결에서 할 수 있어요.');
+      toast('나중에 ⚙ 설정 → AI 연결에서 할 수 있어요.');
       break;
     case 'mock-make':
       makeMock(id);
@@ -4018,7 +4015,7 @@ document.addEventListener('submit', async (e) => {
     // 하루 처음 열 때, 그리고 4시 반 알림을 눌러서 열었을 때
     // "오늘 봤다"는 표시는 화면에 실제로 띄웠을 때 남긴다 (새 버전으로 바로 다시 열려도 놓치지 않게)
     if (localStorage.getItem(POPUP_KEY) !== today() || /[?&]from=push/.test(location.search)) ui.popup = true;
-    if (localStorage.getItem(AI_ASK_KEY) !== today()) ui.aiAsk = true;
+    if (!localStorage.getItem(AI_ASK_KEY)) ui.aiAsk = true; // 이 기기에서 한 번도 답하지 않았을 때만
   } catch (e) {
     ui.popup = true;
   }

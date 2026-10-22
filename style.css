@@ -757,3 +757,5 @@ img { max-width: 100%; height: auto; }
 .bp-steps li strong { color: var(--text); }
 .bp-steps li.now strong { background: linear-gradient(transparent 58%, var(--hl-mark) 58%); }
 .bp-steps li.now { color: var(--text); }
+
+.ai-ask-later-note { margin: 10px 0 0; text-align: center; }
