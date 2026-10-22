@@ -62,7 +62,7 @@ function freshState() {
 }
 
 // sw.js의 CACHE 이름과 같이 올린다. 설정 맨 아래에 보여서 휴대폰이 새 버전인지 알 수 있다
-const APP_VERSION = 'v41';
+const APP_VERSION = 'v42';
 
 let state;
 const ui = { revealed: null, tab: 'today', openForm: null, openBook: null, openSubject: null, setup: false, planView: 'exam', popup: false };
@@ -1962,8 +1962,35 @@ function examHeader() {
     </section>
     ${rangeCard()}
     ${feasibilityCard()}
+    ${myBooksCard()}
     ${bookSizeCard()}`;
 }
+
+// 학교마다 교과서·문제집이 달라서, 과목별 내 책을 한곳에서 빼고 넣는다
+function myBooksCard() {
+  const active = (s) => state.materials.filter((m) => m.subjectId === s.id && !m.archived && !m.goalId);
+  if (!ui.booksOpen) {
+    const count = state.subjects.reduce((a, s) => a + active(s).length, 0);
+    return `<button class="recall-line size-line" data-action="books-open"><span class="recall-line-dot"></span><span><strong>내 책 바꾸기</strong> · 교과서·문제집 ${count}권 (학교마다 달라요)</span><span class="recall-line-go">열기 ›</span></button>`;
+  }
+  return `
+    <section class="card books-card">
+      <div class="range-card-top"><h2>내 책</h2><button class="linklike small" data-action="books-close">닫기</button></div>
+      <p class="sub">우리 학교 교과서(출판사)와 내가 푸는 문제집으로 바꿔 주세요. 안 쓰는 책은 ×로 빼요. 기록은 남아요.</p>
+      ${state.subjects.map((s) => `
+        <div class="books-subject">
+          <div class="books-name">${esc(s.name)}</div>
+          <div class="book-chips">${active(s).map((m) => `<span class="book-chip">${esc(m.name)}<button type="button" data-action="book-remove" data-id="${m.id}" aria-label="${esc(m.name)} 빼기">×</button></span>`).join('') || '<span class="meta">책이 없어요</span>'}</div>
+          <form data-form="add-book" data-id="${s.id}" class="add-book-form">
+            <input name="name" placeholder="예: ${esc(BOOK_EXAMPLE[s.name] || '교과서 (출판사)')}" aria-label="${esc(s.name)} 책 추가">
+            <button class="btn small" type="submit">추가</button>
+          </form>
+        </div>`).join('')}
+      <p class="meta">책 이름에 "교과서", "기출", "단어"가 들어가면 쓰는 법을 알아서 맞춰요. 추가한 책은 아래 "책 분량 맞추기"에서 범위를 넣어 주세요.</p>
+    </section>`;
+}
+
+const BOOK_EXAMPLE = { 국어: '국어 교과서 (비상)', 수학: '수학 교과서 (미래엔)', 영어: '영어 교과서 (YBM)', 통합사회: '통합사회 교과서 (천재)', 통합과학: '통합과학 교과서 (동아)', 한국사: '한국사 교과서 (지학사)', 정보: '정보 교과서 (출판사)' };
 
 // 분량을 짐작으로 잡은 책: 시험 범위(문제 번호·쪽)를 한 번에 받는다. 넣어야 하루 분량과 시간 계산이 맞는다
 function sizeBooks() {
@@ -3048,6 +3075,14 @@ document.addEventListener('click', async (e) => {
       if (msg) toast(msg);
       break;
     }
+    case 'books-open':
+      ui.booksOpen = true;
+      changed = false;
+      break;
+    case 'books-close':
+      ui.booksOpen = false;
+      changed = false;
+      break;
     case 'size-open':
       ui.sizeOpen = true;
       changed = false;
@@ -3385,7 +3420,7 @@ document.addEventListener('submit', async (e) => {
     if (!name || !s) return;
     addBook(s, name, null, null);
     refreshUntouchedPlan();
-    msg = `${name}을(를) 추가했어요. 표지나 목차를 사진으로 올리면 분량도 맞춰져요.`;
+    msg = `${name}을(를) 추가했어요. "책 분량 맞추기"에서 범위를 넣으면 하루 양이 맞춰져요.`;
   } else if (kind === 'log') {
     state.logs.push({
       id: uid(), created: Date.now(), date: t, subject: f.get('subject'), kind: '수업', text: '',

@@ -652,3 +652,11 @@ img { max-width: 100%; height: auto; }
 .size-row { padding: 10px 0; border-top: 1px solid var(--line); }
 .size-name { font-weight: 600; font-size: 15px; margin-bottom: 6px; }
 .confirm-buttons .btn:not(.primary) { background: var(--accent-soft); }
+
+.books-subject { border-top: 1px solid var(--line); padding: 12px 0; }
+.books-subject:first-of-type { border-top: 0; }
+.books-name { font-weight: 700; margin-bottom: 6px; }
+.book-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.book-chip { display: inline-flex; align-items: center; gap: 2px; background: var(--accent-soft); border-radius: 999px; padding: 4px 4px 4px 12px; font-size: 14px; }
+.book-chip button { border: 0; background: transparent; color: var(--muted); font-size: 18px; line-height: 1; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; }
+.books-subject .add-book-form { margin-top: 8px; }
