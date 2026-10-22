@@ -155,7 +155,11 @@ function bookWindows(state, m, subject, today) {
   const goal = goalOf(state, m);
   if (goal) return goalWindows(goal, roleOf(m), today, m.goalPart);
   const exam = examDateFor(state, subject);
-  if (!exam || exam < today) return [{ pass: 1, start: today, end: addDays(today, 27) }];
+  if (!exam || exam < today) {
+    // 시험일을 모르면 앞으로 4주를 한 기간으로. 기출은 시험이 정해진 뒤에 한다
+    if (roleOf(m) === 'past') return [{ pass: 1, start: addDays(today, 3650), end: addDays(today, 3650) }];
+    return [{ pass: 1, start: today, end: addDays(today, 27) }];
+  }
   const at = (n) => addDays(exam, -n);
   const role = roleOf(m);
   const hasAdvanced = state.materials.some((x) => x.subjectId === m.subjectId && !x.archived && roleOf(x) === 'advanced');
@@ -259,6 +263,8 @@ function deadlineDays(state, m, subject, today) {
 
 // maxMin: 한 번에 앉는 최대 시간 (방학처럼 긴 날은 2시간)
 function materialCandidate(state, m, subject, today, maxMin = 90) {
+  // 오답만 푸는 책(마플시너지 등)은 범위로 나가지 않고, 쌓인 오답 정리 때 쓴다
+  if (m.kind === '오답') return null;
   const rem = remaining(state, m, today);
   if (rem === 0) return null;
   const goal = goalOf(state, m);
@@ -333,6 +339,22 @@ function materialCandidate(state, m, subject, today, maxMin = 90) {
 
   // 마무리 기간에는 새 진도(기본·심화 문제집)를 줄이되, 학교 진도가 남았으면 조금씩은 넣는다
   const role = roleOf(m);
+  // 같은 과목에서 문제집이 교과서 개념보다 앞서가면 개념부터
+  if (!goal && (role === 'basic' || role === 'advanced')) {
+    const concept = state.materials.find((x) => x.subjectId === subject.id && !x.archived && !x.goalId && roleOf(x) === 'concept' && x.mode !== 'weekly' && x.total && (x.pass || 1) === 1);
+    if (concept) {
+      const cRatio = (concept.done || 0) / concept.total;
+      const pRatio = m.total ? (m.done || 0) / m.total : 0;
+      if (cRatio < 1 && pRatio > cRatio + 0.1) {
+        stageFit *= 0.35;
+        reasons.push('교과서 개념 먼저');
+      }
+    }
+  }
+  // 학원 숙제는 학원에서 검사하니 밀리면 먼저
+  if (m.kind === '숙제' && behind > 0) stageFit *= 1 + 3 * behind;
+  // 같은 과목 안의 순서: 교과서 개념과 기출이 먼저, 기본 문제집 다음, 심화는 남는 시간에
+  if (!goal) stageFit *= role === 'concept' && (m.pass || 1) > 1 ? 1 : ({ concept: 1.5, past: 1.8, basic: 1.1, advanced: 0.6 }[role] || 1);
   if (!goal && examLeft != null && examLeft <= FINAL_DAYS && (role === 'basic' || role === 'advanced')) {
     stageFit *= 0.5;
     reasons.push('마무리 기간 · 새 진도는 조금만');
@@ -361,6 +383,71 @@ function materialCandidate(state, m, subject, today, maxMin = 90) {
   };
 }
 
+function reviewBookName(state, subject) {
+  const book = state.materials.find((m) => m.subjectId === subject.id && !m.archived && m.kind === '오답');
+  return book ? ` (${book.name.replace(/\s*\(.*?\)/g, '')})` : '';
+}
+
+// ---------- 과목 균형 ----------
+// 시험까지 해야 할 양(시간)에 비례해 과목마다 몫을 나누고, 약한 과목은 몫을 더 준다.
+// 모든 과목이 같은 비율로 끝나 가도록 하는 것이 목표 (내신은 전 과목이 성적에 들어간다)
+const WEAK_BONUS = 1.5;
+
+function subjectNeed(state, subject, today) {
+  let need = 0;
+  const left = daysLeftFor(state, subject, today);
+  const weeks = left == null ? 4 : Math.max(1, left / 7);
+  state.materials.forEach((m) => {
+    if (m.subjectId !== subject.id || m.archived || m.goalId || m.kind === '오답') return;
+    if (m.mode === 'weekly') need += (m.weekly || 0) * m.minPerUnit * weeks;
+    // 심화 문제집은 시간이 남을 때 하는 것이라 몫을 나눌 때 절반만 센다
+    else need += (needMinutes(state, m, today) || 0) * (roleOf(m) === 'advanced' ? 0.5 : 1);
+  });
+  need += (subject.wrongPending || 0) * (subject.name.includes('수학') ? 5 : 2.5);
+  return need;
+}
+
+function subjectShares(state, today) {
+  const raw = {};
+  let sum = 0;
+  state.subjects.forEach((s) => {
+    const v = subjectNeed(state, s, today) * (s.weak ? WEAK_BONUS : 1);
+    raw[s.id] = v;
+    sum += v;
+  });
+  const shares = {};
+  state.subjects.forEach((s) => { shares[s.id] = sum ? raw[s.id] / sum : 1 / state.subjects.length; });
+  return shares;
+}
+
+// 시험까지 해야 할 양과 쓸 수 있는 시간. 모자라면 무엇을 먼저 지킬지 알려 주려고
+function feasibility(state, today) {
+  const exams = state.subjects.map((s) => examDateFor(state, s)).filter((d) => d && d > today).sort();
+  if (!exams.length) return null;
+  const last = exams[exams.length - 1];
+  let available = 0;
+  for (let d = today; d < last; d = addDays(d, 1)) {
+    available += effectiveBudget(state, d, (state.overrides || {})[d] || defaultAvailable(state, d), '보통').minutes;
+  }
+  let need = 0;
+  let core = 0;
+  const bySubject = {};
+  state.subjects.forEach((s) => {
+    const left = daysLeftFor(state, s, today);
+    const weeks = left == null ? 0 : Math.max(0, left / 7);
+    let sNeed = 0;
+    state.materials.forEach((m) => {
+      if (m.subjectId !== s.id || m.archived || m.goalId || m.kind === '오답') return;
+      const v = m.mode === 'weekly' ? (m.weekly || 0) * m.minPerUnit * weeks : needMinutes(state, m, today) || 0;
+      sNeed += v;
+      if (m.mode === 'weekly' || ['concept', 'past'].includes(roleOf(m))) core += v;
+    });
+    bySubject[s.id] = sNeed;
+    need += sNeed;
+  });
+  return { need: Math.round(need), core: Math.round(core), available: Math.round(available), ratio: need ? available / need : 1, bySubject };
+}
+
 function wrongPendingCandidate(state, subject, today) {
   if (!subject.wrongPending) return null;
   const mpu = subject.name.includes('수학') ? 5 : 2.5;
@@ -373,7 +460,7 @@ function wrongPendingCandidate(state, subject, today) {
     id: makeId(),
     type: 'wrongPending',
     subjectId: subject.id,
-    title: `${subject.name} · 쌓인 오답 정리`,
+    title: `${subject.name} · 쌓인 오답 정리${reviewBookName(state, subject)}`,
     amount: units,
     unit: '문제',
     minutes: Math.round(units * mpu),
@@ -477,22 +564,79 @@ function generatePlan(state, today, budget, opts = {}) {
   });
   candidates.sort((a, b) => b.score - a.score);
 
+  const cap = long ? 3 : 2;
   const perSubject = {};
-  for (const c of candidates) {
-    if (left < 15) break;
-    if ((perSubject[c.subjectId] || 0) >= (long ? 3 : 2)) continue;
-    if (c.minutes > left) {
-      const material = state.materials.find((m) => m.id === c.materialId);
-      const mpu = material ? material.minPerUnit : c.minutes / c.amount;
-      const units = Math.floor(left / mpu);
-      if (units < 1) continue;
-      c.amount = units;
-      c.minutes = Math.round(units * mpu);
-      c.detail = c.detail.replace(/^\d+/, String(units));
+  const used = new Set();
+  // 과제를 남은 시간(limit)에 맞게 줄인다. 너무 짧아지면 넣지 않는다
+  function fit(c, limit) {
+    if (c.minutes <= limit) return true;
+    if (c.type === 'final' && c.unit !== '문제') {
+      c.minutes = limit;
+      return limit >= 20;
     }
+    const material = state.materials.find((m) => m.id === c.materialId);
+    const mpu = material ? material.minPerUnit : c.minutes / c.amount;
+    const units = Math.floor(limit / mpu);
+    if (units < 1 || units * mpu < Math.min(20, c.minutes)) return false;
+    c.amount = units;
+    c.minutes = Math.round(units * mpu);
+    c.detail = c.detail.replace(/^\d+/, String(units));
+    return true;
+  }
+  function take(c) {
     tasks.push(c);
+    used.add(c);
     left -= c.minutes;
     perSubject[c.subjectId] = (perSubject[c.subjectId] || 0) + 1;
+  }
+
+  // 1) 과목 몫: 최근 6일 + 오늘 공부 시간을 과목별 몫대로 나눴을 때 덜 한 과목부터
+  const shares = subjectShares(state, today);
+  const weekAgo = addDays(today, -6);
+  const spent = {};
+  let spentAll = 0;
+  state.sessions.forEach((x) => {
+    if (x.date >= weekAgo && x.date < today && x.subjectId) {
+      spent[x.subjectId] = (spent[x.subjectId] || 0) + (x.minutes || 0);
+      spentAll += x.minutes || 0;
+    }
+  });
+  const pool = spentAll + Math.max(0, left);
+  const owed = {};
+  state.subjects.forEach((s) => { owed[s.id] = (shares[s.id] || 0) * pool - (spent[s.id] || 0); });
+  const bySubject = {};
+  candidates.forEach((c) => { (bySubject[c.subjectId] = bySubject[c.subjectId] || []).push(c); });
+  // 마무리 기간 과제는 몫과 상관없이 먼저
+  candidates.filter((c) => c.type === 'final').forEach((c) => {
+    if (left >= 15 && fit(c, left)) {
+      take(c);
+      owed[c.subjectId] -= c.minutes;
+    }
+  });
+  for (let guard = 0; guard < 20 && left >= 15; guard++) {
+    const next = state.subjects
+      .filter((s) => owed[s.id] >= 15 && (perSubject[s.id] || 0) < cap && (bySubject[s.id] || []).some((c) => !used.has(c)))
+      .sort((a, b) => owed[b.id] - owed[a.id])[0];
+    if (!next) break;
+    const c = bySubject[next.id].find((x) => !used.has(x));
+    // 한 번 앉으면 최소 30분은 하도록, 몫이 작아도 30분(또는 한 단위)까지는 준다
+    const mat = state.materials.find((m) => m.id === c.materialId);
+    const oneUnit = mat ? Math.ceil(mat.minPerUnit) : 0;
+    const limit = Math.min(left, Math.max(30, oneUnit, Math.round(owed[next.id])));
+    if (!fit(c, limit)) {
+      used.add(c);
+      continue;
+    }
+    if (!c.reasons.includes('과목 균형')) c.reasons.unshift('과목 균형');
+    take(c);
+    owed[next.id] -= c.minutes;
+  }
+  // 2) 남은 시간은 점수가 높은 순서대로
+  for (const c of candidates) {
+    if (left < 15) break;
+    if (used.has(c) || (perSubject[c.subjectId] || 0) >= cap) continue;
+    if (!fit(c, left)) continue;
+    take(c);
   }
   return tasks;
 }
@@ -656,7 +800,7 @@ if (typeof module !== 'undefined') {
   module.exports = {
     STAGES, KINDS, PROJECT_STAGES, LOG_INTERVALS, WRONG_INTERVALS, FINAL_DAYS, finalStep,
     toKey, addDays, diffDays, weekStart, dayIndexMon,
-    remaining, needMinutes, recallMinutes, deadlineDays, goalOf, roleOf, bookWindows, currentWindow, ROLES, ROLE_LABEL, daysLeftFor, guideFor, KIND_METHOD, completionFactor, effectiveBudget, defaultAvailable,
+    remaining, needMinutes, recallMinutes, subjectShares, subjectNeed, feasibility, deadlineDays, goalOf, roleOf, bookWindows, currentWindow, ROLES, ROLE_LABEL, daysLeftFor, guideFor, KIND_METHOD, completionFactor, effectiveBudget, defaultAvailable,
     generatePlan, applySession, subjectSnapshot, recommend, trapsFor, isActive,
   };
 }

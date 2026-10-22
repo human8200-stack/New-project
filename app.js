@@ -62,7 +62,7 @@ function freshState() {
 }
 
 // sw.js의 CACHE 이름과 같이 올린다. 설정 맨 아래에 보여서 휴대폰이 새 버전인지 알 수 있다
-const APP_VERSION = 'v32';
+const APP_VERSION = 'v33';
 
 let state;
 const ui = { revealed: null, tab: 'today', openForm: null, openBook: null, openSubject: null, setup: false, planView: 'exam', popup: false };
@@ -1077,7 +1077,7 @@ function guessKind(name) {
   return '문제집';
 }
 
-const DEFAULT_TOTAL = { 문제: 500, 쪽: 150, 회: 5, Day: 40, 단원: 6, 지문: 20 };
+const DEFAULT_TOTAL = { 문제: 300, 쪽: 150, 회: 5, Day: 40, 단원: 6, 지문: 20 };
 const DEFAULT_SPEED = { 문제집: 3, 오답: 5, 기출: 50, 교과서: 5, 암기: 4, 단어: 20, 모의고사: 80, 지문: 20, 숙제: 1.5 };
 
 function addBook(subject, name, unit, total) {
@@ -1278,6 +1278,78 @@ function photoCard(compact) {
   return '';
 }
 
+// ---------- 공부 시간: 학원 가는 요일과 약한 과목 ----------
+
+const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
+const ACADEMY_CHOICES = [[30, '30분'], [60, '1시간'], [90, '1시간 30분'], [120, '2시간'], [180, '3시간']];
+
+// 요일별 시간의 바탕: 학원 가는 날 / 학원 없는 평일 / 주말
+function schedule() {
+  const st = state.settings;
+  const wd = st.weekdayMinutes;
+  return {
+    days: st.academyDays || [],
+    academy: st.academyMinutes != null ? st.academyMinutes : Math.max(60, (wd[1] || 180) - 60),
+    free: st.freeMinutes != null ? st.freeMinutes : wd[1],
+    weekend: st.weekendMinutes != null ? st.weekendMinutes : wd[0],
+  };
+}
+
+function scheduleFields() {
+  const sc = schedule();
+  const order = [1, 2, 3, 4, 5, 6, 0];
+  return `
+    <label>학원 가는 요일</label>
+    <div class="chips">${order.map((d) => `<label class="chip"><input type="checkbox" name="academy" value="${d}"${sc.days.includes(d) ? ' checked' : ''}><span>${DAY_NAMES[d]}</span></label>`).join('')}</div>
+    <label>학원 가는 날</label>${timeChooser('academyMin', ACADEMY_CHOICES, sc.academy)}
+    <label>학원 없는 평일</label>${timeChooser('weekday', WEEKDAY_CHOICES, sc.free)}
+    <label>주말</label>${timeChooser('weekend', WEEKEND_CHOICES, sc.weekend)}
+    <p class="meta">학교·학원 끝나고 혼자 공부할 수 있는 시간이에요. 학원 숙제 시간도 여기에 들어가요.</p>`;
+}
+
+function weakFields() {
+  return `
+    <label>약한 과목 (시간을 더 줘요)</label>
+    <div class="chips">${state.subjects.map((x) => `<label class="chip"><input type="checkbox" name="weak" value="${x.id}"${x.weak ? ' checked' : ''}><span>${esc(x.name)}</span></label>`).join('')}</div>
+    <p class="meta">모든 과목이 시험 전에 끝나게 나누되, 고른 과목은 1.5배 시간을 줘요.</p>`;
+}
+
+// 폼에서 읽어 요일별 시간을 만든다
+function readSchedule(f) {
+  const st = state.settings;
+  st.academyDays = f.getAll('academy').map(Number);
+  st.academyMinutes = readTime(f, 'academyMin', schedule().academy);
+  st.freeMinutes = readTime(f, 'weekday', 180);
+  st.weekendMinutes = readTime(f, 'weekend', 360);
+  st.weekdayMinutes = DAY_NAMES.map((_, d) => (st.academyDays.includes(d) ? st.academyMinutes : d === 0 || d === 6 ? st.weekendMinutes : st.freeMinutes));
+  const weak = new Set(f.getAll('weak'));
+  state.subjects.forEach((x) => { x.weak = weak.has(x.id); });
+}
+
+// 시험까지 해야 할 양과 쓸 수 있는 시간
+function feasibilityCard() {
+  const fz = feasibility(state, today());
+  if (!fz || !fz.need) return '';
+  const h = (m) => `${Math.round(m / 60)}시간`;
+  const pctDone = Math.min(100, Math.round(fz.ratio * 100));
+  const enough = fz.ratio >= 1;
+  return `
+    <section class="card feas-card">
+      <h2>시간 계산</h2>
+      <div class="feas-bar"><div style="width:${pctDone}%"></div></div>
+      <p class="sub" style="margin:6px 0 0">시험까지 해야 할 양 <strong>${h(fz.need)}</strong> · 쓸 수 있는 시간 <strong>${h(fz.available)}</strong></p>
+      ${enough
+    ? '<p class="good-text" style="margin:6px 0 0">시간이 충분해요. 남는 시간은 2회독과 심화 문제로 써요.</p>'
+    : `<p class="warn-text" style="margin:6px 0 0">지금 시간으로는 약 ${pctDone}%만 할 수 있어요.${fz.core > fz.available ? ' 꼭 할 것만 해도 시간이 모자라요. 공부 시간을 늘리거나, 학원 숙제·책 양을 줄일 수 있는지 봐 주세요.' : ''} 그래서 이 순서로 지켜요:</p>
+       <ol class="feas-order">
+         <li>학원 숙제, 교과서 1회독, 기출 (${h(fz.core)})</li>
+         <li>기본 문제집 (쎈·기출픽 등)</li>
+         <li>심화 문제집과 2회독은 시간이 남을 때</li>
+       </ol>
+       <p class="meta">시간을 늘리거나 안 쓰는 책을 빼면 더 할 수 있어요. <button class="linklike small" data-action="go-tab" data-id="settings">공부 시간 바꾸기</button></p>`}
+    </section>`;
+}
+
 // ---------- 처음 한 번: 버튼만 눌러서 끝내기 ----------
 
 const PROGRESS_CHOICES = [[0, '아직 안 함'], [0.2, '조금 했어요'], [0.5, '절반쯤'], [0.85, '거의 다']];
@@ -1308,7 +1380,6 @@ function nearest(choices, value) {
 }
 
 function renderSetup() {
-  const wd = state.settings.weekdayMinutes;
   const groups = state.subjects.map((s) => {
     const mats = state.materials.filter((m) => m.subjectId === s.id);
     const books = mats.map((m) => {
@@ -1341,9 +1412,9 @@ function renderSetup() {
           <p class="meta">모르면 비워 두세요. 과목별 날짜와 범위는 나중에 계획표에서 넣어요.</p>
         </fieldset>
         <fieldset class="setup-group">
-          <legend>2. 학교·학원 끝나고 공부할 수 있는 시간</legend>
-          <div class="setup-row"><span class="setup-label">평일</span>${timeChooser('weekday', WEEKDAY_CHOICES, wd[1])}</div>
-          <div class="setup-row"><span class="setup-label">주말</span>${timeChooser('weekend', WEEKEND_CHOICES, wd[0])}</div>
+          <legend>2. 공부할 수 있는 시간</legend>
+          ${scheduleFields()}
+          ${weakFields()}
         </fieldset>
         <fieldset class="setup-group">
           <legend>3. 쓰는 책</legend>
@@ -1467,7 +1538,8 @@ function syllabusRows(s) {
       else if (w.pass === cur) status = remaining(state, m, t) === 0 && m.mode !== 'weekly' ? 'done' : t >= currentWindow(state, m, s, t).start ? 'now' : 'next';
       else status = 'next';
       let perDay = '';
-      if (m.mode === 'weekly') perDay = `매주 ${m.weekly}${m.unit}`;
+      if (m.kind === '오답') perDay = `틀린 문제가 생기면 여기서 다시 풀기${s.wrongPending ? ` · 지금 ${s.wrongPending}문제` : ''}`;
+      else if (m.mode === 'weekly') perDay = `매주 ${m.weekly}${m.unit}`;
       else if (status === 'now') perDay = `하루 ${amountText(Math.ceil((remaining(state, m, t) || 0) / deadlineDays(state, m, s, t)), m)}`;
       else if (status === 'next') {
         const left = w.pass === cur ? remaining(state, m, t) || 0 : m.total || 0;
@@ -1750,10 +1822,13 @@ function examHeader() {
         ${left != null && left >= 0 ? `<div class="exam-dday">D-${left || 'Day'}</div>` : ''}
       </div>
       ${phase ? `<div class="phase-now"><strong>${esc(phase.name)}</strong> (~${prettyDate(phase.to)}) · ${esc(phase.desc)}</div>` : ''}
-      <ul class="range-list">${rangeSummary()}</ul>
+      ${dates.length || state.subjects.some((x) => rangeTextOf(x))
+    ? `<ul class="range-list">${rangeSummary()}</ul>`
+    : '<p class="exam-empty">시험 날짜와 범위를 넣으면, 시험 날에 맞춰 과목별 계획을 다시 짜요. 학교 공지 글을 붙여넣기만 하면 돼요.</p>'}
       <button class="btn big wide range-open" data-action="range-open">시험 범위 넣기</button>
     </section>
-    ${rangeCard()}`;
+    ${rangeCard()}
+    ${feasibilityCard()}`;
 }
 
 function planSwitch() {
@@ -2181,7 +2256,6 @@ function reviewList() {
 }
 
 function renderSettings() {
-  const wd = state.settings.weekdayMinutes;
   // 처음 설정 전에는 아래 탭이 없으니 돌아갈 길을 둔다
   const back = state.setupDone ? '' : '<button class="btn wide back-btn" data-action="go-tab" data-id="today">← 처음 설정으로 돌아가기</button>';
   return `
@@ -2189,9 +2263,9 @@ function renderSettings() {
     <section class="card">
       <h2>공부할 수 있는 시간</h2>
       <form data-form="time">
-        <div class="setup-row"><span class="setup-label">평일</span>${timeChooser('weekday', WEEKDAY_CHOICES, wd[1])}</div>
-        <div class="setup-row"><span class="setup-label">주말</span>${timeChooser('weekend', WEEKEND_CHOICES, wd[0])}</div>
-        <button class="btn primary" type="submit">저장</button>
+        ${scheduleFields()}
+        ${weakFields()}
+        <button class="btn primary" type="submit" style="margin-top:12px">저장</button>
       </form>
     </section>
     ${syncCard()}
@@ -2879,9 +2953,7 @@ document.addEventListener('submit', async (e) => {
 
   if (kind === 'setup') {
     state.settings.examDate = f.get('examDate') || state.settings.examDate || '';
-    const wdMin = readTime(f, 'weekday', 180);
-    const weMin = readTime(f, 'weekend', 360);
-    state.settings.weekdayMinutes = [weMin, wdMin, wdMin, wdMin, wdMin, wdMin, weMin];
+    readSchedule(f);
     state.materials.forEach((m) => {
       m.archived = !f.get(`use-${m.id}`);
       if (m.mode === 'weekly') return;
@@ -3015,10 +3087,9 @@ document.addEventListener('submit', async (e) => {
     refreshUntouchedPlan();
     msg = '추가했어요.';
   } else if (kind === 'time') {
-    const wdMin = readTime(f, 'weekday', 180);
-    const weMin = readTime(f, 'weekend', 360);
-    state.settings.weekdayMinutes = [weMin, wdMin, wdMin, wdMin, wdMin, wdMin, weMin];
+    readSchedule(f);
     refreshUntouchedPlan();
+    msg = '저장했어요. 요일과 과목 균형에 맞춰 계획을 다시 짰어요.';
   } else if (kind === 'ai') {
     state.settings.aiUrl = (f.get('aiUrl') || '').trim();
     state.settings.aiCode = (f.get('aiCode') || '').trim();
