@@ -403,8 +403,9 @@ async function start(config) {
     }
   };
 
-  // ---------- 매일 4시 반 알림: 이 기기 알림 주소(토큰)를 계정 기록에 적어 둔다 ----------
-  // 보내는 쪽은 GitHub Actions(.github/workflows/daily-push.yml)가 매일 16:30에 한다
+  // ---------- 매일 정한 시간 알림: 이 기기의 웹 푸시 구독을 계정 기록(pushSubs)에 적어 둔다 ----------
+  // 보내는 쪽은 Netlify 예약 함수(1분마다)와 GitHub Actions(예비)다 (push/send.mjs).
+  // 웹 푸시 공개 키는 보내는 서버가 처음 돌 때 만들어 config/push 문서에 둔다.
   function pushSupported() {
     return 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
   }
@@ -413,29 +414,42 @@ async function start(config) {
     return window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
   }
 
-  async function messagingToken() {
-    const mod = await import(`${SDK}/firebase-messaging.js`);
-    const reg = await navigator.serviceWorker.ready;
-    const messaging = mod.getMessaging(firebaseApp);
-    return mod.getToken(messaging, { vapidKey: window.FIREBASE_VAPID, serviceWorkerRegistration: reg });
+  function keyBytes(base64url) {
+    const pad = '='.repeat((4 - (base64url.length % 4)) % 4);
+    const raw = atob((base64url + pad).replace(/-/g, '+').replace(/_/g, '/'));
+    return Uint8Array.from(raw, (c) => c.charCodeAt(0));
   }
 
-  // 알림 주소는 가끔 바뀐다. 켜 둔 기기면 열 때마다 새 주소를 계정에 적는다
+  async function publicKey() {
+    const snap = await fb.getDoc(fb.doc(db, 'config', 'push'));
+    return snap.exists() ? snap.data().publicKey : '';
+  }
+
+  async function subscribe() {
+    const key = await publicKey();
+    if (!key) throw new Error('알림 서버가 아직 준비되지 않았어요 (부모님 설정: Netlify 연결).');
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(key) });
+    return JSON.stringify(sub.toJSON());
+  }
+
+  // 구독은 가끔 바뀐다. 켜 둔 기기면 열 때마다 확인해서 계정에 적는다
   async function refreshPushToken() {
     try {
-      const old = localStorage.getItem('pushToken');
-      if (!old || !window.FIREBASE_VAPID || Notification.permission !== 'granted') return;
-      const token = await messagingToken();
-      if (token && token !== old) {
-        await fb.setDoc(ref, { pushOn: true, pushTokens: fb.arrayUnion(token) }, { merge: true });
-        await fb.setDoc(ref, { pushTokens: fb.arrayRemove(old) }, { merge: true });
-        localStorage.setItem('pushToken', token);
+      const old = localStorage.getItem('pushSub');
+      if (!old || Notification.permission !== 'granted') return;
+      const sub = await subscribe();
+      if (sub !== old) {
+        await fb.setDoc(ref, { pushOn: true, pushSubs: fb.arrayUnion(sub) }, { merge: true });
+        await fb.setDoc(ref, { pushSubs: fb.arrayRemove(old) }, { merge: true });
+        localStorage.setItem('pushSub', sub);
       }
     } catch (e) { /* 다음에 열 때 다시 */ }
   }
 
   try {
-    cloud.pushOn = !!localStorage.getItem('pushToken') && 'Notification' in window && Notification.permission === 'granted';
+    cloud.pushOn = !!localStorage.getItem('pushSub') && 'Notification' in window && Notification.permission === 'granted';
   } catch (e) {
     cloud.pushOn = false;
   }
@@ -443,10 +457,6 @@ async function start(config) {
   cloud.enablePush = async () => {
     if (!ref) {
       window.app.toast('먼저 로그인해 주세요.');
-      return false;
-    }
-    if (!window.FIREBASE_VAPID) {
-      window.app.toast('아직 알림 설정이 안 됐어요 (부모님 설정 필요).');
       return false;
     }
     if (!pushSupported()) {
@@ -461,9 +471,9 @@ async function start(config) {
         window.app.toast('알림이 꺼져 있어요. 설정 → 알림에서 공부 루틴을 허용해 주세요.');
         return false;
       }
-      const token = await messagingToken();
-      await fb.setDoc(ref, { pushOn: true, pushTime: cloud.pushTime, pushTokens: fb.arrayUnion(token) }, { merge: true });
-      localStorage.setItem('pushToken', token);
+      const sub = await subscribe();
+      await fb.setDoc(ref, { pushOn: true, pushTime: cloud.pushTime, pushSubs: fb.arrayUnion(sub) }, { merge: true });
+      localStorage.setItem('pushSub', sub);
       cloud.pushOn = true;
       window.app.toast(`켰어요. 매일 ${timeLabel(cloud.pushTime)}쯤 오늘 할 공부를 알려 드려요.`);
       return true;
@@ -488,11 +498,14 @@ async function start(config) {
   };
 
   cloud.disablePush = async () => {
-    const token = localStorage.getItem('pushToken');
+    const sub = localStorage.getItem('pushSub');
     try {
-      if (ref && token) await fb.setDoc(ref, { pushTokens: fb.arrayRemove(token) }, { merge: true });
+      if (ref && sub) await fb.setDoc(ref, { pushSubs: fb.arrayRemove(sub) }, { merge: true });
+      const reg = await navigator.serviceWorker.ready;
+      const live = await reg.pushManager.getSubscription();
+      if (live) await live.unsubscribe();
     } catch (e) { /* 이 기기에서는 끈다 */ }
-    localStorage.removeItem('pushToken');
+    localStorage.removeItem('pushSub');
     cloud.pushOn = false;
     window.app.toast('이 기기 알림을 껐어요.');
     return true;

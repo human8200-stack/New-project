@@ -2,6 +2,7 @@ rules_version = '2';
 
 // households/<uid>: 계정마다 기록 문서 하나. 자기 계정의 기록만 읽고 쓸 수 있다.
 // ids/<아이디>: 아이디 → 계정(uid)과 비밀번호 찾기용 이메일. 아이디를 알아야만 하나씩 읽을 수 있고 목록은 볼 수 없다.
+// config/<이름>: 알림 공개 키처럼 앱이 읽기만 하는 설정. secrets/는 규칙이 없어서 앱에서는 아무도 못 읽는다 (알림 서버만).
 service cloud.firestore {
   match /databases/{database}/documents {
     match /households/{uid} {
@@ -18,6 +19,10 @@ service cloud.firestore {
         && id.matches('^[a-z0-9_]{3,20}$');
       allow update: if request.auth != null && resource.data.uid == request.auth.uid
         && request.resource.data.uid == request.auth.uid;
+    }
+
+    match /config/{name} {
+      allow get: if true;
     }
   }
 }
