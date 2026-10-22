@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>공부 루틴 체험판</title>
+  <meta name="description" content="예시 기록이 들어 있는 공부 루틴 체험판. 마음껏 눌러 봐도 진짜 기록에는 영향이 없어요.">
+  <meta property="og:title" content="공부 루틴 체험판">
+  <meta property="og:description" content="시험 날까지 과목별 공부를 알아서 짜 주는 앱. 예시로 둘러보기">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .demo-bar { background: var(--hl); color: var(--hl-text); font-size: 13px; padding: 8px 16px; display: flex; gap: 8px 10px; align-items: center; justify-content: center; flex-wrap: wrap; text-align: center; }
+    .demo-bar button, .demo-bar a { font: inherit; font-size: 12px; font-weight: 600; border: 0; background: var(--card); color: var(--text); border-radius: 999px; padding: 3px 10px; cursor: pointer; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="demo-bar">체험판이에요. 예시 기록이라 마음껏 눌러 봐도 돼요.
+    <button type="button" onclick="window.demoReset && window.demoReset()">예시로 되돌리기</button>
+    <a href="./">진짜 앱 열기</a>
+  </div>
+  <div id="demo-app"></div>
+  <script>
+    // 진짜 앱 화면(index.html)을 그대로 가져와 예시 기록으로 연다. 로그인·알림·서비스 워커는 붙이지 않는다
+    (async function () {
+      const html = await (await fetch('index.html', { cache: 'no-cache' })).text();
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      doc.querySelectorAll('script').forEach((s) => s.remove());
+      document.getElementById('demo-app').replaceWith(...doc.body.childNodes);
+      for (const src of ['planner.js', 'seed.js', 'demo.js', 'app.js']) {
+        await new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = src;
+          s.onload = resolve;
+          s.onerror = reject;
+          document.body.appendChild(s);
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

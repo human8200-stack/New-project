@@ -4,8 +4,10 @@
    remaining, needMinutes, completionFactor, effectiveBudget, defaultAvailable, generatePlan,
    applySession, subjectSnapshot, recommend, trapsFor, isActive, seedState */
 
-const DB_NAME = 'study-routine';
+// 체험판(demo.html)은 따로 저장해서 진짜 기록과 섞이지 않는다
+const DB_NAME = window.DEMO_STATE ? 'study-routine-demo' : 'study-routine';
 const STORE = 'kv';
+const POPUP_KEY = window.DEMO_STATE ? 'demoPopupDay' : 'popupDay';
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 const SLOTS = ['아침', '오후', '저녁', '밤'];
 
@@ -62,7 +64,7 @@ function freshState() {
 }
 
 // sw.js의 CACHE 이름과 같이 올린다. 설정 맨 아래에 보여서 휴대폰이 새 버전인지 알 수 있다
-const APP_VERSION = 'v43';
+const APP_VERSION = 'v44';
 
 let state;
 const ui = { revealed: null, tab: 'today', openForm: null, openBook: null, openSubject: null, setup: false, planView: 'exam', popup: false };
@@ -73,6 +75,11 @@ async function load() {
     saved = await dbGet('state');
   } catch (e) {
     toast('저장소를 열 수 없어요. 개인정보 보호 모드인지 확인해 주세요.');
+  }
+  if (!saved && window.DEMO_STATE) {
+    state = window.DEMO_STATE(freshState());
+    await save({ touch: false });
+    return;
   }
   if (saved && saved.version === 2) {
     state = Object.assign(freshState(), saved);
@@ -3518,9 +3525,9 @@ document.addEventListener('submit', async (e) => {
   await load();
   try {
     // 하루 처음 열 때, 그리고 4시 반 알림을 눌러서 열었을 때
-    if (localStorage.getItem('popupDay') !== today() || /[?&]from=push/.test(location.search)) {
+    if (localStorage.getItem(POPUP_KEY) !== today() || /[?&]from=push/.test(location.search)) {
       ui.popup = true;
-      localStorage.setItem('popupDay', today());
+      localStorage.setItem(POPUP_KEY, today());
     }
   } catch (e) {
     ui.popup = true;
@@ -3528,7 +3535,7 @@ document.addEventListener('submit', async (e) => {
   markReady();
   await render();
   initAi();
-  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  if (!window.DEMO_STATE && 'serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
     // 새 버전이 자리 잡으면 한 번 새로 연다. 처음 설치할 때는 새로 열지 않는다
     const hadController = !!navigator.serviceWorker.controller;
     let reloaded = false;
