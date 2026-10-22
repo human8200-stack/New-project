@@ -1,0 +1,29 @@
+# 매일 오후 4시 반(한국 시간) "오늘 할 공부" 알림을 보낸다. Firebase 유료 요금제 없이 GitHub이 대신 보낸다.
+# 필요한 비밀 값: FIREBASE_SERVICE_ACCOUNT (FIREBASE_SETUP.md 7번). 없으면 아무것도 보내지 않고 끝난다.
+# GitHub 예약 실행은 몇 분~30분쯤 늦어질 수 있다.
+name: 오늘 할 공부 알림
+
+on:
+  schedule:
+    - cron: '30 7 * * *' # UTC 07:30 = 한국 16:30
+  workflow_dispatch:
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 설치
+        working-directory: push
+        run: npm ci --no-audit --no-fund
+
+      - name: 보내기
+        working-directory: push
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: node send.mjs | tee -a "$GITHUB_STEP_SUMMARY"

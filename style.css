@@ -629,3 +629,18 @@ img { max-width: 100%; height: auto; }
 .feas-bar div { height: 100%; background: var(--hl); border-radius: 999px; }
 .feas-order { margin: 6px 0 4px; padding-left: 20px; font-size: 14px; display: grid; gap: 2px; }
 .exam-empty { margin: 8px 0 4px; font-size: 14px; opacity: 0.9; }
+
+/* 예상 시험 범위 */
+.guess { display: inline-block; font-size: 11px; font-weight: 700; padding: 0 6px; border-radius: 999px; background: var(--hl); color: var(--hl-text); vertical-align: 1px; }
+.guess-toggle { display: flex; gap: 8px; align-items: flex-start; margin: 10px 0 4px; font-size: 14px; color: inherit; }
+.guess-toggle input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--hl); flex: 0 0 auto; }
+.guess-note { margin: 2px 0 6px; font-size: 13px; opacity: 0.8; }
+.guess-warn { margin: 8px 0 10px; font-size: 13px; padding: 8px 10px; border-radius: 10px; background: rgba(225, 245, 111, 0.16); }
+
+/* 오늘 할 공부 팝업 */
+.popup-top .dday { font-size: 13px; }
+.brief { padding: 4px 2px 2px; }
+.brief-sum { font-size: 15px; font-weight: 700; margin: 0 0 8px; }
+.brief-list { margin: 0 0 14px; padding-left: 20px; display: grid; gap: 8px; }
+.brief-list li strong { display: block; font-size: 15px; }
+.brief-list li .meta { font-size: 13px; }
