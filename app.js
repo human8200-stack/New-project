@@ -8,7 +8,7 @@
 const DB_NAME = window.DEMO_STATE ? 'study-routine-demo' : 'study-routine';
 const STORE = 'kv';
 const POPUP_KEY = window.DEMO_STATE ? 'demoPopupDay' : 'popupDay';
-const AI_ASK_KEY = window.DEMO_STATE ? 'demoAiAskDay' : 'aiAskDay';
+const AI_ASK_KEY = window.DEMO_STATE ? 'demoAiAskDay' : 'aiAskShown';
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 const SLOTS = ['아침', '오후', '저녁', '밤'];
 
@@ -66,7 +66,7 @@ function freshState() {
 }
 
 // sw.js의 CACHE 이름과 같이 올린다. 설정 맨 아래에 보여서 휴대폰이 새 버전인지 알 수 있다
-const APP_VERSION = 'v49';
+const APP_VERSION = 'v50';
 
 let state;
 const ui = { revealed: null, tab: 'today', openForm: null, openBook: null, openSubject: null, setup: false, planView: 'exam', popup: false };
@@ -3182,12 +3182,20 @@ const VIEWS = {
 };
 const MORE_TABS = [];
 
+function markShown(key) {
+  try {
+    localStorage.setItem(key, today());
+  } catch (e) { /* 저장 못 하면 다음에 한 번 더 보여도 괜찮다 */ }
+}
+
 async function render() {
   if (!state) return; // 아직 불러오는 중
   if (ensurePlan()) await save({ touch: false });
   if (!VIEWS[ui.tab]) ui.tab = 'today';
   document.getElementById('view').innerHTML = VIEWS[ui.tab]();
-  document.getElementById('popup').innerHTML = popupHtml();
+  const popup = popupHtml();
+  document.getElementById('popup').innerHTML = popup;
+  if (popup) markShown(popup.includes('ai-ask') ? AI_ASK_KEY : POPUP_KEY);
   if (ui.scrollToAi) {
     ui.scrollToAi = false;
     const card = document.querySelector('.ai-key-card');
@@ -4006,14 +4014,9 @@ document.addEventListener('submit', async (e) => {
   await load();
   try {
     // 하루 처음 열 때, 그리고 4시 반 알림을 눌러서 열었을 때
-    if (localStorage.getItem(POPUP_KEY) !== today() || /[?&]from=push/.test(location.search)) {
-      ui.popup = true;
-      localStorage.setItem(POPUP_KEY, today());
-    }
-    if (localStorage.getItem(AI_ASK_KEY) !== today()) {
-      ui.aiAsk = true;
-      localStorage.setItem(AI_ASK_KEY, today());
-    }
+    // "오늘 봤다"는 표시는 화면에 실제로 띄웠을 때 남긴다 (새 버전으로 바로 다시 열려도 놓치지 않게)
+    if (localStorage.getItem(POPUP_KEY) !== today() || /[?&]from=push/.test(location.search)) ui.popup = true;
+    if (localStorage.getItem(AI_ASK_KEY) !== today()) ui.aiAsk = true;
   } catch (e) {
     ui.popup = true;
   }
