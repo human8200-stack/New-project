@@ -62,7 +62,7 @@ function freshState() {
 }
 
 // sw.js의 CACHE 이름과 같이 올린다. 설정 맨 아래에 보여서 휴대폰이 새 버전인지 알 수 있다
-const APP_VERSION = 'v38';
+const APP_VERSION = 'v39';
 
 let state;
 const ui = { revealed: null, tab: 'today', openForm: null, openBook: null, openSubject: null, setup: false, planView: 'exam', popup: false };
@@ -255,18 +255,66 @@ function compressImage(file) {
 // ---------- 계획 ----------
 
 // 지난 날 계획에서 "못 했어요"를 누르지 않은 공부는 다 한 것으로 기록한다 (최근 7일)
+// 지난 날 남은 공부는 다 한 것으로 치지 않는다. 기록하지 않은 공부는 안 한 것으로 두고(남은 양은 다음 계획에 다시 들어간다),
+// 가장 최근 날은 다음에 열 때 "어제 공부 어땠어요?"로 한 번 묻는다
 function autoClosePastDays() {
   const t = today();
-  let closed = 0;
+  let latest = '';
   Object.keys(state.plans).filter((d) => d < t && d >= addDays(t, -7)).sort().forEach((d) => {
+    let open = 0;
     state.plans[d].tasks.forEach((task) => {
-      if (task.status !== 'todo' || task.type === 'project') return;
-      completeTask(task, { amount: task.amount, minutes: task.minutes, auto: true, assumed: true, date: d });
-      task.auto = true;
-      closed += 1;
+      if (task.status !== 'todo') return;
+      task.status = 'skipped';
+      task.unconfirmed = true;
+      open += 1;
     });
+    if (open && !(state.checkins || {})[d]) latest = d;
   });
-  return closed;
+  if (latest) state.askDay = latest;
+  if (state.askDay && state.askDay < addDays(t, -7)) state.askDay = '';
+  return latest;
+}
+
+// "어제 공부 어땠어요?" 답: 다 했어요 / 절반쯤 / 못 했어요
+function confirmDay(feel) {
+  const d = state.askDay;
+  const plan = d && state.plans[d];
+  if (plan) {
+    plan.tasks.filter((x) => x.unconfirmed).forEach((task) => {
+      task.unconfirmed = false;
+      if (feel === 'none') return;
+      const ratio = feel === 'all' ? 1 : 0.5;
+      task.status = 'todo';
+      if (task.type === 'project') {
+        if (ratio === 1) completeTask(task, { amount: 1, minutes: task.minutes, auto: true, advance: false, date: d });
+        else task.status = 'skipped';
+        return;
+      }
+      completeTask(task, { amount: Math.max(1, Math.round(task.amount * ratio)), minutes: Math.round(task.minutes * ratio), auto: true, date: d });
+    });
+  }
+  state.askDay = '';
+  refreshUntouchedPlan(); // 어제 한 만큼 오늘 계획을 다시 맞춘다
+  return { all: '좋아요! 어제 한 만큼 진도에 넣었어요.', half: '절반 한 것으로 넣었어요. 남은 건 오늘부터 다시 나눠요.', none: '괜찮아요. 못 한 건 오늘부터 다시 나눠서 넣었어요.' }[feel] || '';
+}
+
+function askDayHtml() {
+  const d = state.askDay;
+  const plan = d && state.plans[d];
+  if (!plan) return '';
+  const list = plan.tasks.filter((x) => x.unconfirmed);
+  if (!list.length) return '';
+  return `
+    <div class="popup-top"><strong>${diffDays(d, today()) === 1 ? '어제' : prettyDate(d)} 공부는 어땠어요?</strong></div>
+    <div class="brief">
+      <p class="meta" style="margin:0 0 6px">기록하지 않은 공부예요. 한 만큼 진도에 넣고, 못 한 건 다시 나눠 드려요.</p>
+      <ol class="brief-list">${list.map((x) => `<li><strong>${esc(x.title)}</strong><span class="meta">${esc(taskLines(x).what)}</span></li>`).join('')}</ol>
+      <div class="confirm-buttons">
+        <button class="btn big primary" data-action="confirm-day" data-id="all">다 했어요</button>
+        <button class="btn big" data-action="confirm-day" data-id="half">절반쯤</button>
+        <button class="btn big" data-action="confirm-day" data-id="none">못 했어요</button>
+      </div>
+    </div>`;
 }
 
 function ensurePlan() {
@@ -770,6 +818,9 @@ function overallProgress() {
 
 // 처음 며칠: 기본 책·기본 시간으로 짠 계획이라는 것을 한 줄로 알리고, 누르면 고르는 화면으로
 function welcomeCard() {
+  if (state.askDay && askDayHtml()) {
+    return '<button class="recall-line ask-line" data-action="ask-open"><span class="recall-line-dot"></span><span><strong>어제 공부 기록하기</strong> · 한 번만 누르면 돼요</span><span class="recall-line-go">기록 ›</span></button>';
+  }
   if (!state.welcome) return '';
   return `<div class="recall-line welcome-line"><button class="welcome-go" data-action="welcome-books"><span class="recall-line-dot"></span><span>기본 책으로 짠 계획이에요</span><span class="recall-line-go">내 책·시간 고르기 ›</span></button><button class="welcome-x" data-action="welcome-close" aria-label="닫기">×</button></div>`;
 }
@@ -1910,7 +1961,35 @@ function examHeader() {
       <button class="btn big wide range-open" data-action="range-open">시험 범위 넣기</button>
     </section>
     ${rangeCard()}
-    ${feasibilityCard()}`;
+    ${feasibilityCard()}
+    ${bookSizeCard()}`;
+}
+
+// 분량을 짐작으로 잡은 책: 시험 범위(문제 번호·쪽)를 한 번에 받는다. 넣어야 하루 분량과 시간 계산이 맞는다
+function sizeBooks() {
+  return state.materials.filter((m) => !m.archived && !m.goalId && m.mode !== 'weekly' && m.approxTotal && !m.rangeGuess && m.kind !== '오답');
+}
+
+function bookSizeCard() {
+  const books = sizeBooks();
+  if (!books.length) return '';
+  if (!ui.sizeOpen) {
+    return `<button class="recall-line size-line" data-action="size-open"><span class="recall-line-dot"></span><span><strong>책 분량 맞추기</strong> · ${books.length}권이 짐작값이에요</span><span class="recall-line-go">넣기 ›</span></button>`;
+  }
+  const word = (m) => (m.unit === '쪽' ? '쪽' : m.unit === '문제' ? '번' : m.unit);
+  return `
+    <section class="card size-card">
+      <div class="range-card-top"><h2>책 분량 맞추기</h2><button class="linklike small" data-action="size-close">닫기</button></div>
+      <p class="sub">이번 시험에 이 책의 <strong>어디부터 어디까지</strong> 풀지 넣어 주세요. 모르는 책은 비워 두면 돼요. 표지·목차를 카메라로 찍어도 돼요.</p>
+      <form data-form="book-sizes">
+        ${books.map((m) => `
+          <div class="size-row">
+            <div class="size-name">${esc(subjectById(m.subjectId) ? subjectById(m.subjectId).name : '')} · ${esc(m.name)}</div>
+            <div class="edit-line"><input type="number" name="from-${m.id}" min="1" placeholder="처음" inputmode="numeric"><span>~</span><input type="number" name="to-${m.id}" min="1" placeholder="끝" inputmode="numeric"><span>${esc(word(m))}</span></div>
+          </div>`).join('')}
+        <button class="btn big primary wide" type="submit" style="margin-top:12px">저장</button>
+      </form>
+    </section>`;
 }
 
 // 진짜 범위가 나오기 전 예상 범위 켜기·끄기와, 교과서 밖 자료를 꼭 챙기라는 안내
@@ -2301,7 +2380,17 @@ function todayBrief() {
 }
 
 function popupHtml() {
-  if (!ui.popup || !state.setupDone || ui.setup) return '';
+  if (!state.setupDone || ui.setup) return '';
+  // 어제 기록이 비어 있으면 그것부터 (팝업을 닫아도 다음에 열 때 다시)
+  if (state.askDay && (ui.popup || ui.askOpen)) {
+    const ask = askDayHtml();
+    if (ask) {
+      return `
+    <div class="popup-back" data-action="popup-close"></div>
+    <div class="popup" role="dialog" aria-label="어제 공부">${ask}</div>`;
+    }
+  }
+  if (!ui.popup) return '';
   const items = recallItems();
   if (ui.popupStage !== 'recall') {
     const brief = todayBrief();
@@ -2923,6 +3012,27 @@ document.addEventListener('click', async (e) => {
       break;
     case 'popup-close':
       ui.popup = false;
+      ui.askOpen = false;
+      changed = false;
+      break;
+    case 'confirm-day': {
+      const msg = confirmDay(id);
+      ui.askOpen = false;
+      ui.popup = true;
+      ui.popupStage = '';
+      if (msg) toast(msg);
+      break;
+    }
+    case 'size-open':
+      ui.sizeOpen = true;
+      changed = false;
+      break;
+    case 'size-close':
+      ui.sizeOpen = false;
+      changed = false;
+      break;
+    case 'ask-open':
+      ui.askOpen = true;
       changed = false;
       break;
     case 'popup-recall':
@@ -3301,6 +3411,26 @@ document.addEventListener('submit', async (e) => {
     }
     render();
     return;
+  } else if (kind === 'book-sizes') {
+    let n = 0;
+    sizeBooks().forEach((m) => {
+      const from = num(f.get(`from-${m.id}`), 0);
+      const to = num(f.get(`to-${m.id}`), 0);
+      if (!from || !to || to < from) return;
+      const at = m.done ? (m.rangeFrom || 1) + m.done - 1 : 0; // 지금까지 푼 번호·쪽
+      m.rangeFrom = from;
+      m.total = to - from + 1;
+      m.approxTotal = false;
+      m.done = at ? Math.max(0, Math.min(m.total, at - from + 1)) : 0;
+      n += 1;
+    });
+    if (!n) {
+      toast('처음과 끝 번호를 넣은 책이 없어요.');
+      return;
+    }
+    if (!sizeBooks().length) ui.sizeOpen = false;
+    refreshUntouchedPlan();
+    msg = `${n}권 분량을 넣었어요. 하루 분량과 시간 계산을 다시 했어요.`;
   } else if (kind === 'auth-forgot') {
     ui.authId = (f.get('id') || '').trim().toLowerCase();
     if (window.cloud && window.cloud.sendReset && await window.cloud.sendReset(ui.authId)) ui.authMode = 'login';
