@@ -62,7 +62,7 @@ function freshState() {
 }
 
 // sw.js의 CACHE 이름과 같이 올린다. 설정 맨 아래에 보여서 휴대폰이 새 버전인지 알 수 있다
-const APP_VERSION = 'v35';
+const APP_VERSION = 'v36';
 
 let state;
 const ui = { revealed: null, tab: 'today', openForm: null, openBook: null, openSubject: null, setup: false, planView: 'exam', popup: false };
@@ -2570,14 +2570,24 @@ function pushCard() {
   const c = window.cloud;
   if (!c || !c.enablePush) return '';
   let body;
+  const label = (window.timeLabel || ((x) => x))(c.pushTime || '16:30');
+  // 30분 단위 (보내는 쪽이 30분마다 돈다)
+  const times = [];
+  for (let h = 6; h <= 23; h++) ['00', '30'].forEach((m) => times.push(`${String(h).padStart(2, '0')}:${m}`));
+  const picker = `
+    <label>알림 시간</label>
+    <select data-action="push-time" aria-label="알림 시간">${times.map((x) => `<option value="${x}"${x === (c.pushTime || '16:30') ? ' selected' : ''}>${esc((window.timeLabel || ((y) => y))(x))}</option>`).join('')}</select>
+    <p class="meta" style="margin-top:4px">아이패드·휴대폰이 같은 시간에 받아요. 정한 시간보다 몇 분~30분 늦게 올 수 있어요.</p>`;
   if (!c.userId) body = '<p class="sub" style="margin:0">위에서 로그인하면 켤 수 있어요.</p>';
   else if (!window.FIREBASE_VAPID) body = '<p class="sub" style="margin:0">부모님이 알림 설정(FIREBASE_SETUP.md 7번)을 마치면 켤 수 있어요.</p>';
   else if (c.pushOn) {
-    body = `<p class="sub"><span class="tag">켜짐</span> 매일 오후 4시 반쯤 이 기기로 오늘 할 공부를 알려 드려요.</p>
-      <button class="linklike small" data-action="push-off">이 기기 알림 끄기</button>`;
+    body = `<p class="sub"><span class="tag">켜짐</span> 매일 ${esc(label)}쯤 이 기기로 오늘 할 공부를 알려 드려요.</p>
+      ${picker}
+      <button class="linklike small" data-action="push-off" style="margin-top:8px">이 기기 알림 끄기</button>`;
   } else {
-    body = `<p class="sub">학교 끝날 즈음(오후 4시 반쯤) 오늘 할 공부와 시간을 알려 드려요. 아이패드·휴대폰 각각 켜 주세요.</p>
-      <button class="btn primary" data-action="push-on">알림 켜기</button>
+    body = `<p class="sub">정한 시간에 오늘 할 공부와 시간을 알려 드려요. 학교 끝날 즈음(오후 4시 반)을 추천해요. 아이패드·휴대폰 각각 켜 주세요.</p>
+      ${picker}
+      <button class="btn primary" data-action="push-on" style="margin-top:10px">알림 켜기</button>
       <p class="meta" style="margin-top:6px">아이폰·아이패드는 홈 화면에 추가한 앱에서만 알림을 받을 수 있어요.</p>`;
   }
   return `
@@ -3042,6 +3052,10 @@ document.addEventListener('change', async (e) => {
   const action = el.dataset.action;
   if (!action) return;
 
+  if (action === 'push-time') {
+    if (window.cloud && window.cloud.setPushTime && await window.cloud.setPushTime(el.value)) render();
+    return;
+  }
   if (action === 'guess-toggle') {
     state.settings.useGuess = el.checked;
     if (el.checked) applyGuesses();

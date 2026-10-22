@@ -45,7 +45,9 @@ const cloud = {
   sendReset() {},
   setRecovery() {},
   pushOn: false,
+  pushTime: '16:30', // 계정마다 하나 (아이패드·휴대폰 같은 시간)
   enablePush() {},
+  setPushTime() {},
   disablePush() {},
   statusText() {
     switch (this.status) {
@@ -86,6 +88,12 @@ function friendlyError(e) {
   if (code === 'permission-denied') return '권한이 없어요. Firestore 규칙을 게시했는지 확인해 주세요 (FIREBASE_SETUP.md 4번).';
   return (e && e.message) || '알 수 없는 오류';
 }
+
+function timeLabel(time) {
+  const [h, m] = String(time).split(':').map(Number);
+  return `${h < 12 ? '오전' : '오후'} ${h % 12 || 12}시${m ? ` ${m}분` : ''}`;
+}
+window.timeLabel = timeLabel;
 
 function maskEmail(email) {
   const [name, domain] = String(email).split('@');
@@ -207,6 +215,10 @@ async function start(config) {
   async function onRemote(snap) {
     if (!snap.exists()) return;
     const data = snap.data();
+    if (data.pushTime && data.pushTime !== cloud.pushTime) {
+      cloud.pushTime = data.pushTime;
+      window.app.syncChanged();
+    }
     const local = window.app.getState();
     const localAt = local.updatedAt || 0;
     const remoteAt = data.updatedAt || 0;
@@ -450,13 +462,27 @@ async function start(config) {
         return false;
       }
       const token = await messagingToken();
-      await fb.setDoc(ref, { pushOn: true, pushTokens: fb.arrayUnion(token) }, { merge: true });
+      await fb.setDoc(ref, { pushOn: true, pushTime: cloud.pushTime, pushTokens: fb.arrayUnion(token) }, { merge: true });
       localStorage.setItem('pushToken', token);
       cloud.pushOn = true;
-      window.app.toast('켰어요. 매일 오후 4시 반쯤 오늘 할 공부를 알려 드려요.');
+      window.app.toast(`켰어요. 매일 ${timeLabel(cloud.pushTime)}쯤 오늘 할 공부를 알려 드려요.`);
       return true;
     } catch (e) {
       window.app.toast(`알림을 켜지 못했어요: ${friendlyError(e)}`);
+      return false;
+    }
+  };
+
+  cloud.setPushTime = async (time) => {
+    if (!/^\d{2}:\d{2}$/.test(String(time)) || !ref) return false;
+    try {
+      // 바꾼 시간이 오늘 아직 안 지났으면 오늘도 받도록, 보낸 날 표시를 지운다
+      await fb.setDoc(ref, { pushTime: time, pushSent: '' }, { merge: true });
+      cloud.pushTime = time;
+      window.app.toast(`매일 ${timeLabel(time)}쯤 알려 드릴게요.`);
+      return true;
+    } catch (e) {
+      window.app.toast(friendlyError(e));
       return false;
     }
   };
