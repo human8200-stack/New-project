@@ -62,7 +62,7 @@ function freshState() {
 }
 
 // sw.js의 CACHE 이름과 같이 올린다. 설정 맨 아래에 보여서 휴대폰이 새 버전인지 알 수 있다
-const APP_VERSION = 'v33';
+const APP_VERSION = 'v35';
 
 let state;
 const ui = { revealed: null, tab: 'today', openForm: null, openBook: null, openSubject: null, setup: false, planView: 'exam', popup: false };
@@ -92,6 +92,12 @@ async function load() {
   if (!state.setupDone) {
     autoSetup();
     await save({ touch: false }); // 다른 기기 기록을 불러오면 그쪽이 이기도록 사람이 바꾼 것으로 치지 않는다
+  }
+  // 진짜 범위가 나오기 전이면 예상 범위로 (오늘 계획이 아직 손대지 않은 것이면 다시 짠다)
+  if (applyGuesses()) {
+    const plan = state.plans[today()];
+    if (plan && plan.tasks.every((x) => x.status === 'todo')) delete state.plans[today()];
+    await save({ touch: false });
   }
 }
 
@@ -266,6 +272,7 @@ function autoClosePastDays() {
 function ensurePlan() {
   const t = today();
   if (state.plans[t] || !state.setupDone) return false;
+  applyGuesses(); // 시기가 바뀌면 (중간 → 기말) 예상도 바뀐다
   autoClosePastDays();
   autoDiagnose();
   const override = (state.overrides || {})[t];
@@ -1185,11 +1192,16 @@ function applyPhotoItems(items, jpegs) {
         if (!es) return;
         if (/^\d{4}-\d{2}-\d{2}$/.test(String(e.date))) {
           es.examDate = e.date;
+          es.dateGuess = false;
           dates.push(e.date);
         }
-        if (e.range) es.examRange = String(e.range);
+        if (e.range) {
+          es.examRange = String(e.range);
+          es.rangeGuess = false;
+        }
         const m = pageMaterial(es.id);
         if (m && Number(e.endPage) > 0) {
+          m.rangeGuess = false;
           const from = Number(e.startPage) > 0 ? Number(e.startPage) : (m.approxTotal ? 1 : m.rangeFrom || 1);
           m.rangeFrom = from;
           m.total = Math.max(1, Number(e.endPage) - from + 1);
@@ -1719,9 +1731,78 @@ function rangeTextOf(s) {
 }
 
 // 한 과목의 시험일과 범위를 저장하고 교과서 범위를 맞춘다
+// ---------- 예상 시험 범위: 진짜 범위가 나오기 전까지 ----------
+// 학교마다 쪽수는 달라도 학기 앞 절반이 중간, 뒤 절반이 기말인 경우가 많다 (작년 여러 학교 범위 기준).
+// 진짜 날짜·범위를 넣으면 그 과목은 예상이 지워진다.
+function examGuess(t) {
+  const y = Number(t.slice(0, 4));
+  const md = t.slice(5);
+  if (md >= '03-01' && md <= '04-30') return { name: '1학기 중간고사', date: `${y}-04-28`, frac: [0, 0.5], math: '다항식 ~ 복소수와 이차방정식' };
+  if (md >= '05-01' && md <= '07-10') return { name: '1학기 기말고사', date: `${y}-07-03`, frac: [0.5, 1], math: '이차방정식과 이차함수 ~ 경우의 수·행렬' };
+  if (md >= '07-11' && md <= '10-15') return { name: '2학기 중간고사', date: `${y}-10-13`, frac: [0, 0.5], math: '도형의 방정식 (평면좌표 ~ 도형의 이동)' };
+  if (md >= '10-16' && md <= '12-20') return { name: '2학기 기말고사', date: `${y}-12-08`, frac: [0.5, 1], math: '집합과 명제 ~ 유리함수·무리함수' };
+  return { name: '1학기 중간고사', date: `${md >= '12-21' ? y + 1 : y}-04-28`, frac: [0, 0.5], math: '다항식 ~ 복소수와 이차방정식' };
+}
+
+const BOOK_PAGES = 160; // 교과서 쪽수를 모를 때의 짐작
+
+function applyGuesses() {
+  if (state.settings.useGuess === false) return false;
+  const g = examGuess(today());
+  let changed = false;
+  state.subjects.forEach((x) => {
+    if (x.examRange && !x.rangeGuess) return; // 진짜 범위가 있다
+    if (!x.examDate || x.dateGuess) {
+      if (x.examDate !== g.date) changed = true;
+      x.examDate = g.date;
+      x.dateGuess = true;
+    }
+    const m = pageMaterial(x.id);
+    if (m && (m.rangeGuess || m.approxTotal)) {
+      const pages = m.bookPages || BOOK_PAGES;
+      const from = Math.floor(pages * g.frac[0]) + 1;
+      const to = Math.round(pages * g.frac[1]);
+      if (m.rangeFrom !== from || m.total !== to - from + 1) changed = true;
+      m.rangeFrom = from;
+      m.total = to - from + 1;
+      m.approxTotal = true;
+      m.rangeGuess = true;
+    }
+    const text = `예상 · ${g.name}: 교과서 ${g.frac[0] ? '뒤쪽' : '앞쪽'} 절반${x.name === '수학' ? ` (보통 ${g.math})` : ''}`;
+    if (x.examRange !== text) changed = true;
+    x.examRange = text;
+    x.rangeGuess = true;
+  });
+  const dates = state.subjects.map((x) => x.examDate).filter(Boolean).sort();
+  if (dates.length) state.settings.examDate = dates[0];
+  return changed;
+}
+
+function clearGuesses() {
+  state.subjects.forEach((x) => {
+    if (x.rangeGuess) {
+      x.examRange = '';
+      x.rangeGuess = false;
+    }
+    if (x.dateGuess) {
+      x.examDate = '';
+      x.dateGuess = false;
+    }
+    const m = pageMaterial(x.id);
+    if (m) m.rangeGuess = false;
+  });
+  const dates = state.subjects.map((x) => x.examDate).filter(Boolean).sort();
+  state.settings.examDate = dates.length ? dates[0] : '';
+}
+
 function setSubjectRange(s, { date, from, to, memo }) {
-  if (date) s.examDate = date;
+  if (date) {
+    s.examDate = date;
+    s.dateGuess = false;
+  }
+  if ((from && to && to > from) || memo) s.rangeGuess = false;
   const m = pageMaterial(s.id);
+  if (m && from && to && to > from) m.rangeGuess = false;
   if (from && to && to > from) {
     if (m) {
       const at = m.done ? (m.rangeFrom || 1) + m.done - 1 : 0; // 지금까지 본 쪽 번호
@@ -1749,11 +1830,11 @@ function rangeSummary() {
     const r = rangeTextOf(s);
     const d = s.examDate || exam;
     return `
-      <li class="range-row${r ? '' : ' missing'}">
+      <li class="range-row${r && !s.rangeGuess ? '' : ' missing'}">
         <span class="range-subject">${esc(s.name)}</span>
-        <span class="range-date">${d ? prettyDate(d) : '날짜 없음'}</span>
-        <span class="range-text">${r ? esc(r) : '범위 아직 없음'}</span>
-        ${r ? '<span class="range-ok" aria-label="넣음">✓</span>' : `<button class="chip-btn small-chip" data-action="range-open" data-id="manual">넣기</button>`}
+        <span class="range-date">${d ? prettyDate(d) : '날짜 없음'}${s.dateGuess ? ' <span class="guess">예상</span>' : ''}</span>
+        <span class="range-text">${r ? esc(r.replace(/^예상 · [^:]*: /, '')) : '범위 아직 없음'}</span>
+        ${r && !s.rangeGuess ? '<span class="range-ok" aria-label="넣음">✓</span>' : `<button class="chip-btn small-chip" data-action="range-open" data-id="manual">넣기</button>`}
       </li>`;
   }).join('');
 }
@@ -1825,10 +1906,23 @@ function examHeader() {
       ${dates.length || state.subjects.some((x) => rangeTextOf(x))
     ? `<ul class="range-list">${rangeSummary()}</ul>`
     : '<p class="exam-empty">시험 날짜와 범위를 넣으면, 시험 날에 맞춰 과목별 계획을 다시 짜요. 학교 공지 글을 붙여넣기만 하면 돼요.</p>'}
+      ${guessBox()}
       <button class="btn big wide range-open" data-action="range-open">시험 범위 넣기</button>
     </section>
     ${rangeCard()}
     ${feasibilityCard()}`;
+}
+
+// 진짜 범위가 나오기 전 예상 범위 켜기·끄기와, 교과서 밖 자료를 꼭 챙기라는 안내
+function guessBox() {
+  const anyGuess = state.subjects.some((x) => x.rangeGuess || x.dateGuess);
+  const allReal = state.subjects.every((x) => x.examRange && !x.rangeGuess && x.examDate && !x.dateGuess);
+  return `
+    ${allReal ? '' : `
+      <label class="guess-toggle"><input type="checkbox" data-action="guess-toggle"${state.settings.useGuess === false ? '' : ' checked'}>
+        <span>진짜 범위가 나오기 전까지 <strong>작년 평균 예상 범위</strong>로 계획하기</span></label>
+      ${anyGuess ? `<p class="guess-note">예상: ${esc(examGuess(today()).name)}은 보통 교과서 ${examGuess(today()).frac[0] ? '뒤쪽' : '앞쪽'} 절반이에요. 학교 공지가 나오면 "시험 범위 넣기"로 바꿔 주세요.</p>` : ''}`}
+    <p class="guess-warn">⚠ 계획에는 교과서 범위만 들어가요. <strong>학습지·프린트·부교재·학력평가 지문</strong>도 시험에 나오니 꼭 따로 챙기세요.</p>`;
 }
 
 function planSwitch() {
@@ -2185,9 +2279,37 @@ function recallLine(plan) {
   return '<div class="recall-line done static"><span class="recall-line-dot"></span><span>오늘 떠올릴 카드는 다 봤어요</span></div>';
 }
 
+// 하루 처음 열면: 오늘 할 공부 한눈에 → (있으면) 떠올릴 카드
+function todayBrief() {
+  const t = today();
+  const plan = state.plans[t];
+  if (!plan) return '';
+  const todo = plan.tasks.filter((x) => x.status === 'todo');
+  const minutes = todo.reduce((a, x) => a + x.minutes, 0);
+  const exam = state.settings.examDate;
+  const left = exam ? diffDays(t, exam) : null;
+  const n = recallItems().length;
+  return `
+    <div class="popup-top"><strong>${prettyDate(t)} 오늘 할 공부</strong>${left != null && left >= 0 ? `<span class="dday">D-${left || 'Day'}</span>` : ''}</div>
+    <div class="brief">
+      ${todo.length ? `
+        <p class="brief-sum">${todo.length}개 · 약 ${hm(minutes)}</p>
+        <ol class="brief-list">${todo.map((x) => `<li><strong>${esc(x.title)}</strong><span class="meta">${esc(taskLines(x).what)}</span></li>`).join('')}</ol>`
+    : '<p class="brief-sum">오늘 할 공부를 다 했어요!</p>'}
+      <button class="btn big primary wide" data-action="${n ? 'popup-recall' : 'popup-close'}">${n ? `좋아요 · 먼저 떠올릴 카드 ${n}장` : '좋아요'}</button>
+    </div>`;
+}
+
 function popupHtml() {
   if (!ui.popup || !state.setupDone || ui.setup) return '';
   const items = recallItems();
+  if (ui.popupStage !== 'recall') {
+    const brief = todayBrief();
+    if (!brief) return '';
+    return `
+    <div class="popup-back" data-action="popup-close"></div>
+    <div class="popup" role="dialog" aria-label="오늘 할 공부">${brief}</div>`;
+  }
   if (!items.length) return '';
   return `
     <div class="popup-back" data-action="popup-close"></div>
@@ -2269,6 +2391,7 @@ function renderSettings() {
       </form>
     </section>
     ${syncCard()}
+    ${pushCard()}
     ${aiKeyCard()}
     <section class="card">
       <h2>백업</h2>
@@ -2440,6 +2563,28 @@ function recoveryLine(c) {
         <div style="flex:3 1 200px"><input type="email" name="email" placeholder="내 이메일" autocapitalize="off" autocomplete="email" required></div>
         <div><button class="btn primary" type="submit">인증 메일 보내기</button></div>
       </form>` : ''}`;
+}
+
+// 매일 오후 4시 반 "오늘 할 공부" 알림 (Firebase 로그인을 쓸 때)
+function pushCard() {
+  const c = window.cloud;
+  if (!c || !c.enablePush) return '';
+  let body;
+  if (!c.userId) body = '<p class="sub" style="margin:0">위에서 로그인하면 켤 수 있어요.</p>';
+  else if (!window.FIREBASE_VAPID) body = '<p class="sub" style="margin:0">부모님이 알림 설정(FIREBASE_SETUP.md 7번)을 마치면 켤 수 있어요.</p>';
+  else if (c.pushOn) {
+    body = `<p class="sub"><span class="tag">켜짐</span> 매일 오후 4시 반쯤 이 기기로 오늘 할 공부를 알려 드려요.</p>
+      <button class="linklike small" data-action="push-off">이 기기 알림 끄기</button>`;
+  } else {
+    body = `<p class="sub">학교 끝날 즈음(오후 4시 반쯤) 오늘 할 공부와 시간을 알려 드려요. 아이패드·휴대폰 각각 켜 주세요.</p>
+      <button class="btn primary" data-action="push-on">알림 켜기</button>
+      <p class="meta" style="margin-top:6px">아이폰·아이패드는 홈 화면에 추가한 앱에서만 알림을 받을 수 있어요.</p>`;
+  }
+  return `
+    <section class="card">
+      <h2>오늘 할 공부 알림</h2>
+      ${body}
+    </section>`;
 }
 
 // 아이디·비밀번호로 로그인하면 기기마다 같은 기록 (Firebase 또는 우리 집 서버)
@@ -2655,6 +2800,12 @@ document.addEventListener('click', async (e) => {
       else window.open(url, '_blank');
       return;
     }
+    case 'push-on':
+      if (window.cloud && window.cloud.enablePush) window.cloud.enablePush().then(() => render());
+      return;
+    case 'push-off':
+      if (window.cloud && window.cloud.disablePush) window.cloud.disablePush().then(() => render());
+      return;
     case 'my-key-clear':
       if (!confirm('이 기기에서 Claude API 키를 지울까요?')) return;
       setMyKey('');
@@ -2763,6 +2914,10 @@ document.addEventListener('click', async (e) => {
       break;
     case 'popup-close':
       ui.popup = false;
+      changed = false;
+      break;
+    case 'popup-recall':
+      ui.popupStage = 'recall';
       changed = false;
       break;
     case 'goal-recommend': {
@@ -2887,6 +3042,16 @@ document.addEventListener('change', async (e) => {
   const action = el.dataset.action;
   if (!action) return;
 
+  if (action === 'guess-toggle') {
+    state.settings.useGuess = el.checked;
+    if (el.checked) applyGuesses();
+    else clearGuesses();
+    refreshUntouchedPlan();
+    await save();
+    render();
+    toast(el.checked ? '예상 범위로 계획을 짰어요.' : '예상 범위를 껐어요.');
+    return;
+  }
   if (action === 'ai-photos') {
     if (el.files && el.files.length) {
       const files = Array.from(el.files);
@@ -3149,7 +3314,8 @@ document.addEventListener('submit', async (e) => {
 (async () => {
   await load();
   try {
-    if (localStorage.getItem('popupDay') !== today()) {
+    // 하루 처음 열 때, 그리고 4시 반 알림을 눌러서 열었을 때
+    if (localStorage.getItem('popupDay') !== today() || /[?&]from=push/.test(location.search)) {
       ui.popup = true;
       localStorage.setItem('popupDay', today());
     }

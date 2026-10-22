@@ -1,0 +1,12 @@
+{
+  "name": "study-routine-push",
+  "private": true,
+  "type": "module",
+  "description": "매일 오후 4시 반 '오늘 할 공부' 알림 보내기 (GitHub Actions에서 실행)",
+  "scripts": {
+    "send": "node send.mjs"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.7.0"
+  }
+}

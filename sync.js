@@ -44,6 +44,9 @@ const cloud = {
   changePassword() {},
   sendReset() {},
   setRecovery() {},
+  pushOn: false,
+  enablePush() {},
+  disablePush() {},
   statusText() {
     switch (this.status) {
       case 'loading': return '연결 준비 중…';
@@ -272,6 +275,7 @@ async function start(config) {
     try {
       ref = await openHousehold(user);
       unsubscribe = fb.onSnapshot(ref, (snap) => { onRemote(snap); }, (e) => setStatus('error', friendlyError(e)));
+      refreshPushToken();
     } catch (e) {
       setStatus('error', friendlyError(e));
     }
@@ -385,6 +389,87 @@ async function start(config) {
       window.app.toast(friendlyError(e));
       return false;
     }
+  };
+
+  // ---------- 매일 4시 반 알림: 이 기기 알림 주소(토큰)를 계정 기록에 적어 둔다 ----------
+  // 보내는 쪽은 GitHub Actions(.github/workflows/daily-push.yml)가 매일 16:30에 한다
+  function pushSupported() {
+    return 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
+  }
+
+  function standalone() {
+    return window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+  }
+
+  async function messagingToken() {
+    const mod = await import(`${SDK}/firebase-messaging.js`);
+    const reg = await navigator.serviceWorker.ready;
+    const messaging = mod.getMessaging(firebaseApp);
+    return mod.getToken(messaging, { vapidKey: window.FIREBASE_VAPID, serviceWorkerRegistration: reg });
+  }
+
+  // 알림 주소는 가끔 바뀐다. 켜 둔 기기면 열 때마다 새 주소를 계정에 적는다
+  async function refreshPushToken() {
+    try {
+      const old = localStorage.getItem('pushToken');
+      if (!old || !window.FIREBASE_VAPID || Notification.permission !== 'granted') return;
+      const token = await messagingToken();
+      if (token && token !== old) {
+        await fb.setDoc(ref, { pushOn: true, pushTokens: fb.arrayUnion(token) }, { merge: true });
+        await fb.setDoc(ref, { pushTokens: fb.arrayRemove(old) }, { merge: true });
+        localStorage.setItem('pushToken', token);
+      }
+    } catch (e) { /* 다음에 열 때 다시 */ }
+  }
+
+  try {
+    cloud.pushOn = !!localStorage.getItem('pushToken') && 'Notification' in window && Notification.permission === 'granted';
+  } catch (e) {
+    cloud.pushOn = false;
+  }
+
+  cloud.enablePush = async () => {
+    if (!ref) {
+      window.app.toast('먼저 로그인해 주세요.');
+      return false;
+    }
+    if (!window.FIREBASE_VAPID) {
+      window.app.toast('아직 알림 설정이 안 됐어요 (부모님 설정 필요).');
+      return false;
+    }
+    if (!pushSupported()) {
+      window.app.toast(/iPhone|iPad/.test(navigator.userAgent) && !standalone()
+        ? '아이폰·아이패드는 홈 화면에 추가한 앱에서만 알림을 켤 수 있어요.'
+        : '이 브라우저는 알림을 지원하지 않아요.');
+      return false;
+    }
+    try {
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') {
+        window.app.toast('알림이 꺼져 있어요. 설정 → 알림에서 공부 루틴을 허용해 주세요.');
+        return false;
+      }
+      const token = await messagingToken();
+      await fb.setDoc(ref, { pushOn: true, pushTokens: fb.arrayUnion(token) }, { merge: true });
+      localStorage.setItem('pushToken', token);
+      cloud.pushOn = true;
+      window.app.toast('켰어요. 매일 오후 4시 반쯤 오늘 할 공부를 알려 드려요.');
+      return true;
+    } catch (e) {
+      window.app.toast(`알림을 켜지 못했어요: ${friendlyError(e)}`);
+      return false;
+    }
+  };
+
+  cloud.disablePush = async () => {
+    const token = localStorage.getItem('pushToken');
+    try {
+      if (ref && token) await fb.setDoc(ref, { pushTokens: fb.arrayRemove(token) }, { merge: true });
+    } catch (e) { /* 이 기기에서는 끈다 */ }
+    localStorage.removeItem('pushToken');
+    cloud.pushOn = false;
+    window.app.toast('이 기기 알림을 껐어요.');
+    return true;
   };
 
   cloud.changePassword = async (old, password) => {
