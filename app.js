@@ -66,7 +66,7 @@ function freshState() {
 }
 
 // sw.js의 CACHE 이름과 같이 올린다. 설정 맨 아래에 보여서 휴대폰이 새 버전인지 알 수 있다
-const APP_VERSION = 'v46';
+const APP_VERSION = 'v47';
 
 let state;
 const ui = { revealed: null, tab: 'today', openForm: null, openBook: null, openSubject: null, setup: false, planView: 'exam', popup: false };
@@ -1544,7 +1544,7 @@ function phasesFor(examDate) {
   const at = (n) => addDays(examDate, -n);
   const phases = [
     { name: '1단계 · 진도 끝내기', from: t, to: at(22), desc: '교과서 개념을 끝내고, 문제집을 한 번 다 풀어요. 틀린 문제는 사진으로 올려 두세요.' },
-    { name: '2단계 · 기출과 약점', from: at(21), to: at(FINAL_DAYS + 1), desc: '족보닷컴 군포고 기출을 풀고, 자주 틀리는 유형만 다시 봐요. 영어는 시험 범위 지문 전체를 분석해요.' },
+    { name: '2단계 · 기출과 약점', from: at(21), to: at(FINAL_DAYS + 1), desc: '우리 학교 기출(족보닷컴 등)을 풀고, 자주 틀리는 유형만 다시 봐요. 영어는 시험 범위 지문 전체를 분석해요.' },
     { name: '3단계 · 마무리', from: at(FINAL_DAYS), to: at(1), desc: '틀린 문제·별표 문제만 2회독 → 범위 전체 훑기 → 전날 실수 목록과 핵심 카드. 새 진도는 조금만 해요.' },
   ];
   return phases.filter((p) => p.to >= p.from || p === phases[phases.length - 1]).map((p) => ({
@@ -1566,6 +1566,86 @@ function teacherNote(s) {
   const since = s.lastStudied ? diffDays(s.lastStudied, t) : null;
   if (since != null && since >= 5) return `${since}일째 안 봤어요. 이번 주에 꼭 한 번은 봐요.`;
   return guideFor(s.name) || '';
+}
+
+// ---------- 큰 그림: 시험까지 어떻게 갈지 한 장으로 ----------
+
+const ROLE_SHORT = { concept: '개념', basic: '문제', advanced: '심화', past: '기출' };
+
+// 겹치는 기간은 줄을 나눠서 그린다
+function laneSegments(segs) {
+  const lanes = [];
+  segs.forEach((g) => {
+    let lane = lanes.find((l) => l[l.length - 1].to < g.from);
+    if (!lane) {
+      lane = [];
+      lanes.push(lane);
+    }
+    lane.push(g);
+  });
+  return lanes;
+}
+
+function bigPictureCard() {
+  const t = today();
+  const dates = state.subjects.map((s) => examDateFor(state, s)).filter((d) => d && d > t).sort();
+  if (!dates.length) return '';
+  const end = dates[dates.length - 1];
+  const span = diffDays(t, end) + 1;
+  const x = (d) => Math.max(0, Math.min(100, (diffDays(t, d) / span) * 100));
+  const w = (a, b) => Math.max(1.5, x(addDays(b, 1)) - x(a));
+  const first = dates[0];
+  const phases = phasesFor(first);
+  const shares = subjectShares(state, t);
+  const fz = feasibility(state, t);
+  const h = (m) => `${Math.round(m / 60)}시간`;
+
+  // 위쪽 단계 띠 (첫 시험 기준) + 날짜 눈금
+  const strip = phases.map((p, i) => `<div class="bp-phase p${i}${p.now ? ' now' : ''}" style="left:${x(p.from)}%;width:${w(p.from, p.to > end ? end : p.to)}%"><span>${esc(p.name.replace(/^\d단계 · /, ''))}</span></div>`).join('');
+  const ticks = [];
+  for (let d = t, k = 0; d <= end; d = addDays(d, 7), k++) ticks.push(`<span class="bp-tick" style="left:${x(d)}%">${k ? prettyDate(d).replace(/\(.\)/, '') : '오늘'}</span>`);
+
+  const rows = state.subjects.map((s) => {
+    const exam = examDateFor(state, s);
+    if (!exam || exam <= t) return '';
+    const segs = syllabusRows(s)
+      .filter((r) => r.status !== 'done' && r.m.mode !== 'weekly' && ROLE_SHORT[r.role])
+      .map((r) => ({ from: r.start < t ? t : r.start, to: r.w.end > exam ? exam : r.w.end, role: r.role, name: r.m.name.replace(/\s*\(.*?\)/g, '') }))
+      .filter((g) => g.to >= g.from)
+      .sort((a, b) => a.from.localeCompare(b.from));
+    const lanes = laneSegments(segs);
+    const fin = addDays(exam, -FINAL_DAYS);
+    const bars = lanes.map((lane) => `<div class="bp-lane">${lane.map((g) => `<div class="bp-seg r-${g.role}" style="left:${x(g.from)}%;width:${w(g.from, g.to)}%" title="${esc(g.name)} ${prettyDate(g.from)}~${prettyDate(g.to)}"><span>${esc(g.name)}</span></div>`).join('')}</div>`).join('');
+    return `
+      <button class="bp-row" data-action="bp-subject" data-id="${s.id}">
+        <span class="bp-name">${esc(s.name)}${s.weak ? '<i>약</i>' : ''}<small>${Math.round((shares[s.id] || 0) * 100)}%</small></span>
+        <span class="bp-track">
+          ${fin > t ? `<span class="bp-final" style="left:${x(fin)}%;width:${w(fin, exam)}%"></span>` : ''}
+          ${bars || '<span class="meta bp-empty">책이 없어요</span>'}
+          <span class="bp-exam" style="left:${x(exam)}%" title="${esc(s.name)} 시험 ${prettyDate(exam)}"></span>
+        </span>
+      </button>`;
+  }).join('');
+
+  const now = phases.find((p) => p.now);
+  return `
+    <section class="card bp-card">
+      <h2>큰 그림</h2>
+      <p class="bp-lead">시험까지 <strong>${diffDays(t, first)}일</strong>${fz ? ` · 해야 할 양 <strong>${h(fz.need)}</strong> / 쓸 수 있는 시간 <strong>${h(fz.available)}</strong>` : ''}</p>
+      ${fz && fz.ratio < 1 ? `<p class="warn-text bp-warn">시간이 ${Math.round(fz.ratio * 100)}%만 돼요. 학원 숙제 · 교과서 · 기출을 먼저 지키고, 심화와 2회독은 남는 시간에 해요.</p>` : ''}
+      <div class="bp-chart">
+        <div class="bp-head"><span class="bp-name"></span><span class="bp-track bp-phases">${strip}</span></div>
+        ${rows}
+        <div class="bp-head bp-axis"><span class="bp-name"></span><span class="bp-track">${ticks.join('')}</span></div>
+      </div>
+      <div class="bp-legend">
+        <span><i class="r-concept"></i>개념</span><span><i class="r-basic"></i>문제</span><span><i class="r-advanced"></i>심화</span><span><i class="r-past"></i>기출</span><span><i class="bp-final-key"></i>마무리</span><span><i class="bp-exam-key"></i>시험</span>
+      </div>
+      <ol class="bp-steps">
+        ${phases.map((p) => `<li class="${p.now ? 'now' : ''}"><strong>${esc(p.name)}</strong> <span class="meta">${prettyDate(p.from)} ~ ${prettyDate(p.to)}</span><div>${esc(p.desc)}</div></li>`).join('')}
+      </ol>
+      <p class="meta">${now ? `지금은 <strong>${esc(now.name)}</strong>이에요. ` : ''}과목 % 는 시험까지 그 과목에 쓰는 시간 비율이에요 (약한 과목은 더 많이). 과목을 누르면 아래에서 책별 계획을 볼 수 있어요.</p>
+    </section>`;
 }
 
 // ---------- 계획표: 과외 선생님이 처음에 주는 공부 계획표 ----------
@@ -1976,7 +2056,7 @@ function examHeader() {
       <button class="btn big wide range-open" data-action="range-open">시험 범위 넣기</button>
     </section>
     ${rangeCard()}
-    ${feasibilityCard()}
+    ${bigPictureCard() || feasibilityCard()}
     ${myBooksCard()}
     ${bookSizeCard()}`;
 }
@@ -3347,6 +3427,17 @@ document.addEventListener('click', async (e) => {
     case 'key-cards':
       makeKeyCards(id);
       return;
+    case 'bp-subject': {
+      ui.openSubject = id;
+      changed = false;
+      await render();
+      const el = document.querySelector(`details.subject-syl[data-subject="${id}"]`);
+      if (el) {
+        el.open = true;
+        el.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      }
+      return;
+    }
     case 'ai-ask-yes':
       ui.aiAsk = false;
       ui.aiFocus = true;
