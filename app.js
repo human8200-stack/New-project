@@ -66,7 +66,7 @@ function freshState() {
 }
 
 // sw.js의 CACHE 이름과 같이 올린다. 설정 맨 아래에 보여서 휴대폰이 새 버전인지 알 수 있다
-const APP_VERSION = 'v47';
+const APP_VERSION = 'v48';
 
 let state;
 const ui = { revealed: null, tab: 'today', openForm: null, openBook: null, openSubject: null, setup: false, planView: 'exam', popup: false };
@@ -1592,18 +1592,37 @@ function bigPictureCard() {
   if (!dates.length) return '';
   const end = dates[dates.length - 1];
   const span = diffDays(t, end) + 1;
-  const x = (d) => Math.max(0, Math.min(100, (diffDays(t, d) / span) * 100));
-  const w = (a, b) => Math.max(1.5, x(addDays(b, 1)) - x(a));
   const first = dates[0];
+  // 마무리 기간은 며칠뿐이라 그대로 그리면 휴대폰에서 글자가 잘린다. 그 뒤쪽은 최소 32% 너비로 넓혀 그린다
+  const cut = Math.max(0, diffDays(t, addDays(first, -FINAL_DAYS)));
+  const head = cut ? Math.min((cut / span) * 100, 68) : 0;
+  const x = (d) => {
+    const n = Math.max(0, Math.min(span, diffDays(t, d)));
+    return n <= cut ? (cut ? (n / cut) * head : 0) : head + ((n - cut) / (span - cut)) * (100 - head);
+  };
+  const w = (a, b) => Math.max(1.5, x(addDays(b, 1)) - x(a));
   const phases = phasesFor(first);
   const shares = subjectShares(state, t);
   const fz = feasibility(state, t);
   const h = (m) => `${Math.round(m / 60)}시간`;
 
   // 위쪽 단계 띠 (첫 시험 기준) + 날짜 눈금
-  const strip = phases.map((p, i) => `<div class="bp-phase p${i}${p.now ? ' now' : ''}" style="left:${x(p.from)}%;width:${w(p.from, p.to > end ? end : p.to)}%"><span>${esc(p.name.replace(/^\d단계 · /, ''))}</span></div>`).join('');
+  // 마무리는 마지막 시험날까지 이어진다
+  const strip = phases.map((p, i) => `<div class="bp-phase p${i}${p.now ? ' now' : ''}" style="left:${x(p.from)}%;width:${w(p.from, i === phases.length - 1 || p.to > end ? end : p.to)}%"><span>${esc(p.name.replace(/^\d단계 · /, ''))}</span></div>`).join('');
+  // 날짜 눈금: 오늘, 매주, 첫 시험날. 너무 붙는 것은 뺀다
+  const marks = [[t, '오늘']];
+  for (let d = addDays(t, 7); d < first; d = addDays(d, 7)) marks.push([d, prettyDate(d).replace(/\(.\)/, '')]);
+  marks.push([first, `시험 ${prettyDate(first).replace(/\(.\)/, '')}`]);
   const ticks = [];
-  for (let d = t, k = 0; d <= end; d = addDays(d, 7), k++) ticks.push(`<span class="bp-tick" style="left:${x(d)}%">${k ? prettyDate(d).replace(/\(.\)/, '') : '오늘'}</span>`);
+  let prev = -100;
+  marks.forEach(([d, label], k) => {
+    const at = x(d);
+    const isLast = k === marks.length - 1;
+    if (at - prev < 18 && !isLast) return;
+    if (isLast && at - prev < 22 && ticks.length > 1) ticks.pop();
+    ticks.push(`<span class="bp-tick${at > 85 ? ' last' : ''}" style="left:${at}%">${label}</span>`);
+    prev = at;
+  });
 
   const rows = state.subjects.map((s) => {
     const exam = examDateFor(state, s);
