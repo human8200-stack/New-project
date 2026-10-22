@@ -62,7 +62,7 @@ function freshState() {
 }
 
 // sw.js의 CACHE 이름과 같이 올린다. 설정 맨 아래에 보여서 휴대폰이 새 버전인지 알 수 있다
-const APP_VERSION = 'v40';
+const APP_VERSION = 'v41';
 
 let state;
 const ui = { revealed: null, tab: 'today', openForm: null, openBook: null, openSubject: null, setup: false, planView: 'exam', popup: false };
@@ -2490,6 +2490,14 @@ function renderSettings() {
       </div>
     </section>
     <section class="card">
+      <h2>사용설명서</h2>
+      <p class="sub">옆으로 넘겨 보는 카드 9장이에요. 친구에게도 보낼 수 있어요.</p>
+      <div class="row">
+        <button class="btn" data-action="open-guide">보기</button>
+        <button class="btn" data-action="share-guide">보내기</button>
+      </div>
+    </section>
+    <section class="card">
       <h2>책과 시작 위치 다시 고르기</h2>
       <p class="sub">처음 화면을 다시 열어요. 지금까지 기록은 그대로예요.</p>
       <button class="btn" data-action="redo-setup">다시 고르기</button>
@@ -2903,6 +2911,15 @@ document.addEventListener('click', async (e) => {
     case 'share-parents': {
       const url = new URL('parents.html', location.href).href;
       if (navigator.share) navigator.share({ title: '공부 루틴 사진 읽기 켜는 법', url }).catch(() => {});
+      else window.open(url, '_blank');
+      return;
+    }
+    case 'open-guide':
+      window.open(new URL('guide.html', location.href).href, '_blank');
+      return;
+    case 'share-guide': {
+      const url = new URL('guide.html', location.href).href;
+      if (navigator.share) navigator.share({ title: '공부 루틴 사용설명서', url }).catch(() => {});
       else window.open(url, '_blank');
       return;
     }

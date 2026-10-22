@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>공부 루틴 사용설명서</title>
+  <meta name="description" content="옆으로 넘겨 보는 공부 루틴 사용설명서: 설치, 로그인, 알림, 시험 범위, 매일 쓰는 법">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+  <style>
+    :root {
+      --bg: #f3f4f8; --card: #ffffff; --text: #1b2236; --muted: #6b7287; --line: #e4e7ef;
+      --accent: #2b3a67; --accent-soft: #eceff8; --hl: #e1f56f; --hl-text: #1b2236; --hl-mark: #e1f56f;
+      --warn: #d4553a; --warn-soft: #fbebe6;
+      --font: "IBM Plex Sans KR", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #0f121a; --card: #181c27; --text: #e9ecf4; --muted: #98a0b5; --line: #2a3040;
+        --accent: #b4c2f5; --accent-soft: #222a3d; --hl: #c9e05a; --hl-text: #11141c; --hl-mark: rgba(201, 224, 90, 0.35);
+        --warn: #f0937a; --warn-soft: #3a2621;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #0f121a; --card: #181c27; --text: #e9ecf4; --muted: #98a0b5; --line: #2a3040;
+      --accent: #b4c2f5; --accent-soft: #222a3d; --hl: #c9e05a; --hl-text: #11141c; --hl-mark: rgba(201, 224, 90, 0.35);
+      --warn: #f0937a; --warn-soft: #3a2621;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 16px; line-height: 1.6; -webkit-text-size-adjust: 100%; word-break: keep-all; overflow-wrap: anywhere; display: flex; flex-direction: column; }
+    header { max-width: 520px; width: 100%; margin: 0 auto; padding: calc(14px + env(safe-area-inset-top)) 16px 4px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    header strong { font-size: 15px; }
+    header span { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+    .deck { flex: 1; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+    .deck::-webkit-scrollbar { display: none; }
+    .slide { flex: 0 0 100%; scroll-snap-align: center; padding: 10px 16px 12px; display: flex; justify-content: center; align-items: flex-start; }
+    .card { width: 100%; max-width: 488px; min-height: min(560px, 100%); background: var(--card); border-radius: 24px; padding: 26px 22px 22px; box-shadow: 0 1px 2px rgba(27, 34, 54, 0.04), 0 10px 28px rgba(27, 34, 54, 0.08); display: flex; flex-direction: column; }
+    .num { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; background: var(--hl); color: var(--hl-text); font-weight: 700; margin-bottom: 12px; }
+    h1 { font-size: 30px; line-height: 1.3; margin: 8px 0 10px; }
+    h2 { font-size: 22px; line-height: 1.35; margin: 0 0 10px; }
+    mark { background: linear-gradient(transparent 58%, var(--hl-mark) 58%); color: inherit; }
+    p { margin: 0 0 10px; }
+    .sub { color: var(--muted); }
+    ol, ul { margin: 0 0 12px; padding-left: 20px; }
+    li { margin-bottom: 6px; }
+    .k { display: inline-block; background: var(--accent-soft); color: var(--accent); font-weight: 600; border-radius: 8px; padding: 0 7px; font-size: 15px; white-space: nowrap; }
+    .tip { margin-top: auto; background: var(--accent-soft); border-radius: 14px; padding: 12px 14px; font-size: 15px; }
+    .tip strong { color: var(--accent); }
+    .warn { margin-top: auto; background: var(--warn-soft); border-radius: 14px; padding: 12px 14px; font-size: 15px; }
+    .warn strong { color: var(--warn); }
+    .to { color: var(--muted); font-weight: 600; margin: 0; }
+    .cover { justify-content: center; }
+    .cover .big { font-size: 18px; }
+    .day { display: grid; gap: 8px; margin: 4px 0 12px; }
+    .day div { display: grid; grid-template-columns: 64px 1fr; gap: 10px; align-items: baseline; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+    .day div:last-child { border-bottom: 0; }
+    .day b { color: var(--accent); font-size: 14px; }
+    .btn { display: block; text-align: center; text-decoration: none; background: var(--accent); color: var(--card); border: 0; border-radius: 14px; padding: 14px; font: inherit; font-weight: 700; margin-top: 10px; width: 100%; cursor: pointer; }
+    .btn.ghost { background: var(--accent-soft); color: var(--accent); }
+    .from { margin-top: auto; text-align: right; color: var(--muted); font-weight: 600; }
+    nav { max-width: 520px; width: 100%; margin: 0 auto; padding: 4px 16px calc(14px + env(safe-area-inset-bottom)); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    nav button { border: 0; background: var(--card); color: var(--text); font: inherit; font-weight: 600; border-radius: 999px; padding: 10px 18px; box-shadow: 0 1px 2px rgba(27, 34, 54, 0.06); cursor: pointer; }
+    nav button:disabled { opacity: 0.35; cursor: default; }
+    .dots { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+    .dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line); transition: width 0.2s; }
+    .dots i.on { width: 20px; border-radius: 4px; background: var(--accent); }
+    @media print {
+      header, nav { display: none; }
+      body { display: block; background: #fff; }
+      .deck { display: block; overflow: visible; }
+      .slide { padding: 0 0 12px; break-inside: avoid; }
+      .card { min-height: 0; box-shadow: none; border: 1px solid #ddd; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <strong>공부 루틴 사용설명서</strong>
+    <span id="count">1 / 9</span>
+  </header>
+
+  <div class="deck" id="deck">
+    <section class="slide"><div class="card cover">
+      <p class="to" id="to">To. 우리 고1</p>
+      <h1>공부 계획은 <mark>앱이 짤게.</mark><br>너는 하기만 해.</h1>
+      <p class="big">매일 정한 시간에 알림이 오면 열고, 오늘 할 것만 하면 돼요.</p>
+      <p class="sub">처음에 10분만 설정하면 시험 날까지 개념, 문제, 기출, 복습 순서를 앱이 알아서 나눠 줘요.</p>
+      <p class="sub">옆으로 넘겨 보세요 →</p>
+    </div></section>
+
+    <section class="slide"><div class="card">
+      <span class="num">1</span>
+      <h2>홈 화면에 앱 놓기</h2>
+      <p><a href="./" id="appLink">human8200-stack.github.io/New-project</a> 를 열고</p>
+      <ul>
+        <li><b>아이폰 · 아이패드</b>: Safari 아래 <span class="k">공유</span> → <span class="k">홈 화면에 추가</span></li>
+        <li><b>갤럭시</b>: 크롬 <span class="k">⋮</span> → <span class="k">홈 화면에 추가</span> 또는 <span class="k">앱 설치</span></li>
+      </ul>
+      <p>아이패드와 휴대폰 둘 다 해 주세요.</p>
+      <div class="tip"><strong>꼭!</strong> 앞으로는 Safari 말고 <b>홈 화면 아이콘</b>으로 열어요. 그래야 알림이 오고, 새 버전도 저절로 받아요.</div>
+    </div></section>
+
+    <section class="slide"><div class="card">
+      <span class="num">2</span>
+      <h2>내 계정 만들기</h2>
+      <ol>
+        <li>톱니바퀴(설정) → <span class="k">아이패드 · 휴대폰 동기화</span> → <span class="k">처음이에요</span></li>
+        <li>아이디(영어 소문자·숫자), 비밀번호(6자 이상), <b>내 이메일</b>을 넣고 <span class="k">계정 만들기</span></li>
+        <li>메일함에 온 <b>인증 링크</b>를 눌러요. 안 보이면 스팸함!</li>
+        <li>다른 기기에서는 같은 아이디로 <b>로그인</b>만 하면 기록이 저절로 맞춰져요.</li>
+      </ol>
+      <div class="tip"><strong>한 번 로그인하면 계속 로그인돼요.</strong> 비밀번호를 잊으면 로그인 화면의 <span class="k">비밀번호를 잊었어요</span>를 누르면 메일로 와요.</div>
+    </div></section>
+
+    <section class="slide"><div class="card">
+      <span class="num">3</span>
+      <h2>알림 켜기</h2>
+      <ol>
+        <li>설정 → <span class="k">오늘 할 공부 알림</span></li>
+        <li>알림 받을 시간을 골라요 (예: 학교 끝나고 오후 4시 30분)</li>
+        <li><span class="k">알림 켜기</span> → <span class="k">허용</span></li>
+      </ol>
+      <p>아이패드, 휴대폰 <b>각각</b> 켜 주세요. 앱을 안 열어도 그 시간에 "오늘 할 공부"가 와요.</p>
+      <div class="tip"><strong>시험해 보기:</strong> 지금부터 10~20분 뒤로 시간을 맞춰 보고, 알림이 오면 원래 시간으로 돌려 놓아요.</div>
+    </div></section>
+
+    <section class="slide"><div class="card">
+      <span class="num">4</span>
+      <h2>내 일정 알려 주기</h2>
+      <p>설정 → <span class="k">공부할 수 있는 시간</span></p>
+      <ul>
+        <li><b>학원 가는 요일</b>을 눌러요. 그날은 공부량이 줄어요.</li>
+        <li>학원 없는 날, 주말에 공부할 수 있는 시간</li>
+        <li><b>약한 과목</b>을 체크하면 그 과목 시간이 더 늘어나요. 다른 과목도 빠지지 않게 균형은 지켜요.</li>
+      </ul>
+      <div class="tip"><strong>솔직하게!</strong> 시간을 많이 적는다고 공부가 늘지 않아요. 진짜로 할 수 있는 만큼 적어야 계획이 맞아요.</div>
+    </div></section>
+
+    <section class="slide"><div class="card">
+      <span class="num">5</span>
+      <h2>시험 범위 · 책 분량</h2>
+      <ul>
+        <li>범위가 나오기 전에는 <b>작년 기준 예상 범위</b>로 미리 계획이 짜여 있어요.</li>
+        <li>범위 공지가 나오면 <span class="k">계획표</span> → <span class="k">시험 범위 넣기</span>에 공지 글을 붙여 넣거나 사진을 찍어요.</li>
+        <li><span class="k">책 분량 맞추기</span>에 내 책 쪽수·문제 수를 넣으면 하루 양이 더 정확해져요.</li>
+      </ul>
+      <p class="sub">시험 3~4일 전부터는 새 진도 대신 기출과 복습으로 마무리해요.</p>
+      <div class="warn"><strong>앱은 교과서만 맞춰요.</strong> 학습지, 프린트, 수업 지문은 선생님 자료로 꼭 따로 공부해요.</div>
+    </div></section>
+
+    <section class="slide"><div class="card">
+      <span class="num">6</span>
+      <h2>매일 이렇게만</h2>
+      <div class="day">
+        <div><b>알림</b><span>앱을 열면 오늘 할 공부가 떠요.</span></div>
+        <div><b>떠올리기</b><span><span class="k">떠올릴 카드</span>: 전에 배운 걸 머릿속으로 꺼내 봐요. 1~2분이면 돼요.</span></div>
+        <div><b>공부</b><span>할 것 옆 <span class="k">▶ 시작</span>을 누르고 공부, 끝나면 멈춰요. 시간과 진도가 기록돼요.</span></div>
+        <div><b>밤</b><span><span class="k">저녁 체크인</span>에서 못 한 것, 어려웠던 것을 알려 줘요.</span></div>
+      </div>
+      <div class="tip"><strong>기록 안 한 건 안 한 걸로 쳐요.</strong> 깜빡했으면 다음 날 "어제 공부 어땠어요?"에 답하면 계획이 다시 맞춰져요.</div>
+    </div></section>
+
+    <section class="slide"><div class="card">
+      <span class="num">7</span>
+      <h2>사진 버튼 하나로</h2>
+      <p>오른쪽 아래 <b>카메라 버튼</b>으로 찍어서 올리면 돼요.</p>
+      <ul>
+        <li><b>틀린 문제</b> → 왜 틀렸는지, 어떤 기본을 모르는지 알려 주고 <span class="k">복습</span> 탭에 다시 풀 날짜가 잡혀요.</li>
+        <li><b>오늘 배운 곳 · 모르는 문제</b> → 핵심 카드로 정리</li>
+        <li><b>범위 공지 · 시험지</b> → 계획과 기록에 반영</li>
+      </ul>
+      <p class="sub">공부한 기록은 <span class="k">기록</span> 탭에서 과목별로 볼 수 있어요.</p>
+      <div class="tip"><strong>사진 읽기(AI)</strong>는 부모님이 설정 → <span class="k">AI 연결</span>에 키를 넣어 주셔야 돼요.</div>
+    </div></section>
+
+    <section class="slide"><div class="card">
+      <span class="num">✓</span>
+      <h2>약속 세 가지</h2>
+      <ol>
+        <li>알림 오면 <b>일단 열기</b></li>
+        <li>공부할 때 <b>▶ 시작</b> 누르기</li>
+        <li>틀린 문제는 <b>바로 찍기</b></li>
+      </ol>
+      <p>나머지는 앱이 다 해요. 계획이 너무 많거나 적으면 체크인에 솔직하게 답해 주면 다음 날부터 맞춰져요.</p>
+      <a class="btn" href="./" id="openApp">앱 열기</a>
+      <button class="btn ghost" id="share" type="button">친구에게 보내기</button>
+      <p class="from" id="from">응원해! From. 엄마 아빠</p>
+    </div></section>
+  </div>
+
+  <nav>
+    <button id="prev" type="button" aria-label="이전 카드">이전</button>
+    <div class="dots" id="dots"></div>
+    <button id="next" type="button" aria-label="다음 카드">다음</button>
+  </nav>
+
+  <script>
+    // 옆으로 넘기는 카드. ?to=민지&from=엄마 처럼 붙이면 이름이 들어간다
+    (function () {
+      const params = new URLSearchParams(location.search);
+      if (params.get('to')) document.getElementById('to').textContent = `To. ${params.get('to')}`;
+      if (params.get('from')) document.getElementById('from').textContent = `응원해! From. ${params.get('from')}`;
+
+      const deck = document.getElementById('deck');
+      const slides = [...deck.children];
+      const dots = document.getElementById('dots');
+      const count = document.getElementById('count');
+      const prev = document.getElementById('prev');
+      const next = document.getElementById('next');
+      slides.forEach(() => dots.appendChild(document.createElement('i')));
+
+      let at = 0;
+      function show() {
+        [...dots.children].forEach((d, i) => d.classList.toggle('on', i === at));
+        count.textContent = `${at + 1} / ${slides.length}`;
+        prev.disabled = at === 0;
+        next.textContent = at === slides.length - 1 ? '처음으로' : '다음';
+      }
+      function go(i) {
+        deck.scrollTo({ left: i * deck.clientWidth, behavior: 'smooth' });
+      }
+      deck.addEventListener('scroll', () => {
+        const i = Math.round(deck.scrollLeft / deck.clientWidth);
+        if (i !== at) {
+          at = i;
+          show();
+        }
+      }, { passive: true });
+      prev.addEventListener('click', () => go(Math.max(0, at - 1)));
+      next.addEventListener('click', () => go(at === slides.length - 1 ? 0 : at + 1));
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight') go(Math.min(slides.length - 1, at + 1));
+        if (e.key === 'ArrowLeft') go(Math.max(0, at - 1));
+      });
+      window.addEventListener('resize', () => deck.scrollTo({ left: at * deck.clientWidth }));
+      show();
+
+      // 친구에게는 이름 없이 보낸다
+      const plain = new URL('guide.html', location.href).href;
+      document.getElementById('share').addEventListener('click', () => {
+        if (navigator.share) navigator.share({ title: '공부 루틴 사용설명서', url: plain }).catch(() => {});
+        else if (navigator.clipboard) navigator.clipboard.writeText(plain).then(() => alert('주소를 복사했어요. 카톡에 붙여 넣어 보내세요.'));
+      });
+    })();
+  </script>
+</body>
+</html>
