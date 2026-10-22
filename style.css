@@ -623,3 +623,9 @@ img { max-width: 100%; height: auto; }
 .glance-btn { font: inherit; color: inherit; text-align: left; border: 0; cursor: pointer; }
 .glance-btn small { color: var(--accent); font-weight: 600; }
 .app-version { text-align: center; margin: 8px 0 24px; }
+
+/* 시간 계산 */
+.feas-bar { height: 10px; border-radius: 999px; background: var(--accent-soft); overflow: hidden; margin-top: 4px; }
+.feas-bar div { height: 100%; background: var(--hl); border-radius: 999px; }
+.feas-order { margin: 6px 0 4px; padding-left: 20px; font-size: 14px; display: grid; gap: 2px; }
+.exam-empty { margin: 8px 0 4px; font-size: 14px; opacity: 0.9; }
