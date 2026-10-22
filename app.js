@@ -66,7 +66,7 @@ function freshState() {
 }
 
 // sw.js의 CACHE 이름과 같이 올린다. 설정 맨 아래에 보여서 휴대폰이 새 버전인지 알 수 있다
-const APP_VERSION = 'v51';
+const APP_VERSION = 'v52';
 
 let state;
 const ui = { revealed: null, tab: 'today', openForm: null, openBook: null, openSubject: null, setup: false, planView: 'exam', popup: false };
@@ -3188,17 +3188,6 @@ function markShown(key) {
   } catch (e) { /* 저장 못 하면 다음에 한 번 더 보여도 괜찮다 */ }
 }
 
-// 팝업이 3초 넘게 떠 있었거나 눌렀을 때만 "봤음". 뜨자마자 앱이 다시 열리면 다음에 또 보여 준다
-const shownTimers = {};
-function markShownSoon(key) {
-  if (shownTimers[key]) return;
-  shownTimers[key] = setTimeout(() => {
-    shownTimers[key] = null;
-    const el = document.getElementById('popup');
-    const still = el && el.innerHTML.trim() && (key === AI_ASK_KEY) === !!el.querySelector('.ai-ask');
-    if (still) markShown(key);
-  }, 3000);
-}
 
 async function render() {
   if (!state) return; // 아직 불러오는 중
@@ -3207,7 +3196,6 @@ async function render() {
   document.getElementById('view').innerHTML = VIEWS[ui.tab]();
   const popup = popupHtml();
   document.getElementById('popup').innerHTML = popup;
-  if (popup) markShownSoon(popup.includes('ai-ask') ? AI_ASK_KEY : POPUP_KEY);
   if (ui.scrollToAi) {
     ui.scrollToAi = false;
     const card = document.querySelector('.ai-key-card');
@@ -3284,6 +3272,8 @@ document.addEventListener('click', async (e) => {
   if (!el || el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA') return;
   const { action, id } = el.dataset;
   let changed = true;
+  // 팝업은 직접 눌러야 "오늘 봤음". 그냥 떴다가 앱이 다시 열리면 다음에 또 보여 준다
+  if (el.closest('#popup')) markShown(el.closest('.ai-ask') || action.startsWith('ai-ask') ? AI_ASK_KEY : POPUP_KEY);
 
   switch (action) {
     case 'range-open':
@@ -3478,7 +3468,6 @@ document.addEventListener('click', async (e) => {
       return;
     }
     case 'ai-ask-yes':
-      markShown(AI_ASK_KEY);
       ui.aiAsk = false;
       ui.aiFocus = true;
       ui.tab = 'settings';
@@ -3486,12 +3475,10 @@ document.addEventListener('click', async (e) => {
       changed = false;
       break;
     case 'ai-ask-later':
-      markShown(AI_ASK_KEY);
       ui.aiAsk = false;
       changed = false;
       break;
     case 'ai-ask-off':
-      markShown(AI_ASK_KEY);
       ui.aiAsk = false;
       state.aiAskOff = true;
       toast('다시 묻지 않을게요. 나중에 설정 → AI 연결에서 할 수 있어요.');
@@ -3559,7 +3546,6 @@ document.addEventListener('click', async (e) => {
       changed = false;
       break;
     case 'popup-close':
-      markShown(POPUP_KEY);
       ui.popup = false;
       ui.askOpen = false;
       changed = false;
