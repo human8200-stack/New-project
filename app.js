@@ -66,7 +66,7 @@ function freshState() {
 }
 
 // sw.js의 CACHE 이름과 같이 올린다. 설정 맨 아래에 보여서 휴대폰이 새 버전인지 알 수 있다
-const APP_VERSION = 'v48';
+const APP_VERSION = 'v49';
 
 let state;
 const ui = { revealed: null, tab: 'today', openForm: null, openBook: null, openSubject: null, setup: false, planView: 'exam', popup: false };
@@ -1568,7 +1568,7 @@ function teacherNote(s) {
   return guideFor(s.name) || '';
 }
 
-// ---------- 큰 그림: 시험까지 어떻게 갈지 한 장으로 ----------
+// ---------- 한눈에 보는 시험 계획: 시험까지 어떻게 갈지 한 장으로 ----------
 
 const ROLE_SHORT = { concept: '개념', basic: '문제', advanced: '심화', past: '기출' };
 
@@ -1649,7 +1649,7 @@ function bigPictureCard() {
   const now = phases.find((p) => p.now);
   return `
     <section class="card bp-card">
-      <h2>큰 그림</h2>
+      <h2>한눈에 보는 시험 계획</h2>
       <p class="bp-lead">시험까지 <strong>${diffDays(t, first)}일</strong>${fz ? ` · 해야 할 양 <strong>${h(fz.need)}</strong> / 쓸 수 있는 시간 <strong>${h(fz.available)}</strong>` : ''}</p>
       ${fz && fz.ratio < 1 ? `<p class="warn-text bp-warn">시간이 ${Math.round(fz.ratio * 100)}%만 돼요. 학원 숙제 · 교과서 · 기출을 먼저 지키고, 심화와 2회독은 남는 시간에 해요.</p>` : ''}
       <div class="bp-chart">
