@@ -132,6 +132,15 @@ window.DEMO_STATE = function buildDemo(base) {
     versions: { 자료조사: true }, question: '탄소중립 정책이 지역 일자리에 어떤 영향을 줄까?',
     role: '독일·한국 재생에너지 비율 자료 조사', limits: '', nextQuestion: '', memo: '',
   });
+  // 예상 시험 문제 예시 (AI 없이도 화면을 볼 수 있게)
+  base.mocks = [{
+    id: 'demo-mock', subject: '수학', date: addDays(t, -1), range: '교과서 p.81~160',
+    questions: [
+      { type: '객관식', topic: '나머지정리', q: 'x³ − 2x + 5를 x − 1로 나눈 나머지는?', choices: ['2', '3', '4', '5', '6'], answer: 3, explain: '나머지정리: x = 1을 대입하면 1 − 2 + 5 = 4.', point: '나머지정리 대입형은 해마다 첫 페이지에 나와요', picked: 3, result: 'right' },
+      { type: '객관식', topic: '이차방정식', q: '이차방정식 x² − 4x + k = 0이 서로 다른 두 실근을 가질 때, 정수 k의 최댓값은?', choices: ['1', '2', '3', '4', '5'], answer: 3, explain: '판별식 D/4 = 4 − k > 0 이므로 k < 4. 정수 k의 최댓값은 3.', point: '판별식 조건은 객관식·서술형 모두 단골', picked: null, result: null },
+      { type: '서술형', topic: '인수분해', q: 'x⁴ − 5x² + 4를 인수분해하고, 그 과정을 쓰시오.', answer: '(x − 1)(x + 1)(x − 2)(x + 2)', explain: 'x² = t로 치환하면 t² − 5t + 4 = (t − 1)(t − 4). 다시 x²를 넣고 합차 공식으로 한 번 더 인수분해.', point: '치환 인수분해는 서술형 단골', picked: null, result: null },
+    ],
+  }];
   base.setupDone = true;
   base.updatedAt = 0;
   return base;

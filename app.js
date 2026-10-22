@@ -54,6 +54,7 @@ function freshState() {
     plans: {},
     logs: [],
     wrongs: [],
+    mocks: [],
     drills: [],
     projects: [],
     goals: [],
@@ -64,7 +65,7 @@ function freshState() {
 }
 
 // sw.js의 CACHE 이름과 같이 올린다. 설정 맨 아래에 보여서 휴대폰이 새 버전인지 알 수 있다
-const APP_VERSION = 'v44';
+const APP_VERSION = 'v45';
 
 let state;
 const ui = { revealed: null, tab: 'today', openForm: null, openBook: null, openSubject: null, setup: false, planView: 'exam', popup: false };
@@ -891,7 +892,7 @@ function autoDiagnose() {
 // 배운 곳, 푼 문제, 틀린 문제, 시험 공지, 책 표지·목차 무엇이든 올리면 종류를 알아서 나눠 기록한다.
 // Claude 안에서 열면 Claude가 읽고, 그 밖에서는 설정의 "AI 연결" 주소(우리 집 전용 서버)로 보낸다.
 
-const ai = { sample: null, canImages: false, maxImages: 6, busy: false, report: null, undo: null, error: '', pending: null };
+const ai = { mockFor: null, sample: null, canImages: false, maxImages: 6, busy: false, report: null, undo: null, error: '', pending: null };
 
 async function initAi() {
   if (!window.claude || typeof window.claude.use !== 'function') return;
@@ -999,7 +1000,7 @@ function setMyKey(key) {
 
 // 내 키로 Claude에 바로 묻는다. SDK는 vendor/anthropic-sdk.mjs (worker의 @anthropic-ai/sdk를 묶은 것)
 let anthropicModule = null;
-async function askDirect(prompt, images) {
+async function askDirect(prompt, images, opts = {}) {
   if (!anthropicModule) anthropicModule = await import('./vendor/anthropic-sdk.mjs');
   const Anthropic = anthropicModule.default;
   const client = new Anthropic({ apiKey: myKey(), dangerouslyAllowBrowser: true });
@@ -1010,7 +1011,7 @@ async function askDirect(prompt, images) {
     response = await client.beta.messages.create({
       model: 'claude-opus-5-5',
       max_tokens: 16000,
-      output_config: { effort: 'low' },
+      output_config: { effort: opts.effort || 'low' },
       betas: ['server-side-fallback-2026-07-01'],
       fallbacks: 'default',
       messages: [{ role: 'user', content }],
@@ -1051,9 +1052,9 @@ function dataUrlToBlob(dataUrl) {
 
 // 우리 집 전용 AI 서버(worker/)로 보낸다
 // 내 키가 있으면 Claude에 바로, 없으면 가족 서버로. 답에서 JSON만 꺼낸다
-async function askEndpoint(prompt, jpegs) {
+async function askEndpoint(prompt, jpegs, opts = {}) {
   const images = await Promise.all(jpegs.map(async (d) => ({ media_type: 'image/jpeg', data: await blobToBase64(dataUrlToBlob(d)) })));
-  if (myKey()) return parseJsonText(await askDirect(prompt, images));
+  if (myKey()) return parseJsonText(await askDirect(prompt, images, opts));
   let res;
   try {
     res = await fetch(aiUrl(), {
@@ -2081,6 +2082,7 @@ function renderSyllabus() {
           <div><strong>오답 정리</strong> · 틀린 문제는 사진으로 올리면 2·7·14·30일 뒤 다시 나와요.${pending + wrongsDue ? ` 지금 다시 볼 문제 ${pending + wrongsDue}개.` : ''}</div>
           ${note ? `<div><strong>방법</strong> · ${esc(note)}</div>` : ''}
         </div>
+        ${aiReady() ? `<button class="btn wide mock-go" data-action="mock-go" data-id="${s.id}"${ai.busy ? ' disabled' : ''}>${esc(s.name)} 예상 시험 문제 ${MOCK_COUNT}개 풀기</button>` : ''}
         <form data-form="add-book" data-id="${s.id}" class="add-book-form">
           <input name="name" placeholder="+ 책 추가 (이름만)" aria-label="${esc(s.name)} 책 추가">
           <button class="btn small" type="submit">추가</button>
@@ -2377,6 +2379,173 @@ function keyCardButtons(subjectIds) {
     </div>`;
 }
 
+// ---------- 예상 시험 문제: 범위·책·내 오답으로 과목마다 10문제 ----------
+
+const MOCK_COUNT = 10;
+const CIRCLED = ['①', '②', '③', '④', '⑤'];
+
+// 과목마다 학교 내신에서 문제를 내는 방식이 달라서, 과목별로 따로 일러 둔다
+const MOCK_HOW = {
+  국어: '문법(음운·단어·문장·담화), 문학 갈래별 표현법과 감상, 비문학 독해 방법을 묻는 문제. 작품 문제는 범위에 작품 이름이 있고 내용을 확실히 아는 유명 작품만 쓰고, 원문을 길게 옮기지 말고 짧은 인용이나 줄거리로 묻는다. 모르면 개념 문제로 낸다.',
+  수학: '개념 확인, 대표 계산 유형, 조건을 해석하는 응용 유형을 고르게. 숫자를 바꾼 학교 시험 단골 유형으로, 정답이 하나로 딱 떨어지게 직접 검산한다. 서술형은 풀이 과정을 쓰게 한다.',
+  영어: '어법(시제·관계사·분사·가정법 등), 어휘, 글의 흐름·주제·요지·빈칸. 교과서 본문은 그대로 쓰지 말고, 같은 주제와 어법이 들어간 짧은 영어 글(3~6문장)을 직접 써서 묻는다.',
+  통합사회: '핵심 개념 구분, 사례·자료(짧은 표나 글) 해석, 옳은 것/옳지 않은 것 고르기.',
+  통합과학: '개념과 원리, 간단한 실험·그래프·표 해석, 계산 한두 문제.',
+  한국사: '사건·제도·인물의 시기와 순서, 원인과 결과, 짧은 사료 해석.',
+  정보: '개념, 알고리즘 순서, 간단한 코드나 순서도 결과 예측.',
+};
+
+function mockPrompt(s) {
+  const f = keyCardFocus(s);
+  const range = rangeTextOf(s) || f.range;
+  const weak = state.wrongs.filter((w) => w.subject === s.name).slice(-20)
+    .map((w) => w.basic || w.concept || w.note).filter(Boolean).slice(-8);
+  const done = (state.mocks || []).filter((m) => m.subject === s.name).flatMap((m) => m.questions.map((q) => q.point)).filter(Boolean).slice(-20);
+  return `당신은 고등학교 1학년(2022 개정 교육과정) ${s.name} 내신 시험을 오래 출제해 온 선생님입니다.
+학생이 이번 시험을 위해 공부하는 책과 범위: ${f.books || '(정보 없음)'}
+시험 범위: ${range || '(아직 몰라요. 지금 진도 근처에서 내 주세요)'}${s.rangeGuess ? ' (학교 공지 전이라 작년 평균으로 잡은 예상 범위)' : ''}
+이 학생이 최근 틀린 곳: ${weak.join(' / ') || '(아직 없음)'}
+
+이 범위에서 학교 시험에 해마다 반복해서 나오는 가장 중요한 문제 ${MOCK_COUNT}개로 예상 시험지를 만들어 주세요.
+- 객관식(5지선다) ${MOCK_COUNT - 2}개, 서술형 2개.
+- 쉬운 것 3, 보통 4, 어려운 것 3 정도로 섞고, 위의 "최근 틀린 곳"과 관련된 문제를 2개 넣습니다.
+- 과목별 출제 방식: ${MOCK_HOW[s.name] || '핵심 개념과 자료 해석을 고르게.'}
+- 출판사마다 다른 쪽수·예제 번호는 쓰지 않습니다. 확실하지 않은 사실은 문제로 내지 않습니다.
+- 정답은 반드시 하나이고, 해설은 고1이 따라갈 수 있게 2~4문장.
+- point에는 "왜 시험에 잘 나오는지" 한 줄을 씁니다.
+- 지난번에 낸 것과 겹치지 않게: ${done.join(' / ') || '(없음)'}
+
+JSON 하나로만 답하세요:
+{"questions":[
+ {"type":"객관식","topic":"단원","q":"문제 (자료가 있으면 문제 안에 함께)","choices":["보기1","보기2","보기3","보기4","보기5"],"answer":정답 번호 1~5,"explain":"해설","point":"출제 포인트"},
+ {"type":"서술형","topic":"단원","q":"문제","answer":"모범 답안","explain":"채점 기준과 해설","point":"출제 포인트"}
+]}`;
+}
+
+function cleanMock(data) {
+  return (data && Array.isArray(data.questions) ? data.questions : []).map((x) => {
+    if (!x || !x.q) return null;
+    const choices = Array.isArray(x.choices) ? x.choices.map((c) => String(c).replace(/^\s*[①②③④⑤]\s*|^\s*[1-5][.)]\s*/, '')).slice(0, 5) : [];
+    const mc = choices.length >= 4 && Number(x.answer) >= 1 && Number(x.answer) <= choices.length;
+    return {
+      type: mc ? '객관식' : '서술형', topic: String(x.topic || ''), q: String(x.q), choices: mc ? choices : [],
+      answer: mc ? Number(x.answer) : String(x.answer || ''), explain: String(x.explain || ''), point: String(x.point || ''),
+      picked: null, result: null,
+    };
+  }).filter(Boolean).slice(0, MOCK_COUNT + 2);
+}
+
+async function makeMock(subjectId) {
+  const s = subjectById(subjectId);
+  if (!s || !aiReady() || ai.busy) return;
+  ai.busy = true;
+  ai.error = '';
+  ai.mockFor = s.id;
+  render();
+  try {
+    const prompt = mockPrompt(s);
+    // 문제와 정답이 맞아야 하니 카드보다 조금 더 생각하게 한다
+    const data = ai.sample ? await ai.sample.json(prompt) : await askEndpoint(prompt, [], { effort: 'medium' });
+    const questions = cleanMock(data);
+    if (questions.length >= 3) {
+      if (!state.mocks) state.mocks = [];
+      const mock = { id: uid(), subject: s.name, date: today(), range: rangeTextOf(s) || '', questions };
+      state.mocks.push(mock);
+      state.mocks = state.mocks.slice(-20);
+      ui.mockId = mock.id;
+      await save();
+      window.scrollTo(0, 0);
+    } else {
+      ai.error = '문제를 만들지 못했어요. 잠시 뒤에 다시 눌러 주세요.';
+    }
+  } catch (e) {
+    ai.error = AI_ERRORS[e && e.code] || '문제를 만들지 못했어요. 잠시 뒤에 다시 눌러 주세요.';
+  }
+  ai.busy = false;
+  ai.mockFor = null;
+  render();
+}
+
+function mockById(id) {
+  return (state.mocks || []).find((m) => m.id === id);
+}
+
+function mockScore(m) {
+  const graded = m.questions.filter((q) => q.result);
+  return { done: graded.length, right: graded.filter((q) => q.result === 'right').length, total: m.questions.filter((q) => q.result !== 'bad').length };
+}
+
+// 틀린 예상 문제는 오답처럼 2·7·14·30일 뒤 다시 나온다
+function mockWrong(m, q) {
+  const t = today();
+  const answer = q.type === '객관식' ? `${CIRCLED[q.answer - 1]} ${q.choices[q.answer - 1]}` : q.answer;
+  state.wrongs.push({
+    id: uid(), date: t, subject: m.subject, unit: q.topic, trap: '', kind: 'mock',
+    note: q.q, choices: q.choices, concept: q.point, steps: q.explain ? [q.explain] : [], answer,
+    step: 0, due: addDays(t, WRONG_INTERVALS[0]), history: [],
+  });
+}
+
+function mockQuestion(m, q, i) {
+  const head = `<div class="mock-no">${i + 1}<span class="meta">${esc(q.type)}${q.topic ? ` · ${esc(q.topic)}` : ''}</span></div>`;
+  const body = `<div class="mock-q">${esc(q.q).replace(/\n/g, '<br>')}</div>`;
+  if (q.result === 'bad') return `<li class="mock-item bad">${head}<p class="meta">이상한 문제라 뺐어요.</p></li>`;
+  const explain = q.result ? `
+    <div class="mock-explain ${q.result}">
+      <strong>${q.result === 'right' ? '맞았어요' : '틀렸어요 → 복습에 넣었어요'}</strong>
+      ${q.type === '서술형' ? `<p><b>모범 답안</b> ${esc(q.answer)}</p>` : ''}
+      ${q.explain ? `<p>${esc(q.explain)}</p>` : ''}
+      ${q.point ? `<p class="meta">자주 나오는 이유: ${esc(q.point)}</p>` : ''}
+    </div>` : '';
+  let answerUi = '';
+  if (q.type === '객관식') {
+    answerUi = `<div class="mock-choices">${q.choices.map((c, k) => {
+      const n = k + 1;
+      const cls = q.result ? (n === q.answer ? ' correct' : n === q.picked ? ' picked' : '') : '';
+      return `<button class="mock-choice${cls}" data-action="mock-pick" data-id="${m.id}:${i}:${n}"${q.result ? ' disabled' : ''}><span>${CIRCLED[k]}</span>${esc(c)}</button>`;
+    }).join('')}</div>`;
+  } else if (!q.result) {
+    answerUi = q.picked === 'shown'
+      ? `<div class="mock-explain"><p><b>모범 답안</b> ${esc(q.answer)}</p>${q.explain ? `<p>${esc(q.explain)}</p>` : ''}</div>
+         <div class="row"><button class="btn" data-action="mock-self" data-id="${m.id}:${i}:right">맞았어요</button><button class="btn" data-action="mock-self" data-id="${m.id}:${i}:wrong">틀렸어요</button></div>`
+      : `<p class="meta">공책에 답을 써 보고 눌러요.</p><button class="btn" data-action="mock-show" data-id="${m.id}:${i}">모범 답안 보기</button>`;
+  }
+  return `<li class="mock-item">${head}${body}${answerUi}${explain}
+    ${q.result ? '' : `<button class="linklike small mock-bad" data-action="mock-bad" data-id="${m.id}:${i}">문제가 이상해요</button>`}</li>`;
+}
+
+function mockSheet(m) {
+  const sc = mockScore(m);
+  const finished = sc.done === m.questions.length;
+  return `
+    <section class="card mock-sheet">
+      <div class="range-card-top"><h2>${esc(m.subject)} 예상 문제</h2><button class="linklike small" data-action="mock-close">닫기</button></div>
+      <p class="sub">${m.range ? `범위: ${esc(m.range)} · ` : ''}해마다 자주 나오는 유형으로 만든 연습 문제예요. 실제 기출이 아니라 AI가 만든 문제라, 학교 학습지·프린트도 꼭 같이 보세요.</p>
+      <ol class="mock-list">${m.questions.map((q, i) => mockQuestion(m, q, i)).join('')}</ol>
+      <div class="mock-score">${sc.done ? `${sc.done}문제 중 <strong>${sc.right}개</strong> 맞았어요.` : '다 풀면 점수와 틀린 문제가 정리돼요.'}${finished && sc.right < sc.done ? ' 틀린 문제는 복습 목록에서 2일 뒤 다시 나와요.' : ''}</div>
+      ${finished ? `<button class="btn primary wide" data-action="mock-make" data-id="${subjectByName(m.subject).id}"${ai.busy ? ' disabled' : ''}>새 문제 10개 더</button>` : ''}
+    </section>`;
+}
+
+// 복습 탭 맨 위: 과목 고르기 + 풀던 시험지
+function mockCard() {
+  if (ui.mockId && mockById(ui.mockId)) return mockSheet(mockById(ui.mockId));
+  const recent = (state.mocks || []).slice(-4).reverse();
+  return `
+    <section class="card">
+      <h2>예상 시험 문제</h2>
+      <p class="sub">시험 범위와 내 책, 내가 틀린 곳으로 학교 시험에 늘 나오는 문제 ${MOCK_COUNT}개를 만들어요. 풀면 바로 채점하고 틀린 건 복습에 넣어요.</p>
+      ${aiReady()
+    ? `<div class="chips">${state.subjects.map((s) => `<button class="chip-btn" data-action="mock-make" data-id="${s.id}"${ai.busy ? ' disabled' : ''}>${esc(s.name)}</button>`).join('')}</div>`
+    : '<p class="sub">AI 연결이 필요해요. 설정 → AI 연결을 해 주세요.</p>'}
+      ${ai.busy && ai.mockFor ? `<p class="ai-busy">${esc(subjectById(ai.mockFor).name)} 문제를 만드는 중이에요… (30초~1분)</p>` : ''}
+      ${recent.length ? `<ul class="mock-recent">${recent.map((m) => {
+    const sc = mockScore(m);
+    return `<li><button class="linklike" data-action="mock-open" data-id="${m.id}">${esc(m.subject)} · ${prettyDate(m.date)}</button> <span class="meta">${sc.done === m.questions.length ? `${sc.right}/${sc.total}점` : `${sc.done}/${m.questions.length} 풂`}</span></li>`;
+  }).join('')}</ul>` : ''}
+    </section>`;
+}
+
 // ---------- 앱을 열면 뜨는 한 장 ----------
 
 function recallLine(plan) {
@@ -2448,11 +2617,12 @@ function renderReviewTab() {
   const t = today();
   const subjectsToday = (state.plans[t] ? state.plans[t].tasks : []).map((x) => x.subjectId);
   return `
+    ${mockCard()}
     <section class="card">
       <h2>핵심 카드</h2>
       <p class="sub">과목을 고르면 지금 범위에서 외울 카드를 만들어요.</p>
       ${aiReady() ? keyCardButtons(state.subjects.map((x) => x.id)) : '<p class="sub">AI 연결이 필요해요. 설정 → AI 연결을 해 주세요.</p>'}
-      ${ai.busy ? '<p class="ai-busy">만드는 중이에요…</p>' : ''}
+      ${ai.busy && !ai.mockFor ? '<p class="ai-busy">만드는 중이에요…</p>' : ''}
       ${ai.error ? `<p class="warn-text">${esc(ai.error)}</p>` : ''}
     </section>
     ${reviewList()}`;
@@ -2473,9 +2643,9 @@ function reviewList() {
     if (x.kind === 'wrong') {
       return `
         <li class="item review-item">
-          <div><span class="tag">${esc(x.subject)}</span><span class="meta">${{ question: '모르는 문제', test: '시험지 오답' }[x.w.kind] || '틀린 문제'}${x.w.unit ? ` · ${esc(x.w.unit)}` : ''}</span> ${when}
+          <div><span class="tag">${esc(x.subject)}</span><span class="meta">${{ question: '모르는 문제', test: '시험지 오답', mock: '예상 문제' }[x.w.kind] || '틀린 문제'}${x.w.unit ? ` · ${esc(x.w.unit)}` : ''}</span> ${when}
             ${x.w.img ? `<img class="wrong-img" src="${x.w.img}" alt="문제 사진">` : ''}
-            ${x.w.note ? `<div class="meta">${esc(x.w.note)}</div>` : ''}
+            ${x.w.kind === 'mock' ? `<div class="review-q">${esc(x.w.note)}</div>${x.w.choices && x.w.choices.length ? `<ul class="mock-mini">${x.w.choices.map((c, k) => `<li>${CIRCLED[k]} ${esc(c)}</li>`).join('')}</ul>` : ''}` : x.w.note ? `<div class="meta">${esc(x.w.note)}</div>` : ''}
             ${x.w.concept && !x.w.basic ? `<div class="meta">다시 볼 개념: ${esc(x.w.concept)}</div>` : ''}
             ${diagHtml(x.w, false)}
             ${stepsHtml(x.w, false)}</div>
@@ -3065,6 +3235,45 @@ document.addEventListener('click', async (e) => {
     case 'key-cards':
       makeKeyCards(id);
       return;
+    case 'mock-make':
+      makeMock(id);
+      return;
+    case 'mock-go':
+      ui.tab = 'review';
+      ui.mockId = null;
+      window.scrollTo(0, 0);
+      makeMock(id);
+      return;
+    case 'mock-open':
+      ui.mockId = id;
+      changed = false;
+      window.scrollTo(0, 0);
+      break;
+    case 'mock-close':
+      ui.mockId = null;
+      changed = false;
+      break;
+    case 'mock-pick':
+    case 'mock-show':
+    case 'mock-self':
+    case 'mock-bad': {
+      const [mid, qi, val] = id.split(':');
+      const m = mockById(mid);
+      const q = m && m.questions[Number(qi)];
+      if (!q || q.result) return;
+      if (action === 'mock-pick') {
+        q.picked = Number(val);
+        q.result = q.picked === q.answer ? 'right' : 'wrong';
+      } else if (action === 'mock-show') {
+        q.picked = 'shown';
+      } else if (action === 'mock-self') {
+        q.result = val;
+      } else {
+        q.result = 'bad';
+      }
+      if (q.result === 'wrong') mockWrong(m, q);
+      break;
+    }
     case 'popup-open':
       ui.popup = true;
       changed = false;
