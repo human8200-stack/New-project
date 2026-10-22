@@ -62,7 +62,7 @@ function freshState() {
 }
 
 // sw.js의 CACHE 이름과 같이 올린다. 설정 맨 아래에 보여서 휴대폰이 새 버전인지 알 수 있다
-const APP_VERSION = 'v36';
+const APP_VERSION = 'v37';
 
 let state;
 const ui = { revealed: null, tab: 'today', openForm: null, openBook: null, openSubject: null, setup: false, planView: 'exam', popup: false };
@@ -2571,13 +2571,13 @@ function pushCard() {
   if (!c || !c.enablePush) return '';
   let body;
   const label = (window.timeLabel || ((x) => x))(c.pushTime || '16:30');
-  // 30분 단위 (보내는 쪽이 30분마다 돈다)
+  // 10분 단위 (보내는 쪽이 1분마다 돈다)
   const times = [];
-  for (let h = 6; h <= 23; h++) ['00', '30'].forEach((m) => times.push(`${String(h).padStart(2, '0')}:${m}`));
+  for (let h = 6; h <= 23; h++) ['00', '10', '20', '30', '40', '50'].forEach((m) => times.push(`${String(h).padStart(2, '0')}:${m}`));
   const picker = `
     <label>알림 시간</label>
     <select data-action="push-time" aria-label="알림 시간">${times.map((x) => `<option value="${x}"${x === (c.pushTime || '16:30') ? ' selected' : ''}>${esc((window.timeLabel || ((y) => y))(x))}</option>`).join('')}</select>
-    <p class="meta" style="margin-top:4px">아이패드·휴대폰이 같은 시간에 받아요. 정한 시간보다 몇 분~30분 늦게 올 수 있어요.</p>`;
+    <p class="meta" style="margin-top:4px">아이패드·휴대폰이 같은 시간에 받아요. 보통 정한 시간 1분 안에 와요.</p>`;
   if (!c.userId) body = '<p class="sub" style="margin:0">위에서 로그인하면 켤 수 있어요.</p>';
   else if (!window.FIREBASE_VAPID) body = '<p class="sub" style="margin:0">부모님이 알림 설정(FIREBASE_SETUP.md 7번)을 마치면 켤 수 있어요.</p>';
   else if (c.pushOn) {

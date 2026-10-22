@@ -1,0 +1,11 @@
+# Netlify는 알림 보내기만 맡는다 (앱 자체는 GitHub Pages)
+# push/ 폴더에서 firebase-admin을 설치하고, push/netlify/functions의 예약 함수를 1분마다 돌린다
+[build]
+  base = "push"
+  publish = "public"
+  command = "echo 알림 서버"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+  external_node_modules = ["firebase-admin"]
