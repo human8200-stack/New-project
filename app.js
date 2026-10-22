@@ -62,7 +62,7 @@ function freshState() {
 }
 
 // sw.js의 CACHE 이름과 같이 올린다. 설정 맨 아래에 보여서 휴대폰이 새 버전인지 알 수 있다
-const APP_VERSION = 'v39';
+const APP_VERSION = 'v40';
 
 let state;
 const ui = { revealed: null, tab: 'today', openForm: null, openBook: null, openSubject: null, setup: false, planView: 'exam', popup: false };
@@ -2622,6 +2622,14 @@ function syncCard() {
 // 사진 읽기: 각자 자기 Claude API 키로 쓴다 (사용료도 그 키의 계정으로). 키는 이 기기에만 둔다
 function aiKeyCard() {
   const key = myKey();
+  // Claude 안에서 열면 Claude가 사진을 읽어서 키가 필요 없다
+  if (ai.sample && !key) {
+    return `
+    <section class="card">
+      <h2>AI 연결 (사진 읽기)</h2>
+      <p class="sub" style="margin:0"><span class="tag">연결됨</span> Claude 안에서 열어서 키 없이 사진 읽기와 핵심 카드를 쓸 수 있어요.</p>
+    </section>`;
+  }
   return `
     <section class="card">
       <h2>AI 연결 (사진 읽기)</h2>
