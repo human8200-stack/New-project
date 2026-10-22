@@ -660,3 +660,25 @@ img { max-width: 100%; height: auto; }
 .book-chip { display: inline-flex; align-items: center; gap: 2px; background: var(--accent-soft); border-radius: 999px; padding: 4px 4px 4px 12px; font-size: 14px; }
 .book-chip button { border: 0; background: transparent; color: var(--muted); font-size: 18px; line-height: 1; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; }
 .books-subject .add-book-form { margin-top: 8px; }
+
+.mock-list { list-style: none; margin: 8px 0 0; padding: 0; }
+.mock-item { border-top: 1px solid var(--line); padding: 14px 0; }
+.mock-item:first-child { border-top: 0; }
+.mock-item.bad { opacity: 0.6; }
+.mock-no { font-weight: 700; display: flex; gap: 8px; align-items: baseline; }
+.mock-q { margin: 6px 0 10px; white-space: normal; line-height: 1.65; }
+.mock-choices { display: grid; gap: 6px; }
+.mock-choice { display: flex; gap: 8px; text-align: left; font: inherit; font-size: 15px; background: var(--bg); color: var(--text); border: 2px solid transparent; border-radius: 12px; padding: 10px 12px; cursor: pointer; }
+.mock-choice span { font-weight: 700; color: var(--accent); }
+.mock-choice:disabled { cursor: default; }
+.mock-choice.correct { border-color: var(--ok); }
+.mock-choice.picked { border-color: var(--warn); }
+.mock-explain { margin-top: 10px; background: var(--bg); border-radius: 12px; padding: 10px 12px; font-size: 15px; }
+.mock-explain p { margin: 4px 0 0; }
+.mock-explain.right strong { color: var(--ok); }
+.mock-explain.wrong strong { color: var(--warn); }
+.mock-bad { margin-top: 8px; }
+.mock-score { margin: 8px 0 4px; font-size: 15px; }
+.mock-recent { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 4px; }
+.mock-mini { list-style: none; margin: 4px 0; padding: 0; font-size: 14px; }
+.mock-go { margin-top: 12px; }
