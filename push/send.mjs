@@ -1,6 +1,7 @@
-// 매일 오후 4시 반(한국 시간) "오늘 할 공부" 알림을 보낸다.
-// GitHub Actions(.github/workflows/daily-push.yml)가 실행한다. Firebase 유료 요금제(Cloud Functions) 없이 돌아간다.
-// 알림을 켠 계정(households 문서의 pushOn)마다 기록에서 오늘 계획을 만들어, 그 계정의 기기들(pushTokens)로 보낸다.
+// 계정마다 정한 시간(한국 시간, 기본 16:30)에 "오늘 할 공부" 알림을 보낸다.
+// GitHub Actions(.github/workflows/daily-push.yml)가 30분마다 실행한다. Firebase 유료 요금제(Cloud Functions) 없이 돌아간다.
+// 알림을 켠 계정(households 문서의 pushOn)마다, 정한 시간이 지났고 오늘 아직 안 보냈으면
+// 기록에서 오늘 계획을 만들어 그 계정의 기기들(pushTokens)로 보내고 pushSent에 오늘 날짜를 적는다.
 
 import { createRequire } from 'module';
 
@@ -11,6 +12,18 @@ const APP_URL = 'https://human8200-stack.github.io/New-project/';
 
 export function koreaToday(now = Date.now()) {
   return new Date(now + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+export function koreaMinutes(now = Date.now()) {
+  const d = new Date(now + 9 * 60 * 60 * 1000);
+  return d.getUTCHours() * 60 + d.getUTCMinutes();
+}
+
+// 정한 시간이 지났고(늦어도 3시간 안), 오늘 아직 안 보냈으면 보낼 때
+export function isDue(data, today, nowMin) {
+  const [h, m] = String(data.pushTime || '16:30').split(':').map(Number);
+  const at = h * 60 + (m || 0);
+  return data.pushSent !== today && nowMin >= at && nowMin - at < 180;
 }
 
 function hm(min) {
@@ -47,14 +60,14 @@ export function summarize(state, today) {
 
 const DEAD = new Set(['messaging/registration-token-not-registered', 'messaging/invalid-registration-token', 'messaging/invalid-argument']);
 
-export async function sendAll(db, messaging, today, FieldValue) {
+export async function sendAll(db, messaging, today, FieldValue, nowMin = koreaMinutes()) {
   const snap = await db.collection('households').where('pushOn', '==', true).get();
   let sent = 0;
   let failed = 0;
   for (const doc of snap.docs) {
     const data = doc.data();
     const tokens = Array.isArray(data.pushTokens) ? data.pushTokens.filter(Boolean) : [];
-    if (!tokens.length || !data.state) continue;
+    if (!tokens.length || !data.state || !isDue(data, today, nowMin)) continue;
     let note;
     try {
       note = summarize(JSON.parse(data.state), today);
@@ -76,7 +89,9 @@ export async function sendAll(db, messaging, today, FieldValue) {
         if (r.error && DEAD.has(r.error.code)) dead.push(tokens[i]);
       }
     });
-    if (dead.length) await doc.ref.update({ pushTokens: FieldValue.arrayRemove(...dead) });
+    const update = { pushSent: today };
+    if (dead.length) update.pushTokens = FieldValue.arrayRemove(...dead);
+    await doc.ref.update(update);
   }
   return { sent, failed };
 }

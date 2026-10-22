@@ -1,11 +1,12 @@
-# 매일 오후 4시 반(한국 시간) "오늘 할 공부" 알림을 보낸다. Firebase 유료 요금제 없이 GitHub이 대신 보낸다.
+# "오늘 할 공부" 알림을 계정마다 정한 시간(기본 오후 4시 반)에 보낸다. Firebase 유료 요금제 없이 GitHub이 대신 보낸다.
+# 30분마다 돌면서, 정한 시간이 지났고 오늘 아직 안 보낸 계정에만 보낸다.
 # 필요한 비밀 값: FIREBASE_SERVICE_ACCOUNT (FIREBASE_SETUP.md 7번). 없으면 아무것도 보내지 않고 끝난다.
 # GitHub 예약 실행은 몇 분~30분쯤 늦어질 수 있다.
 name: 오늘 할 공부 알림
 
 on:
   schedule:
-    - cron: '30 7 * * *' # UTC 07:30 = 한국 16:30
+    - cron: '7,37 * * * *' # 30분마다 (정각을 피해 덜 밀리게)
   workflow_dispatch:
 
 jobs:
