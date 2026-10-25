@@ -1,0 +1,92 @@
+# 행운 추첨(lucky-draw/)을 Cloudflare Pages에 올린다.
+# 저장소 Settings → Secrets and variables → Actions에
+# CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, LUCKY_DRAW_PASSWORD(진행자 비밀번호)를 넣고
+# Actions → "행운 추첨 올리기" → Run workflow를 누른다. 다 되면 요약에 주소가 나온다.
+name: 행운 추첨 올리기
+
+on:
+  workflow_dispatch:
+    inputs:
+      project:
+        description: Cloudflare Pages 프로젝트 이름
+        default: lucky-draw
+      branch:
+        description: 프로덕션 브랜치 (Pages 프로젝트 설정과 같아야 본 주소에 올라가요)
+        default: main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      PROJECT: ${{ inputs.project }}
+    defaults:
+      run:
+        working-directory: lucky-draw
+    steps:
+      - name: 비밀 값이 다 있는지 확인
+        working-directory: .
+        env:
+          LUCKY_DRAW_PASSWORD: ${{ secrets.LUCKY_DRAW_PASSWORD }}
+        run: |
+          missing=""
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID LUCKY_DRAW_PASSWORD; do
+            if [ -z "${!name}" ]; then missing="$missing $name"; fi
+          done
+          if [ -n "$missing" ]; then
+            echo "### 비밀 값이 빠졌어요:$missing" >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::비밀 값이 빠졌어요:$missing"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 설치
+        run: npm ci --no-audit --no-fund
+
+      - name: 데이터베이스(D1) 준비
+        run: |
+          find_id() {
+            npx wrangler d1 list --json | node -e "
+              let s = ''; process.stdin.on('data', (d) => s += d).on('end', () => {
+                const list = JSON.parse(s.slice(s.indexOf('[')));
+                const hit = list.find((x) => x.name === 'lucky-draw');
+                console.log(hit ? hit.uuid : '');
+              });"
+          }
+          id=$(find_id)
+          if [ -z "$id" ]; then
+            npx wrangler d1 create lucky-draw
+            id=$(find_id)
+          fi
+          if [ -z "$id" ]; then echo "::error::데이터베이스를 만들지 못했어요 (API 토큰에 D1 편집 권한이 있는지 보세요)"; exit 1; fi
+          sed -i "s/LUCKY_DRAW_DB_ID/$id/; s/^name = .*/name = \"$PROJECT\"/" wrangler.toml
+          npx wrangler d1 execute lucky-draw --remote --file schema.sql --yes
+
+      - name: Pages 프로젝트 준비
+        run: |
+          npx wrangler pages project create "$PROJECT" --production-branch "${{ inputs.branch }}" || echo "이미 있는 프로젝트를 써요"
+
+      - name: 진행자 비밀번호 넣기
+        env:
+          LUCKY_DRAW_PASSWORD: ${{ secrets.LUCKY_DRAW_PASSWORD }}
+        run: printf '%s' "$LUCKY_DRAW_PASSWORD" | npx wrangler pages secret put ADMIN_PASSWORD --project-name "$PROJECT"
+
+      - name: 올리기
+        id: deploy
+        run: |
+          npx wrangler pages deploy public --project-name "$PROJECT" --branch "${{ inputs.branch }}" --commit-dirty=true | tee deploy.log
+          url=$(grep -oE 'https://[a-zA-Z0-9.-]+\.pages\.dev' deploy.log | tail -n 1)
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: 주소 알려 주기
+        run: |
+          echo "### 행운 추첨을 올렸어요" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "이번 배포: ${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "진행자 로그인: https://<프로젝트 주소>.pages.dev/login (비밀번호 = LUCKY_DRAW_PASSWORD)" >> "$GITHUB_STEP_SUMMARY"

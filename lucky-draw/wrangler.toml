@@ -1,0 +1,10 @@
+# 행운 추첨 (Cloudflare Pages + D1)
+# database_id는 GitHub Actions(deploy-lucky-draw.yml)가 만들어서 채운다
+name = "lucky-draw"
+pages_build_output_dir = "public"
+compatibility_date = "2026-09-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "lucky-draw"
+database_id = "LUCKY_DRAW_DB_ID"

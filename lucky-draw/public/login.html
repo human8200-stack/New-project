@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>행운 추첨 · 진행자 로그인</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<main class="narrow">
+  <div class="join-hero"><div class="emoji">🎁</div><h1>행운 추첨</h1><p class="muted">진행자 로그인</p></div>
+  <form class="card" id="form">
+    <label class="field"><span>진행자 비밀번호</span>
+      <input class="input" type="password" id="pw" autocomplete="current-password" required autofocus></label>
+    <button class="btn primary" style="width:100%" id="go">들어가기</button>
+    <p class="error" id="err"></p>
+  </form>
+  <p class="muted small" style="text-align:center">참가자는 로그인하지 않아요. 진행자 화면의 큐알을 찍으면 바로 등록돼요.</p>
+</main>
+<script src="/common.js"></script>
+<script>
+api('me').then(() => location.replace('/admin')).catch(() => {});
+document.getElementById('form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const go = document.getElementById('go');
+  const err = document.getElementById('err');
+  go.disabled = true; err.textContent = '';
+  try {
+    await api('login', { method: 'POST', body: { password: document.getElementById('pw').value } });
+    location.replace('/admin');
+  } catch (x) {
+    err.textContent = x.message;
+    go.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
