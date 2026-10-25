@@ -2,8 +2,7 @@
   "name": "lucky-draw",
   "private": true,
   "scripts": {
-    "db": "wrangler d1 execute lucky-draw --local --file schema.sql",
-    "dev": "wrangler pages dev --port 8788",
+    "dev": "wrangler pages dev public --port 8788 --d1 DB=lucky-draw-local",
     "qr-lib": "cp node_modules/qrcode-generator/dist/qrcode.js public/vendor/qrcode.js"
   },
   "devDependencies": {

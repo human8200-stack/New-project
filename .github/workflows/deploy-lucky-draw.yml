@@ -1,6 +1,5 @@
-# 행운 추첨(lucky-draw/)을 Cloudflare Pages에 올린다.
-# 저장소 Settings → Secrets and variables → Actions에
-# CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, LUCKY_DRAW_PASSWORD(진행자 비밀번호)를 넣고
+# 행운 추첨(lucky-draw/)을 Cloudflare Pages에 올린다. (Cloudflare 화면에서 GitHub 연결로 올려도 된다: lucky-draw/README.md)
+# 저장소 Settings → Secrets and variables → Actions에 CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID를 넣고
 # Actions → "행운 추첨 올리기" → Run workflow를 누른다. 다 되면 요약에 주소가 나온다.
 name: 행운 추첨 올리기
 
@@ -27,11 +26,9 @@ jobs:
     steps:
       - name: 비밀 값이 다 있는지 확인
         working-directory: .
-        env:
-          LUCKY_DRAW_PASSWORD: ${{ secrets.LUCKY_DRAW_PASSWORD }}
         run: |
           missing=""
-          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID LUCKY_DRAW_PASSWORD; do
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID; do
             if [ -z "${!name}" ]; then missing="$missing $name"; fi
           done
           if [ -n "$missing" ]; then
@@ -65,17 +62,20 @@ jobs:
             id=$(find_id)
           fi
           if [ -z "$id" ]; then echo "::error::데이터베이스를 만들지 못했어요 (API 토큰에 D1 편집 권한이 있는지 보세요)"; exit 1; fi
-          sed -i "s/LUCKY_DRAW_DB_ID/$id/; s/^name = .*/name = \"$PROJECT\"/" wrangler.toml
-          npx wrangler d1 execute lucky-draw --remote --file schema.sql --yes
+          # DB로 연결한다. 표는 앱이 처음 요청 때 알아서 만든다
+          printf '%s\n' \
+            "name = \"$PROJECT\"" \
+            'pages_build_output_dir = "public"' \
+            'compatibility_date = "2026-09-01"' \
+            '' \
+            '[[d1_databases]]' \
+            'binding = "DB"' \
+            'database_name = "lucky-draw"' \
+            "database_id = \"$id\"" > wrangler.toml
 
       - name: Pages 프로젝트 준비
         run: |
           npx wrangler pages project create "$PROJECT" --production-branch "${{ inputs.branch }}" || echo "이미 있는 프로젝트를 써요"
-
-      - name: 진행자 비밀번호 넣기
-        env:
-          LUCKY_DRAW_PASSWORD: ${{ secrets.LUCKY_DRAW_PASSWORD }}
-        run: printf '%s' "$LUCKY_DRAW_PASSWORD" | npx wrangler pages secret put ADMIN_PASSWORD --project-name "$PROJECT"
 
       - name: 올리기
         id: deploy
@@ -89,4 +89,4 @@ jobs:
           echo "### 행운 추첨을 올렸어요" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "이번 배포: ${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "진행자 로그인: https://<프로젝트 주소>.pages.dev/login (비밀번호 = LUCKY_DRAW_PASSWORD)" >> "$GITHUB_STEP_SUMMARY"
+          echo "누구나 이 주소에서 행사를 만들고 추첨할 수 있어요 (가입·비밀번호 없음)." >> "$GITHUB_STEP_SUMMARY"

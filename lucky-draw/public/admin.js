@@ -1,8 +1,7 @@
-// 진행자 화면: 행사 만들기 → 큐알로 참가자 받기 → 룰렛·이름 뽑기로 선물 추첨 → 결과
+// 진행자 화면 (누구나): 행사 만들기 → 큐알로 참가자 받기 → 룰렛·이름 뽑기로 선물 추첨 → 결과
 const app = document.getElementById('app');
 
 const state = {
-  events: [],
   detail: null, // { event, participants, winners }
   tab: 'qr',
   mode: store('ld_mode') || 'wheel', // wheel | slot
@@ -37,13 +36,37 @@ function show(...nodes) {
 }
 
 function onError(x) {
-  if (x.status === 401) return location.replace('/login');
+  if (x.code === 'NO_DB') return showSetup();
+  if (x.status === 401) {
+    toast('이 기기에는 이 행사의 진행자 키가 없어요');
+    return go('');
+  }
   toast(x.message);
+}
+
+// 사이트를 올린 사람이 데이터베이스를 아직 연결하지 않았을 때
+function showSetup() {
+  show(el('div', { class: 'card' },
+    el('h2', { text: '데이터베이스를 연결해 주세요' }),
+    el('p', { text: '이 사이트를 올린 분이 한 번만 하면 돼요.' }),
+    el('ol', {},
+      el('li', { text: 'Cloudflare → 저장소 및 데이터베이스(Storage & Databases) → D1 → 데이터베이스 만들기 (이름: lucky-draw)' }),
+      el('li', { text: 'Workers & Pages → 이 Pages 프로젝트 → 설정(Settings) → 바인딩(Bindings) → 추가 → D1 데이터베이스' }),
+      el('li', { text: '변수 이름은 DB, 데이터베이스는 방금 만든 lucky-draw' }),
+      el('li', { text: '배포(Deployments)에서 최근 배포를 다시 시도(Retry deployment)' }),
+    ),
+  ));
 }
 
 // ---------- 길 ----------
 
 function route() {
+  // 다른 기기에서 진행자 링크로 열었을 때: #host/<행사>/<키>
+  const h = location.hash.match(/^#host\/([a-z0-9]+)\/([a-z0-9]+)/);
+  if (h) {
+    hosts.put({ id: h[1], key: h[2], at: Date.now() });
+    history.replaceState(null, '', `#e/${h[1]}/qr`);
+  }
   const m = location.hash.match(/^#e\/([a-z0-9]+)(?:\/(\w+))?/);
   stopPoll();
   if (m) {
@@ -67,24 +90,23 @@ function stopPoll() {
 
 // ---------- 행사 목록 ----------
 
-async function showList() {
-  try {
-    const { events } = await api('events');
-    state.events = events;
-  } catch (x) {
-    return onError(x);
-  }
+function showList() {
+  const mine = hosts.list();
   show(
-    el('div', { class: 'row', style: 'margin-bottom:16px' }, el('h1', { class: 'grow', text: '행사' })),
-    newEventCard(),
-    state.events.length
-      ? el('div', { class: 'events', style: 'margin-top:16px' },
-          state.events.map((e) => el('button', { class: 'card event-item', onclick: () => go(`#e/${e.id}/qr`) },
-            el('b', { text: e.name }),
-            el('div', { class: 'muted small', text: `참가 ${e.people}명 · 당첨 ${e.drawn}명 · 선물 ${e.prizes.reduce((s, p) => s + p.count, 0)}개` }),
-            el('div', { class: 'muted small', text: new Date(e.createdAt).toLocaleDateString('ko-KR') }),
+    el('div', { class: 'join-hero' },
+      el('div', { class: 'emoji', text: '🎁' }),
+      el('h1', { text: '행운 추첨' }),
+      el('p', { class: 'muted', text: '선물과 인원을 정하고, 큐알로 참가자를 받고, 룰렛으로 뽑아요. 가입 없이 누구나 써요.' }),
+    ),
+    mine.length ? el('h2', { text: '내가 만든 행사' }) : null,
+    mine.length
+      ? el('div', { class: 'events', style: 'margin-bottom:16px' },
+          mine.map((e) => el('button', { class: 'card event-item', onclick: () => go(`#e/${e.id}/qr`) },
+            el('b', { text: e.name || '(이름 없음)' }),
+            el('div', { class: 'muted small', text: new Date(e.at).toLocaleDateString('ko-KR') }),
           )))
       : null,
+    newEventCard(),
   );
 }
 
@@ -93,7 +115,7 @@ function prizeEditor(prizes) {
   const add = (p = { name: '', count: 1 }) => {
     const row = el('div', { class: 'prize-row' },
       el('input', { class: 'input', placeholder: '선물 이름 (예: 치킨 기프티콘)', value: p.name, maxlength: 40 }),
-      el('input', { class: 'input', type: 'number', min: 1, max: 999, value: p.count, 'aria-label': '개수' }),
+      el('input', { class: 'input', type: 'number', min: 1, max: 999, value: p.count, 'aria-label': '당첨 인원' }),
       el('button', { type: 'button', class: 'btn ghost', text: '✕', 'aria-label': '빼기', onclick: () => row.remove() }),
     );
     rows.append(row);
@@ -114,17 +136,18 @@ function newEventCard() {
   const form = el('form', { class: 'card' },
     el('h2', { text: '새 행사 만들기' }),
     el('label', { class: 'field' }, el('span', { text: '행사 이름' }), name),
-    el('div', { class: 'field' }, el('span', { text: '선물과 개수' }), prizes.node),
+    el('div', { class: 'field' }, el('span', { text: '선물과 당첨 인원(명)' }), prizes.node),
     el('button', { class: 'btn primary', text: '만들기' }),
     err,
   );
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     try {
-      const { event } = await api('events', { method: 'POST', body: { name: name.value, prizes: prizes.value() } });
+      const { event, key } = await api('events', { method: 'POST', body: { name: name.value, prizes: prizes.value() } });
+      hosts.put({ id: event.id, key, name: event.name, at: event.createdAt });
       go(`#e/${event.id}/qr`);
     } catch (x) {
-      if (x.status === 401) return onError(x);
+      if (x.code === 'NO_DB') return showSetup();
       err.textContent = x.message;
     }
   });
@@ -135,6 +158,7 @@ function newEventCard() {
 
 async function loadDetail(id) {
   state.detail = await api(`events/${id}`);
+  if (hosts.get(id)?.name !== state.detail.event.name) hosts.put({ id, name: state.detail.event.name });
   const { prizes } = state.detail.event;
   // 고른 선물이 다 나갔으면 다음 남은 선물로
   const picked = prizes.find((p) => p.name === state.prize);
@@ -146,7 +170,7 @@ async function openEvent(id) {
     if (state.detail?.event.id !== id) state.seen = new Set();
     await loadDetail(id);
   } catch (x) {
-    if (x.status === 404) { toast(x.message); return go(''); }
+    if (x.status === 404) { hosts.remove(id); toast(x.message); return go(''); }
     return onError(x);
   }
   render();
@@ -616,7 +640,7 @@ function settingsTab() {
   const form = el('form', { class: 'card' },
     el('h2', { text: '행사 고치기' }),
     el('label', { class: 'field' }, el('span', { text: '행사 이름' }), name),
-    el('div', { class: 'field' }, el('span', { text: '선물과 개수' }), prizes.node),
+    el('div', { class: 'field' }, el('span', { text: '선물과 당첨 인원(명)' }), prizes.node),
     el('p', { class: 'muted small', text: '선물 이름을 바꾸면 이미 뽑힌 당첨은 결과의 "그 밖의 선물"로 옮겨져요.' }),
     el('button', { class: 'btn primary', text: '저장' }),
     err,
@@ -635,8 +659,14 @@ function settingsTab() {
     }
   });
 
+  const hostLink = `${location.origin}/admin#host/${id}/${hosts.get(id)?.key || ''}`;
   return el('div', {},
     form,
+    el('div', { class: 'card' },
+      el('h2', { text: '다른 기기에서 진행하기' }),
+      el('p', { class: 'muted small', text: '진행자 키는 이 브라우저에만 저장돼 있어요. 이 링크를 열면 다른 기기(노트북·태블릿)에서도 이 행사를 진행할 수 있어요. 링크가 있으면 누구나 추첨을 할 수 있으니 참가자에게는 보내지 마세요.' }),
+      el('button', { class: 'btn', text: '진행자 링크 복사', onclick: () => navigator.clipboard?.writeText(hostLink).then(() => toast('진행자 링크를 복사했어요')) }),
+    ),
     el('div', { class: 'card' },
       el('h2', { text: '다시 하기' }),
       el('div', { class: 'row' },
@@ -651,7 +681,7 @@ function settingsTab() {
           class: 'btn danger', text: '행사 지우기',
           onclick: async () => {
             if (prompt(`행사와 참가자·당첨 기록이 모두 지워져요.\n지우려면 행사 이름(${event.name})을 똑같이 써 주세요.`) !== event.name) return;
-            try { await api(`events/${id}`, { method: 'DELETE' }); toast('지웠어요'); go(''); } catch (x) { onError(x); }
+            try { await api(`events/${id}`, { method: 'DELETE' }); hosts.remove(id); toast('지웠어요'); go(''); } catch (x) { onError(x); }
           },
         }),
       ),
@@ -666,10 +696,6 @@ const paintSound = () => (soundBtn.textContent = sound.on ? '🔊 소리 켬' : 
 soundBtn.addEventListener('click', () => { sound.on = !sound.on; store('ld_sound', sound.on ? 'on' : 'off'); paintSound(); });
 paintSound();
 
-document.getElementById('logoutBtn').addEventListener('click', async () => {
-  await api('logout', { method: 'POST' }).catch(() => {});
-  location.replace('/login');
-});
 
 window.addEventListener('hashchange', route);
 window.addEventListener('resize', () => {
@@ -677,4 +703,4 @@ window.addEventListener('resize', () => {
   if (canvas && state.detail && !state.busy) drawWheel(canvas, pool().map((p) => p.name), wheelRotation);
 });
 
-api('me').then(route).catch(onError);
+route();
