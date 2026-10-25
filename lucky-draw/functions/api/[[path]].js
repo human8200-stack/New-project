@@ -1,10 +1,10 @@
 // 행운 추첨 서버 (Cloudflare Pages Functions + D1)
-// 진행자: /login에서 비밀번호(ADMIN_PASSWORD)로 들어와 행사·선물을 만들고 추첨한다.
+// 누구나 행사를 만들 수 있다. 만들면 그 행사의 진행자 키가 나오고(브라우저에 저장), 그 키가 있어야 고치고 추첨한다.
 // 참가자: 큐알로 /join?e=<행사>를 열어 이름을 등록하고, 당첨되면 휴대폰에 바로 뜬다.
+// 필요한 것: D1 데이터베이스를 DB라는 이름으로 연결하기 (표는 처음 요청 때 알아서 만든다).
 // 당첨자는 서버가 뽑는다 (화면의 룰렛은 서버가 정한 사람에게 멈추는 연출).
 
-const COOKIE = 'ld_session';
-const SESSION_TTL = 60 * 60 * 24 * 30;
+const KEEP_DAYS = 90; // 이보다 오래된 행사는 지운다
 const MAX_PARTICIPANTS = 3000;
 const MAX_PRIZES = 50;
 const DEVICE_RE = /^[a-z0-9]{16,40}$/;
@@ -63,12 +63,11 @@ function cleanPrizes(list) {
   return out;
 }
 
-// ---------- 진행자 로그인 ----------
-// 쿠키 = 만료시각.서명. 비밀번호를 바꾸면 전에 로그인한 기기는 모두 풀린다.
+// ---------- 진행자 키 ----------
+// 키 자체는 저장하지 않고 해시만 저장한다.
 
-async function sign(env, text) {
-  const key = await crypto.subtle.importKey('raw', enc.encode(`lucky-draw:${env.ADMIN_PASSWORD}`), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-  return hex(await crypto.subtle.sign('HMAC', key, enc.encode(text)));
+async function sha256(text) {
+  return hex(await crypto.subtle.digest('SHA-256', enc.encode(text)));
 }
 
 // 글자 비교에 걸리는 시간으로 값을 알아내지 못하게
@@ -80,24 +79,32 @@ function sameText(a, b) {
   return diff === 0;
 }
 
-async function isAdmin(request, env) {
-  const cookie = request.headers.get('Cookie') || '';
-  const m = cookie.match(new RegExp(`(?:^|;\\s*)${COOKIE}=([0-9]+)\\.([0-9a-f]{64})`));
-  if (!m || Number(m[1]) < Date.now() / 1000) return false;
-  return sameText(m[2], await sign(env, m[1]));
+async function isHost(request, row) {
+  const key = request.headers.get('X-Host-Key') || '';
+  return !!key && sameText(await sha256(key), row.host_key);
 }
 
-function sessionCookie(value, maxAge) {
-  return `${COOKIE}=${value}; Path=/; Max-Age=${maxAge}; HttpOnly; Secure; SameSite=Lax`;
-}
+// ---------- 표 만들기 (처음 한 번) ----------
 
-async function login(request, env) {
-  const { password } = await body(request);
-  // 틀린 비밀번호를 빨리 여러 번 넣어 보지 못하게 조금 기다린다
-  await new Promise((r) => setTimeout(r, 400));
-  if (typeof password !== 'string' || !sameText(password, env.ADMIN_PASSWORD)) return fail(401, '비밀번호가 맞지 않아요');
-  const exp = String(Math.floor(Date.now() / 1000) + SESSION_TTL);
-  return json({ ok: true }, 200, { 'Set-Cookie': sessionCookie(`${exp}.${await sign(env, exp)}`, SESSION_TTL) });
+const SCHEMA = [
+  `CREATE TABLE IF NOT EXISTS events (
+    id TEXT PRIMARY KEY, name TEXT NOT NULL, prizes TEXT NOT NULL DEFAULT '[]',
+    open INTEGER NOT NULL DEFAULT 1, host_key TEXT NOT NULL, created_at INTEGER NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS participants (
+    id TEXT PRIMARY KEY, event_id TEXT NOT NULL, name TEXT NOT NULL, note TEXT NOT NULL DEFAULT '',
+    device TEXT, created_at INTEGER NOT NULL, UNIQUE (event_id, device))`,
+  'CREATE INDEX IF NOT EXISTS participants_event ON participants (event_id, created_at)',
+  `CREATE TABLE IF NOT EXISTS winners (
+    id TEXT PRIMARY KEY, event_id TEXT NOT NULL, participant_id TEXT NOT NULL,
+    prize TEXT NOT NULL, created_at INTEGER NOT NULL)`,
+  'CREATE INDEX IF NOT EXISTS winners_event ON winners (event_id, created_at)',
+];
+let schemaReady = false;
+
+async function ensureSchema(env) {
+  if (schemaReady) return;
+  await env.DB.batch(SCHEMA.map((sql) => env.DB.prepare(sql)));
+  schemaReady = true;
 }
 
 // ---------- 행사 ----------
@@ -106,19 +113,25 @@ function eventRow(row) {
   return { id: row.id, name: row.name, prizes: JSON.parse(row.prizes || '[]'), open: !!row.open, createdAt: row.created_at };
 }
 
-async function getEvent(env, id) {
+async function getRow(env, id) {
   if (!ID_RE.test(id)) return null;
-  const row = await env.DB.prepare('SELECT * FROM events WHERE id = ?').bind(id).first();
+  return env.DB.prepare('SELECT * FROM events WHERE id = ?').bind(id).first();
+}
+
+async function getEvent(env, id) {
+  const row = await getRow(env, id);
   return row ? eventRow(row) : null;
 }
 
-async function listEvents(env) {
-  const { results } = await env.DB.prepare(
-    `SELECT e.*, (SELECT COUNT(*) FROM participants p WHERE p.event_id = e.id) AS people,
-            (SELECT COUNT(*) FROM winners w WHERE w.event_id = e.id) AS drawn
-     FROM events e ORDER BY e.created_at DESC LIMIT 100`,
-  ).all();
-  return json({ events: results.map((r) => ({ ...eventRow(r), people: r.people, drawn: r.drawn })) });
+// 오래된 행사 치우기 (행사를 만들 때 가끔)
+async function cleanup(env) {
+  const before = Date.now() - KEEP_DAYS * 86400_000;
+  const old = 'SELECT id FROM events WHERE created_at < ?';
+  await env.DB.batch([
+    env.DB.prepare(`DELETE FROM winners WHERE event_id IN (${old})`).bind(before),
+    env.DB.prepare(`DELETE FROM participants WHERE event_id IN (${old})`).bind(before),
+    env.DB.prepare('DELETE FROM events WHERE created_at < ?').bind(before),
+  ]);
 }
 
 async function createEvent(request, env) {
@@ -126,10 +139,12 @@ async function createEvent(request, env) {
   const name = cleanText(b.name, 60);
   if (!name) return fail(400, '행사 이름을 넣어 주세요');
   const id = randomId(8);
-  await env.DB.prepare('INSERT INTO events (id, name, prizes, open, created_at) VALUES (?, ?, ?, 1, ?)')
-    .bind(id, name, JSON.stringify(cleanPrizes(b.prizes)), Date.now())
+  const key = randomId(24);
+  await env.DB.prepare('INSERT INTO events (id, name, prizes, open, host_key, created_at) VALUES (?, ?, ?, 1, ?, ?)')
+    .bind(id, name, JSON.stringify(cleanPrizes(b.prizes)), await sha256(key), Date.now())
     .run();
-  return json({ event: await getEvent(env, id) });
+  if (Math.random() < 0.1) await cleanup(env).catch(() => {});
+  return json({ event: await getEvent(env, id), key });
 }
 
 async function updateEvent(request, env, ev) {
@@ -259,8 +274,7 @@ async function join(request, env, ev) {
 // ---------- 길 찾기 ----------
 
 export async function onRequest({ request, env, params }) {
-  if (!env.DB) return fail(500, '데이터베이스(DB)가 연결되지 않았어요');
-  if (!env.ADMIN_PASSWORD) return fail(500, '진행자 비밀번호(ADMIN_PASSWORD)가 설정되지 않았어요');
+  if (!env.DB) return fail(503, 'NO_DB');
 
   const parts = [].concat(params.path || []);
   const method = request.method;
@@ -273,6 +287,7 @@ export async function onRequest({ request, env, params }) {
   }
 
   try {
+    await ensureSchema(env);
     const [a, b, c, d] = parts;
 
     if (a === 'join' && b) {
@@ -282,21 +297,13 @@ export async function onRequest({ request, env, params }) {
       if (method === 'POST') return join(request, env, ev);
     }
 
-    if (a === 'login' && method === 'POST') return login(request, env);
-    if (a === 'logout' && method === 'POST') return json({ ok: true }, 200, { 'Set-Cookie': sessionCookie('', 0) });
-
-    if (!(await isAdmin(request, env))) return fail(401, '로그인해 주세요');
-
-    if (a === 'me') return json({ ok: true });
-
-    if (a === 'events' && !b) {
-      if (method === 'GET') return listEvents(env);
-      if (method === 'POST') return createEvent(request, env);
-    }
+    if (a === 'events' && !b && method === 'POST') return createEvent(request, env);
 
     if (a === 'events' && b) {
-      const ev = await getEvent(env, b);
-      if (!ev) return fail(404, '행사를 찾을 수 없어요');
+      const row = await getRow(env, b);
+      if (!row) return fail(404, '행사를 찾을 수 없어요');
+      if (!(await isHost(request, row))) return fail(401, '이 행사의 진행자 키가 없어요');
+      const ev = eventRow(row);
       if (!c) {
         if (method === 'GET') return eventDetail(env, ev);
         if (method === 'PUT') return updateEvent(request, env, ev);

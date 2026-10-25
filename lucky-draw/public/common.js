@@ -1,15 +1,31 @@
 // 화면들이 같이 쓰는 작은 도구
+// 이 브라우저가 진행하는 행사들 [{ id, key, name, at }] (진행자 키는 여기에만 있다)
+const hosts = {
+  list() {
+    try { return JSON.parse(store('ld_hosts') || '[]'); } catch { return []; }
+  },
+  save(list) { store('ld_hosts', JSON.stringify(list)); },
+  get(id) { return this.list().find((h) => h.id === id); },
+  put(h) { this.save([{ ...this.get(h.id), ...h }, ...this.list().filter((x) => x.id !== h.id)]); },
+  remove(id) { this.save(this.list().filter((x) => x.id !== id)); },
+};
+
 async function api(path, options = {}) {
+  const headers = options.body ? { 'Content-Type': 'application/json' } : {};
+  const m = path.match(/^events\/([a-z0-9]+)/);
+  const host = m && hosts.get(m[1]);
+  if (host) headers['X-Host-Key'] = host.key;
   const res = await fetch(`/api/${path}`, {
     method: options.method || 'GET',
-    headers: options.body ? { 'Content-Type': 'application/json' } : {},
+    headers,
     body: options.body ? JSON.stringify(options.body) : undefined,
     credentials: 'same-origin',
   });
   let data = {};
   try { data = await res.json(); } catch {}
   if (!res.ok) {
-    const err = new Error(data.error || `오류 (${res.status})`);
+    const err = new Error(data.error === 'NO_DB' ? '데이터베이스가 아직 연결되지 않았어요' : data.error || `오류 (${res.status})`);
+    err.code = data.error;
     err.status = res.status;
     throw err;
   }
