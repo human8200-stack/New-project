@@ -568,14 +568,16 @@ function riskyPhrases(r) {
 }
 
 /* ---------- Claude ---------- */
-const CATS = ["장·면역", "혈관·혈당", "체중·대사", "뼈·근육", "여성·갱년기", "피부·노화", "수면·스트레스", "어린이·청소년", "기타"];
+// 분류는 암웨이 사이트의 '건강고민별' 이름을 따른다(쇼핑용 분류는 빼고, 혈당 건강은 강의용으로 더함)
+const CATS = ["심혈관 건강", "혈당 건강", "체지방 관리", "장 건강", "위 건강", "간 건강", "면역 기능 증진", "항산화", "뼈 관절 건강", "눈 건강", "코 건강", "두뇌/기억력", "수면 건강", "스트레스 관리", "피부 건강", "점막 건강", "여성 건강", "남성 건강", "어린이", "비타민/무기질", "단백질/아미노산", "식이섬유", "효소", "레시틴", "콜라겐", "글루타치온", "맞춤 영양", "기타"];
 const AUDS = ["중장년", "어르신", "직장인", "주부·엄마", "청소년", "일반"];
 const MINS = [10, 20, 30, 40, 60];
 const catOf = r => CATS.includes(r.category) ? r.category : "기타";
 const prodNames = () => S.products.map(t => t.name).filter(Boolean);
 const hasProd = (r, name) => listOf(r.products).some(n => (findProd(n)?.name || n) === name);
 const prodChips = (cur, onPick) => prodNames().length ? el("div", { class: "chips prods" }, el("span", { class: "meta" }, "제품"), ["전체", ...prodNames()].map(c => el("button", { class: "chip", "aria-pressed": (cur || "전체") === c, onclick: () => onPick(c === "전체" ? null : c) }, c))) : el("div");
-const catChips = (cur, onPick) => el("div", { class: "chips" }, ["전체", ...CATS].map(c => el("button", { class: "chip", "aria-pressed": (cur || "전체") === c, onclick: () => onPick(c === "전체" ? null : c) }, c)));
+// 분류가 많아서 강의가 있는 분류만 버튼으로 보여 준다
+const catChips = (cur, onPick) => el("div", { class: "chips" }, ["전체", ...CATS.filter(c => c === cur || S.lectures.some(r => catOf(r) === c))].map(c => el("button", { class: "chip", "aria-pressed": (cur || "전체") === c, onclick: () => onPick(c === "전체" ? null : c) }, c)));
 const SHAPE = `{"title":string,"category":string,"minutes":number,"audience":string,"products":string,"tags":[string],"hook":string,"sections":[{"head":string,"points":[string],"say":string}],"check":[string],"actions":[string],"closing":string,"sources":[string],"source":string}`;
 const RULES = `규칙: 모두 한국어. title은 소비자가 듣고 싶어지는 짧은 강의 제목(20자 안팎). hook은 강의 첫마디로 청중에게 던지는 공감 질문 한두 문장. sections는 강의 흐름 순서(문제 → 원리 → 근거 → 해결)로 3~6개, head는 15자 안팎 소제목, points는 2~4개의 짧은 요점(숫자와 근거는 살린다), say는 강사가 실제로 말하듯 쉬운 비유나 예시를 넣은 구어체 대본 2~4문장. check는 청중이 스스로 해 볼 수 있는 예/아니오 자가진단 문항 5~8개("~하다" 체). actions는 오늘부터 할 수 있는 구체적인 실천 3~5개. closing은 마무리 한 문장. products는 강의에서 소개한 제품 이름을 쉼표로(없으면 ""). sources는 원문에 나온 근거(기관, 조사, 연구, 세미나 이름)만, 없으면 빈 배열. tags 2~4개. minutes는 숫자(분). audience는 대상(예: 중장년). category는 다음 중 하나: ${CATS.join(", ")}.
 표현 규칙(꼭 지켜라): 건강기능식품이나 제품이 질병을 치료·예방·완치한다고 쓰지 마라. "낫는다", "치료", "완치", "특효", "예방한다", "부작용 없다", "약 대신" 같은 말은 쓰지 말고 "~에 도움을 줄 수 있다", "~ 관리에 좋다"처럼 쓴다. 약을 끊거나 바꾸라는 말은 하지 말고, 복용 중인 약이 있으면 전문가와 상담하라고 쓴다. 원문에 없는 통계, 연구 결과, 숫자를 지어내지 마라.`;
