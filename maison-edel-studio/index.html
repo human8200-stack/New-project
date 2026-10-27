@@ -139,7 +139,7 @@ button { font: inherit; cursor: pointer; border-radius: 3px; }
         </label>
       </div>
       <div class="row">
-        <label for="f-name">요리 이름<input id="f-name" value="가을 사과케이크"></label>
+        <label for="f-name">요리 이름<input id="f-name" value="카라멜 사과 케이크"></label>
         <label for="f-season">계절
           <select id="f-season">
             <option>봄</option><option>여름</option><option selected>가을</option><option>겨울</option>
@@ -153,29 +153,30 @@ button { font: inherit; cursor: pointer; border-radius: 3px; }
         <label><input type="radio" name="scope" value="book"><span>책 전용<small>영상 없이 완성 사진과 예고 글만</small></span></label>
       </fieldset>
       <label for="f-ing">재료와 계량
-        <textarea id="f-ing" rows="5">사과 2개 (홍옥 또는 부사)
-달걀 2개
-설탕 80g
-녹인 버터 80g
-우유 60ml
-박력분 150g
-베이킹파우더 5g
-시나몬 가루 약간</textarea>
+        <textarea id="f-ing" rows="5">[카라멜 사과]
+사과 2개
+설탕 100g
+무염버터 30g
+[도우]
+무염버터 100g
+설탕 100g
+계란 2개
+박력분 100g
+베이킹파우더 5g</textarea>
       </label>
       <label for="f-steps">만드는 순서
-        <textarea id="f-steps" rows="6">1. 오븐을 180℃로 예열하고 22cm 원형 틀에 종이를 깐다.
-2. 사과는 씨를 빼고 껍질째 얇게 썬다.
-3. 달걀과 설탕을 뽀얗게 될 때까지 젓는다.
-4. 녹인 버터와 우유를 넣고 섞는다.
-5. 박력분, 베이킹파우더, 시나몬을 체 쳐 넣고 가볍게 섞는다.
-6. 반죽을 틀에 먼저 붓고, 사과를 겹쳐 올린다.
-7. 180℃에서 35~40분 굽는다.</textarea>
+        <textarea id="f-steps" rows="6">1. 사과를 깨끗하게 씻어 0.5cm 굵기 정도로 썬다.
+2. 중형프라이팬에 유산지를 깔고 설탕과 버터를 넣고 인덕션 6단에서 5분 정도 카라멜을 만든다.
+3. 버터, 설탕, 계란, 박력분, 베이킹파우더 순으로 잘 섞어 반죽한다.
+4. 만든 카라멜 위에 사과를 가지런히 올려놓는다.
+5. 그 위에 반죽을 부어 뚜껑을 덮고 160도 15분 익혀낸다.
+6. 한 김 식으면 뒤집어서 사과가 위로 오게 하여 접시에 낸다.</textarea>
       </label>
       <label for="f-queen">퀸 냄비·인덕션 조리법 (있을 때만)
-        <textarea id="f-queen" rows="3" placeholder="예: 퀸 냄비에 종이를 깔고 반죽을 부은 뒤 뚜껑을 덮고 인덕션 3단에서 25분"></textarea>
+        <textarea id="f-queen" rows="3">퀸 중형프라이팬 + 인덕션. 오븐 없이 뚜껑 덮어 굽고, 마지막에 뒤집기.</textarea>
       </label>
       <label for="f-note">에델의 메모 (선택)
-        <textarea id="f-note" rows="2">사과는 껍질째 써야 색이 예뻐요. 올해 처음 딴 사과로 굽는 날.</textarea>
+        <textarea id="f-note" rows="2">한 김 식힌 뒤 뒤집어 사과가 드러나는 순간이 이 영상의 하이라이트.</textarea>
       </label>
       <button class="primary" id="go" type="submit">에피소드 자료 만들기</button>
       <p class="status" id="status" role="status"></p>
@@ -193,32 +194,32 @@ const SIGN = "From my kitchen to your table, with love.";
 const BASE_TAGS = ["#MaisonEdel", "#메종에델", "#LaTableDEdel"];
 
 const EXAMPLE = {
-  example: true, ep: 1, len: 45, scope: "full", name: "가을 사과케이크", season: "가을",
-  title_ko: "가을 사과케이크",
-  title_en: "Autumn Apple Cake",
+  ep: 1, len: 45, scope: "full", name: "카라멜 사과 케이크", season: "가을",
+  title_ko: "카라멜 사과 케이크",
+  title_en: "Caramel Apple Cake",
   overlays: [
     { step_ko: "창가의 사과 바구니", text_ko: "", text_en: "" },
-    { step_ko: "사과 썰기", text_ko: "사과 2개", text_en: "2 apples" },
-    { step_ko: "달걀과 설탕 젓기", text_ko: "달걀 2개 · 설탕 80g", text_en: "2 eggs · 80g sugar" },
-    { step_ko: "버터와 우유", text_ko: "녹인 버터 80g · 우유 60ml", text_en: "80g melted butter · 60ml milk" },
-    { step_ko: "가루 체 치기", text_ko: "박력분 150g · 베이킹파우더 5g", text_en: "150g cake flour · 5g baking powder" },
-    { step_ko: "반죽 붓기", text_ko: "22cm 원형 틀", text_en: "22cm round tin" },
-    { step_ko: "사과 올리기", text_ko: "", text_en: "" },
-    { step_ko: "굽기", text_ko: "180℃ · 35~40분", text_en: "180°C · 35–40 min" },
-    { step_ko: "창가의 한 조각", text_ko: "", text_en: "" }
+    { step_ko: "사과 썰기", text_ko: "사과 2개 · 0.5cm", text_en: "2 apples · 0.5cm slices" },
+    { step_ko: "팬에 설탕과 버터", text_ko: "설탕 100g · 무염버터 30g", text_en: "100g sugar · 30g unsalted butter" },
+    { step_ko: "카라멜 만들기", text_ko: "인덕션 6단 · 5분", text_en: "Induction level 6 · 5 min" },
+    { step_ko: "반죽 섞기", text_ko: "무염버터 100g · 설탕 100g · 계란 2개", text_en: "100g butter · 100g sugar · 2 eggs" },
+    { step_ko: "가루 넣기", text_ko: "박력분 100g · 베이킹파우더 5g", text_en: "100g cake flour · 5g baking powder" },
+    { step_ko: "카라멜 위에 사과", text_ko: "", text_en: "" },
+    { step_ko: "반죽 붓고 뚜껑 덮기", text_ko: "160℃ · 15분", text_en: "160°C · 15 min" },
+    { step_ko: "뒤집어 한 조각", text_ko: "", text_en: "" }
   ],
-  caption_ko: "올해 처음 딴 사과로 구운 케이크.\n반죽을 먼저 붓고, 사과를 꽃잎처럼 겹쳐 올렸어요.\n\n재료\n사과 2개, 달걀 2개, 설탕 80g, 녹인 버터 80g, 우유 60ml, 박력분 150g, 베이킹파우더 5g, 시나몬 약간\n180℃ 35~40분\n\n주말에 구워 보려면 저장해 두세요.",
-  caption_en: "A cake from this year's first apples.\nBatter first, then the apples, layered like petals. 180°C for 35–40 minutes.",
-  hashtags: ["#MaisonEdel", "#메종에델", "#LaTableDEdel", "#사과케이크", "#applecake", "#가을베이킹", "#autumnbaking", "#홈베이킹", "#slowliving", "#frenchcountrykitchen", "#레시피", "#recipe"],
-  yt_title: "가을 사과케이크 | Autumn Apple Cake #shorts",
-  yt_desc: "La Table d'Edel EP.01 — 가을 사과케이크\n재료: 사과 2개, 달걀 2개, 설탕 80g, 녹인 버터 80g, 우유 60ml, 박력분 150g, 베이킹파우더 5g, 시나몬 약간\n180℃ 35~40분",
+  caption_ko: "카라멜 위에 사과를 깔고, 반죽을 부어 뒤집었어요.\n오븐 없이 팬 하나로 굽는 가을 케이크.\n\n카라멜 사과: 사과 2개, 설탕 100g, 무염버터 30g\n도우: 무염버터 100g, 설탕 100g, 계란 2개, 박력분 100g, 베이킹파우더 5g\n\n팬에 유산지를 깔고 인덕션 6단에서 5분 카라멜\n사과를 가지런히 올리고 반죽을 부어 뚜껑 덮고 160℃ 15분\n한 김 식으면 뒤집어 접시에\n\n이번 주말에 구워 보려면 저장해 두세요.",
+  caption_en: "Caramel, apples, then batter. Baked in one pan and turned over.\nNo oven needed: lid on, 160°C for 15 minutes.",
+  hashtags: ["#MaisonEdel", "#메종에델", "#LaTableDEdel", "#카라멜사과케이크", "#사과케이크", "#업사이드다운케이크", "#applecake", "#upsidedowncake", "#가을베이킹", "#노오븐베이킹", "#slowliving", "#frenchcountrykitchen"],
+  yt_title: "오븐 없이 카라멜 사과 케이크 | Caramel Apple Cake #shorts",
+  yt_desc: "La Table d'Edel EP.01 — 카라멜 사과 케이크 (4인분)\n카라멜 사과: 사과 2개, 설탕 100g, 무염버터 30g\n도우: 무염버터 100g, 설탕 100g, 계란 2개, 박력분 100g, 베이킹파우더 5g\n인덕션 6단 5분 카라멜 → 뚜껑 덮고 160℃ 15분 → 뒤집기",
   teaser_ko: "",
   ebook: {
-    intro: "올해 처음 딴 사과로 굽는 케이크예요. 반죽 위에 사과를 꽃잎처럼 올리기만 하면 되어서, 오븐이 낯선 날에도 마음 편히 구울 수 있어요.",
-    ingredients: ["사과 2개 (홍옥 또는 부사)", "달걀 2개", "설탕 80g", "녹인 버터 80g", "우유 60ml", "박력분 150g", "베이킹파우더 5g", "시나몬 가루 약간"],
-    steps: ["오븐을 180℃로 예열하고 22cm 원형 틀에 종이를 깔아요.", "사과는 씨를 빼고 껍질째 얇게 썰어요.", "달걀과 설탕을 뽀얗게 될 때까지 저어요.", "녹인 버터와 우유를 넣고 섞어요.", "박력분, 베이킹파우더, 시나몬을 체 쳐 넣고 주걱으로 가볍게 섞어요.", "반죽을 틀에 먼저 붓고 사과를 겹쳐 올려요.", "180℃에서 35~40분 구워요. 꼬치로 찔러 반죽이 묻어나지 않으면 완성이에요."],
-    queen: "",
-    tips: ["사과는 껍질째 써야 구운 뒤 색이 예뻐요.", "가루를 넣은 뒤에는 많이 젓지 않아야 폭신해요.", "완전히 식힌 뒤 잘라야 사과층이 흐트러지지 않아요."],
+    intro: "카라멜 위에 사과를 깔고 반죽을 부어 굽다가, 마지막에 뒤집어 사과가 위로 오게 하는 케이크예요. 오븐 없이 팬 하나로 20분이면 되어서, 가을 오후에 가볍게 굽기 좋아요.",
+    ingredients: ["카라멜 사과 — 사과 2개, 설탕 100g, 무염버터 30g", "도우 — 무염버터 100g, 설탕 100g, 계란 2개, 박력분 100g, 베이킹파우더 5g"],
+    steps: ["사과를 깨끗하게 씻어 0.5cm 굵기로 썰어요.", "중형프라이팬에 유산지를 깔고 설탕과 버터를 넣어 인덕션 6단에서 5분 정도 카라멜을 만들어요.", "버터, 설탕, 계란, 박력분, 베이킹파우더 순으로 잘 섞어 반죽해요.", "만든 카라멜 위에 사과를 가지런히 올려요.", "그 위에 반죽을 붓고 뚜껑을 덮어 160도에서 15분 익혀요.", "한 김 식으면 뒤집어서 사과가 위로 오게 접시에 담아요."],
+    queen: "퀸 중형프라이팬과 인덕션으로 만드는 레시피예요. 팬에 유산지를 깔고 인덕션 6단에서 카라멜을 만든 뒤, 뚜껑을 덮고 160도에서 15분 익히면 오븐 없이 완성돼요.",
+    tips: ["유산지를 깔면 카라멜이 팬에 눌어붙지 않고 뒤집을 때 깔끔하게 떨어져요.", "사과를 가지런히 겹쳐 올려야 뒤집었을 때 무늬가 예뻐요.", "한 김 식힌 뒤 뒤집어야 카라멜이 덜 흘러요."],
     variation: "늦가을에는 사과 대신 배를, 초가을에는 무화과를 올려도 잘 어울려요."
   }
 };
