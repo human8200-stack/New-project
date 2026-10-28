@@ -66,7 +66,7 @@ function freshState() {
 }
 
 // sw.js의 CACHE 이름과 같이 올린다. 설정 맨 아래에 보여서 휴대폰이 새 버전인지 알 수 있다
-const APP_VERSION = 'v53';
+const APP_VERSION = 'v54';
 
 let state;
 const ui = { revealed: null, tab: 'today', openForm: null, openBook: null, openSubject: null, setup: false, planView: 'exam', popup: false };
@@ -1999,7 +1999,9 @@ function rangeSummary() {
         <span class="range-subject">${esc(s.name)}</span>
         <span class="range-date">${d ? prettyDate(d) : '날짜 없음'}${s.dateGuess ? ' <span class="guess">예상</span>' : ''}</span>
         <span class="range-text">${r ? esc(r.replace(/^예상 · [^:]*: /, '')) : '범위 아직 없음'}</span>
-        ${r && !s.rangeGuess ? '<span class="range-ok" aria-label="넣음">✓</span>' : `<button class="chip-btn small-chip" data-action="range-open" data-id="manual">넣기</button>`}
+        ${r && !s.rangeGuess && !s.dateGuess && d
+    ? '<button class="chip-btn small-chip range-fix" data-action="range-open" data-id="manual" aria-label="고치기">✓ 고치기</button>'
+    : '<button class="chip-btn small-chip" data-action="range-open" data-id="manual">넣기</button>'}
       </li>`;
   }).join('');
 }
@@ -2037,7 +2039,7 @@ function rangeCard() {
           <div class="manual-row">
             <div class="manual-top"><strong>${esc(s.name)}</strong><input type="date" name="date-${s.id}" value="${esc(s.examDate || exam || '')}" aria-label="${esc(s.name)} 시험일"></div>
             <div class="edit-line">${m ? `<span>교과서 p.</span><input type="number" name="from-${s.id}" min="1" value="${from}" aria-label="시작 쪽"><span>~</span><input type="number" name="to-${s.id}" min="1" value="${to}" aria-label="끝 쪽">` : ''}
-              <input class="memo" name="memo-${s.id}" value="${esc(s.examRange && !/^교과서 p\./.test(s.examRange) ? s.examRange : '')}" placeholder="${m ? '메모 (선택)' : '범위 (예: 3~5과)'}"></div>
+              <input class="memo" name="memo-${s.id}" value="${esc(s.examRange && !s.rangeGuess && !/^교과서 p\./.test(s.examRange) ? s.examRange : '')}" placeholder="${m ? '메모 (선택)' : '범위 (예: 3~5과)'}"></div>
           </div>`;
   }).join('')}
         <button class="btn big primary wide" type="submit">저장</button>
@@ -2072,7 +2074,7 @@ function examHeader() {
     ? `<ul class="range-list">${rangeSummary()}</ul>`
     : '<p class="exam-empty">시험 날짜와 범위를 넣으면, 시험 날에 맞춰 과목별 계획을 다시 짜요. 학교 공지 글을 붙여넣기만 하면 돼요.</p>'}
       ${guessBox()}
-      <button class="btn big wide range-open" data-action="range-open">시험 범위 넣기</button>
+      <button class="btn big wide range-open" data-action="range-open">시험 날짜 · 범위 넣기 / 고치기</button>
     </section>
     ${rangeCard()}
     ${bigPictureCard() || feasibilityCard()}
@@ -3742,6 +3744,7 @@ document.addEventListener('change', async (e) => {
     const s = subjectById(el.dataset.id);
     if (!s) return;
     s.examDate = el.value;
+    s.dateGuess = false;
     const dates = state.subjects.map((x) => x.examDate).filter(Boolean).sort();
     if (dates.length) state.settings.examDate = dates[0];
     refreshUntouchedPlan();
@@ -3795,7 +3798,17 @@ document.addEventListener('submit', async (e) => {
   let msg = '저장했어요.';
 
   if (kind === 'setup') {
-    state.settings.examDate = f.get('examDate') || state.settings.examDate || '';
+    const first = f.get('examDate') || '';
+    if (first && first !== state.settings.examDate) {
+      // 과목별 날짜가 예상이거나 비어 있으면 새 첫날로 옮긴다. 진짜로 넣은 과목 날짜는 그대로
+      state.subjects.forEach((x) => {
+        if (!x.examDate || x.dateGuess) {
+          x.examDate = first;
+          x.dateGuess = false;
+        }
+      });
+    }
+    state.settings.examDate = first || state.settings.examDate || '';
     readSchedule(f);
     state.materials.forEach((m) => {
       m.archived = !f.get(`use-${m.id}`);
@@ -3883,8 +3896,13 @@ document.addEventListener('submit', async (e) => {
       const from = num(f.get(`from-${x.id}`), 0);
       const to = num(f.get(`to-${x.id}`), 0);
       const memo = (f.get(`memo-${x.id}`) || '').trim();
-      if (date) x.examDate = date;
-      if ((from && to) || memo) setSubjectRange(x, { date, from, to, memo });
+      // 예상 날짜를 그대로 두었으면 예상으로 남기고, 바꾼 날짜는 진짜 날짜로 저장한다
+      // (예상으로 남아 있으면 다음에 앱을 열 때 예상 날짜로 되돌아간다)
+      if (date && !(x.dateGuess && date === x.examDate)) {
+        x.examDate = date;
+        x.dateGuess = false;
+      }
+      if ((from && to) || memo) setSubjectRange(x, { date: x.dateGuess ? '' : date, from, to, memo });
     });
     afterRangeChange();
     ui.rangeOpen = false;
