@@ -1,0 +1,14 @@
+:root{--bg:#f7f2ea;--ink:#3b352e;--muted:#7a7064;--line:#e2d8c9;--olive:#6b7a4b}
+@media (prefers-color-scheme:dark){:root{--bg:#24211d;--ink:#ece4d8;--muted:#b3a897;--line:#3d3830;--olive:#a7b67f}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.75 "Noto Serif KR",Georgia,serif}
+main{max-width:720px;margin:0 auto;padding:48px 16px 80px}
+.brand{letter-spacing:.35em;font-size:13px;color:var(--olive);text-transform:uppercase}
+h1{font-weight:500;font-size:28px;margin:8px 0 4px}
+h2{font-weight:500;font-size:19px;margin:36px 0 8px;padding-top:16px;border-top:1px solid var(--line)}
+p,li{margin:6px 0}
+.muted{color:var(--muted);font-size:14px}
+a{color:var(--olive)}
+nav{margin:20px 0 8px;font-size:14px}
+nav a{margin-right:14px}
+hr{border:0;border-top:1px solid var(--line);margin:56px 0}
