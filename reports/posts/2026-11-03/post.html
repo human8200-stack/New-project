@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--cream:#FBF5EA;--brown:#3B2A1E;--terra:#D2643F;--muted:#8A7B6C;--line:#E8DCCB}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#ccc}
+.slide{width:1080px;height:1350px;position:relative;overflow:hidden;font-family:'Noto Sans KR',sans-serif;color:var(--brown);background:var(--cream)}
+#s1 .photo{position:absolute;inset:0;background:url(img/risotto.jpg) center 52%/cover}
+#s1 .shade{position:absolute;left:0;right:0;bottom:0;height:420px;background:linear-gradient(180deg,rgba(25,20,15,0),rgba(25,20,15,.78))}
+#s1 .t{position:absolute;left:80px;right:80px;bottom:84px;color:#fff}
+#s1 .t small{display:block;font-size:30px;letter-spacing:.2em;opacity:.9;font-weight:500}
+#s1 .t h1{font-family:'Gowun Batang',serif;font-size:96px;line-height:1.15;margin-top:10px}
+#s1 .t p{font-size:34px;margin-top:14px;opacity:.95}
+#s1 .handle{position:absolute;top:64px;right:72px;color:#fff;font-weight:700;font-size:30px;text-shadow:0 2px 10px rgba(0,0,0,.4)}
+/* recipe card */
+#s2{padding:90px 84px;display:flex;flex-direction:column}
+.kick{font-size:28px;letter-spacing:.24em;color:var(--terra);font-weight:700}
+#s2 h2{font-family:'Gowun Batang',serif;font-size:80px;line-height:1.15;margin-top:14px}
+.facts{display:flex;gap:14px;margin-top:22px}
+.facts span{border:2px solid var(--terra);color:var(--terra);border-radius:999px;padding:6px 22px;font-size:28px;font-weight:700}
+.cols{display:grid;grid-template-columns:400px 1fr;gap:48px;margin-top:48px;flex:1}
+.ing{background:#fff;border-radius:22px;padding:34px 34px;align-self:start;box-shadow:0 4px 18px rgba(59,42,30,.06)}
+h3{font-size:32px;color:var(--terra);font-weight:900;margin-bottom:16px}
+.row{display:flex;align-items:baseline;gap:10px;font-size:30px;padding:7px 0}
+.row i{flex:1;border-bottom:2px dotted #D5C6B2;transform:translateY(-6px)}
+.row b{font-weight:500;color:var(--muted)}
+.grp{font-size:26px;font-weight:700;color:var(--muted);margin:18px 0 4px}
+ol{list-style:none;display:flex;flex-direction:column;gap:22px}
+li{display:grid;grid-template-columns:52px 1fr;gap:14px;font-size:31px;line-height:1.45}
+li em{font-style:normal;width:48px;height:48px;border-radius:50%;background:var(--terra);color:#fff;font-weight:900;font-size:26px;display:flex;align-items:center;justify-content:center;margin-top:2px}
+.tip{margin-top:30px;border:2px dashed var(--terra);border-radius:18px;padding:20px 26px;font-size:28px;line-height:1.5}
+.tip b{color:var(--terra)}
+.foot{display:flex;justify-content:space-between;align-items:center;font-size:26px;color:var(--muted);border-top:2px solid var(--line);padding-top:22px;margin-top:28px}
+.foot b{color:var(--brown)}
+/* live teaser */
+#s3{background:#2A1C12;color:#fff;padding:110px 90px;display:flex;flex-direction:column}
+#s3 .bg{position:absolute;left:0;right:0;bottom:0;height:760px;background:url(img/table.jpg) center 80%/cover;opacity:.55}
+#s3 .bg:after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,#2A1C12 0%,rgba(42,28,18,.2) 45%,rgba(42,28,18,.85) 100%)}
+#s3>*:not(.bg){position:relative}
+.pill{align-self:flex-start;background:var(--terra);font-weight:900;font-size:32px;letter-spacing:.1em;padding:10px 26px;border-radius:999px;display:flex;gap:12px;align-items:center}
+.pill i{width:14px;height:14px;border-radius:50%;background:#fff;display:inline-block}
+#s3 h2{font-family:'Gowun Batang',serif;font-size:92px;line-height:1.2;margin-top:60px}
+#s3 h2 em{font-style:normal;color:#FFC58F}
+#s3 p{font-size:36px;line-height:1.6;margin-top:36px;opacity:.9}
+.when{margin-top:auto;display:flex;gap:18px;align-items:center}
+.when .d{background:#fff;color:var(--brown);border-radius:20px;padding:20px 30px;font-size:52px;font-weight:900;line-height:1}
+.when .d small{font-size:26px;font-weight:700;color:var(--terra);margin-left:10px}
+.when .t{font-size:40px;font-weight:700}
+.when .t small{display:block;font-size:26px;font-weight:500;opacity:.8;margin-top:6px}
+</style></head><body>
+
+<section class="slide" id="s1">
+  <div class="photo"></div><div class="shade"></div>
+  <div class="handle">@ssoll0820</div>
+  <div class="t">
+    <small>슬기로운 요리생활 · MAIN DISH</small>
+    <h1>보리 버섯 리조또</h1>
+    <p>쌀 대신 보리로, 팬 하나로 30분 🍄</p>
+  </div>
+</section>
+
+<section class="slide" id="s2">
+  <div class="kick">RECIPE · 저장해두고 만들어요</div>
+  <h2>보리 버섯 리조또</h2>
+  <div class="facts"><span>4인분</span><span>약 30분</span><span>대형프라이팬</span></div>
+  <div class="cols">
+    <div class="ing">
+      <h3>재료</h3>
+      <div class="row"><span>보리쌀</span><i></i><b>1컵</b></div>
+      <div class="row"><span>표고버섯</span><i></i><b>4개</b></div>
+      <div class="row"><span>양파</span><i></i><b>½개</b></div>
+      <div class="row"><span>마늘</span><i></i><b>3알</b></div>
+      <div class="grp">소스</div>
+      <div class="row"><span>우유</span><i></i><b>1컵</b></div>
+      <div class="row"><span>생크림</span><i></i><b>½컵</b></div>
+      <div class="row"><span>올리브 오일</span><i></i><b>3T</b></div>
+      <div class="row"><span>파마산·소금·후추</span><i></i><b>약간</b></div>
+    </div>
+    <div>
+      <h3>만드는 법</h3>
+      <ol>
+        <li><em>1</em><span>보리쌀은 씻어 <b>1시간</b> 불려요.</span></li>
+        <li><em>2</em><span>마늘은 편, 양파는 다지고, 버섯은 채 썰어요.</span></li>
+        <li><em>3</em><span>올리브 오일에 마늘을 넣고 <b>5단 1분</b> 볶아요.</span></li>
+        <li><em>4</em><span>양파·보리쌀을 볶다가 뚜껑 덮고 <b>2분</b>.</span></li>
+        <li><em>5</em><span>버섯·우유·생크림 넣고 <b>5단 3분 → 3단 15분</b>.</span></li>
+        <li><em>6</em><span>잘 섞어 소금·후추로 간하고 치즈를 뿌려요.</span></li>
+      </ol>
+      <div class="tip"><b>쏠's tip</b> 보리는 쌀보다 톡톡 씹혀서, 크림 리조또가 덜 느끼해요.</div>
+    </div>
+  </div>
+  <div class="foot"><span>『슬기로운 요리생활』 수록 레시피</span><b>@ssoll0820</b></div>
+</section>
+
+<section class="slide" id="s3">
+  <div class="bg"></div>
+  <div class="pill"><i></i>LIVE</div>
+  <h2>이번 일요일엔<br><em>같이 만들어요</em></h2>
+  <p>책 속 레시피를 저자가 직접.<br>첫 번째 페이지는 <b style="color:#FFC58F">클램 차우더</b> 🥣<br>얼굴 안 보여도, 구경만 해도 괜찮아요.</p>
+  <div class="when"><div class="d">11.8<small>SUN</small></div><div class="t">밤 8시 · 쏠키친 라이브<small>프로필의 라이브 알림 받기를 눌러주세요</small></div></div>
+</section>
+</body></html>
