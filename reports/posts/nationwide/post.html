@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+<style>
+:root{--cream:#FBF5EA;--brown:#3B2A1E;--terra:#D2643F;--sea:#DCE9EA;--land:#F3E6CF;--muted:#8A7B6C}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#ccc}
+.slide{width:1080px;height:1350px;position:relative;overflow:hidden;font-family:'Noto Sans KR',sans-serif;color:var(--brown);background:var(--sea)}
+#map{position:absolute;inset:0}
+.head{position:absolute;top:70px;left:76px;right:76px}
+.kick{font-size:28px;letter-spacing:.24em;color:var(--terra);font-weight:700}
+h1{font-family:'Gowun Batang',serif;font-size:84px;line-height:1.15;margin-top:12px}
+h1 em{font-style:normal;color:var(--terra)}
+.sub{font-size:32px;margin-top:14px;color:#5b4a3c}
+.foot{position:absolute;left:76px;right:76px;bottom:60px;display:flex;justify-content:space-between;align-items:flex-end}
+.foot .count{background:#fff;border-radius:22px;padding:22px 30px;box-shadow:0 6px 20px rgba(59,42,30,.12)}
+.foot .count b{font-size:56px;color:var(--terra);font-weight:900;line-height:1}
+.foot .count span{display:block;font-size:24px;color:var(--muted);margin-top:6px}
+.foot .handle{font-weight:700;font-size:30px}
+.city text{font-family:'Noto Sans KR';font-weight:900}
+/* city slide */
+#s2{background:var(--cream)}
+#s2 .photo{position:absolute;left:60px;right:60px;top:60px;height:900px;border-radius:28px;background:url(img/sample.jpg) center 30%/cover;box-shadow:0 10px 30px rgba(59,42,30,.18)}
+#s2 .stamp{position:absolute;top:100px;left:100px;background:var(--terra);color:#fff;border-radius:999px;padding:12px 28px;font-size:30px;font-weight:900;display:flex;gap:12px;align-items:center}
+#s2 .mini{position:absolute;right:96px;top:800px;width:220px;height:300px;background:#fff;border-radius:22px;box-shadow:0 8px 24px rgba(59,42,30,.18);padding:10px}
+#s2 .txt{position:absolute;left:76px;right:340px;top:1000px}
+#s2 .txt h2{font-family:'Gowun Batang',serif;font-size:76px;line-height:1.1}
+#s2 .txt p{font-size:32px;line-height:1.5;margin-top:16px;color:#5b4a3c}
+#s2 .ex{position:absolute;top:100px;right:100px;background:rgba(0,0,0,.55);color:#fff;font-size:24px;padding:8px 18px;border-radius:12px}
+</style></head><body>
+
+<section class="slide" id="s1">
+  <svg id="map" width="1080" height="1350"></svg>
+  <div class="head">
+    <div class="kick">ABLE KITCHEN ROAD TRIP</div>
+    <h1>우리 집 부엌에서<br><em>전국 부엌까지</em></h1>
+    <p class="sub">연구소 대신 부엌으로, 요리로 만난 사람들 🚗</p>
+  </div>
+  <div class="foot">
+    <div class="count"><b>6곳</b><span>요리로 만난 도시</span></div>
+    <div class="handle">@ssoll0820</div>
+  </div>
+</section>
+
+<section class="slide" id="s2">
+  <div class="photo"></div>
+  <div class="stamp">📍 STOP 01 · 부산</div>
+  <div class="ex">예시 사진</div>
+  <svg class="mini" id="mini" viewBox="0 0 200 280"></svg>
+  <div class="txt">
+    <h2>부산의 부엌</h2>
+    <p>(여기에 한 줄: 누구와, 무엇을 만들었는지)<br>예) 처음 만난 분들과 전 부치며 밤새 웃은 날</p>
+  </div>
+</section>
+
+<script>
+const CITIES=[
+ {n:"군포",ll:[126.9352,37.3617],home:true,dx:-250,dy:52},
+ {n:"서울",ll:[126.978,37.5665],dx:-110,dy:-18},
+ {n:"강릉",ll:[128.8761,37.7519],dx:28,dy:10},
+ {n:"세종",ll:[127.289,36.48],dx:-120,dy:10},
+ {n:"울산",ll:[129.3114,35.5384],dx:28,dy:10},
+ {n:"부산",ll:[129.0756,35.1796],dx:24,dy:44},
+ {n:"제주",ll:[126.5312,33.4996],dx:-30,dy:66}
+];
+const CAR=`<g>
+ <rect x="-46" y="-30" width="92" height="34" rx="6" fill="#D2643F"/>
+ <path d="M-34 -30 L-26 -54 L22 -54 L36 -30 Z" fill="#D2643F"/>
+ <path d="M-27 -32 L-21 -49 L-3 -49 L-3 -32 Z M2 -32 L2 -49 L19 -49 L29 -32 Z" fill="#E9F3F5"/>
+ <rect x="-46" y="-10" width="92" height="5" fill="#fff" opacity=".85"/>
+ <rect x="38" y="-24" width="8" height="7" rx="2" fill="#FFE08A"/>
+ <circle cx="-26" cy="6" r="12" fill="#2B201A"/><circle cx="-26" cy="6" r="5" fill="#ccc"/>
+ <circle cx="26" cy="6" r="12" fill="#2B201A"/><circle cx="26" cy="6" r="5" fill="#ccc"/>
+</g>`;
+(async()=>{
+ const w=await (await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-10m.json')).json();
+ const all=topojson.feature(w,w.objects.countries).features;
+ const kor=all.find(f=>f.id==='410'); const nk=all.find(f=>f.id==='408'); const jp=all.find(f=>f.id==='392');
+ const svg=d3.select('#map');
+ const proj=d3.geoMercator().fitExtent([[150,420],[1000,1250]],kor);
+ const path=d3.geoPath(proj);
+ [nk,jp].forEach(f=>svg.append('path').attr('d',path(f)).attr('fill','#E6EEEE').attr('stroke','#fff').attr('stroke-width',2));
+ svg.append('path').attr('d',path(kor)).attr('fill','#F7EBD3').attr('stroke','#C9B89C').attr('stroke-width',2.5);
+ const pts=CITIES.map(c=>proj(c.ll));
+ const line=d3.line().curve(d3.curveCatmullRom.alpha(.6));
+ svg.append('path').attr('d',line(pts)).attr('fill','none').attr('stroke','#D2643F').attr('stroke-width',6).attr('stroke-dasharray','2 16').attr('stroke-linecap','round');
+ CITIES.forEach((c,i)=>{const [x,y]=pts[i];const g=svg.append('g').attr('class','city');
+  g.append('circle').attr('cx',x).attr('cy',y).attr('r',c.home?20:15).attr('fill',c.home?'#3B2A1E':'#D2643F').attr('stroke','#fff').attr('stroke-width',5);
+  const tx=x+c.dx, ty=y+c.dy;
+  g.append('text').attr('x',tx).attr('y',ty).attr('font-size',36).attr('fill','#3B2A1E').attr('stroke','#F7EBD3').attr('stroke-width',8).attr('paint-order','stroke').text(c.home?'우리 집 부엌':c.n);
+ });
+ // car between 세종 and 울산
+ const mid=[(pts[3][0]+pts[4][0])/2+10,(pts[3][1]+pts[4][1])/2-10];
+ svg.append('g').attr('transform',`translate(${mid[0]},${mid[1]}) scale(1.15)`).html(CAR);
+ // mini map on slide 2
+ const m=d3.select('#mini'); const p2=d3.geoMercator().fitExtent([[10,10],[190,270]],kor); const pa=d3.geoPath(p2);
+ m.append('path').attr('d',pa(kor)).attr('fill','#F7EBD3').attr('stroke','#C9B89C');
+ CITIES.forEach(c=>{const [x,y]=p2(c.ll);m.append('circle').attr('cx',x).attr('cy',y).attr('r',c.n==='부산'?9:5).attr('fill',c.n==='부산'?'#D2643F':'#C9B89C').attr('stroke','#fff').attr('stroke-width',2)});
+ document.body.dataset.ready='1';
+})();
+</script>
+</body></html>
