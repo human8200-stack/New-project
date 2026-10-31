@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--cream:#F7F1E6;--paper:#FFFBF4;--green:#3F5E4A;--leaf:#7E9F7A;--terra:#C46A4A;--ink:#2E2A26;--muted:#7A7166}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#ddd}
+.slide{width:1080px;height:1350px;background:var(--cream);position:relative;overflow:hidden;font-family:'Noto Sans KR',sans-serif;color:var(--ink)}
+.frame{position:absolute;inset:48px;border:2px solid var(--green);border-radius:28px;background:var(--paper)}
+.leaf{position:absolute;width:300px;height:300px;border-radius:0 100% 0 100%;background:var(--leaf);opacity:.18}
+.inner{position:absolute;inset:48px;padding:96px 88px;display:flex;flex-direction:column}
+.kicker{font-size:30px;letter-spacing:.32em;color:var(--green);font-weight:700}
+h1{font-family:'Gowun Batang',serif;font-size:150px;line-height:1.05;color:var(--green);margin-top:36px;font-weight:700}
+h1 .live{display:inline-block;font-family:'Noto Sans KR';font-size:44px;font-weight:700;color:#fff;background:var(--terra);border-radius:14px;padding:8px 20px;vertical-align:middle;margin-left:18px;letter-spacing:.08em}
+.sub{font-family:'Gowun Batang',serif;font-size:50px;line-height:1.45;margin-top:48px}
+.sub b{color:var(--terra)}
+.date{margin-top:auto;display:flex;align-items:stretch;gap:0;border:2px solid var(--green);border-radius:22px;overflow:hidden;width:max-content}
+.date .d{background:var(--green);color:#fff;padding:26px 40px;font-size:64px;font-weight:700;line-height:1}
+.date .d small{display:block;font-size:26px;font-weight:500;margin-top:10px;letter-spacing:.2em}
+.date .t{padding:26px 40px;font-size:56px;font-weight:700;color:var(--green);display:flex;flex-direction:column;justify-content:center;line-height:1.1}
+.date .t small{font-size:26px;color:var(--muted);font-weight:500;margin-top:8px}
+.foot{margin-top:44px;display:flex;justify-content:space-between;align-items:center;font-size:30px;color:var(--muted)}
+.foot b{color:var(--ink)}
+h2{font-family:'Gowun Batang',serif;font-size:72px;color:var(--green);line-height:1.2}
+.steps{margin-top:56px;display:flex;flex-direction:column;gap:30px}
+.step{display:flex;gap:30px;align-items:flex-start}
+.num{flex:none;width:76px;height:76px;border-radius:50%;background:var(--green);color:#fff;font-size:38px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.step p{font-size:40px;line-height:1.45;padding-top:8px}
+.step p small{display:block;font-size:30px;color:var(--muted)}
+.box{margin-top:52px;background:var(--cream);border-radius:22px;padding:36px 44px;font-size:34px;line-height:1.6}
+.box b{color:var(--terra)}
+</style></head><body>
+
+<section class="slide" id="s1">
+  <div class="leaf" style="top:-90px;right:-90px"></div>
+  <div class="leaf" style="bottom:-120px;left:-120px;transform:rotate(90deg)"></div>
+  <div class="frame"></div>
+  <div class="inner">
+    <div class="kicker">INVITATION · 초대장</div>
+    <h1>쏠키친<span class="live">LIVE</span></h1>
+    <p class="sub">『슬기로운 요리생활』 저자와<br>같이 만드는 <b>책 속 한 페이지</b> 🌿</p>
+    <p class="sub" style="font-size:38px;margin-top:28px;color:var(--muted);font-family:'Noto Sans KR'">카메라도, 신청도 필요 없어요.<br>편하게 들어와서 구경만 해도 돼요.</p>
+    <div class="date">
+      <div class="d">11.26<small>THURSDAY</small></div>
+      <div class="t">밤 9시 30분<small>인스타 라이브 · 30분</small></div>
+    </div>
+    <div class="foot"><span>격주 목요일 밤, 같은 시간에 만나요</span><b>@ssoll0820</b></div>
+  </div>
+</section>
+
+<section class="slide" id="s2">
+  <div class="leaf" style="top:-120px;left:-120px;transform:rotate(90deg)"></div>
+  <div class="frame"></div>
+  <div class="inner">
+    <div class="kicker">HOW TO JOIN</div>
+    <h2 style="margin-top:28px">이렇게 오시면 돼요</h2>
+    <div class="steps">
+      <div class="step"><div class="num">1</div><p>이 게시물 아래 <b>라이브 예약</b>에서<br>‘알림 받기’ 누르기<small>시작할 때 알려드려요</small></p></div>
+      <div class="step"><div class="num">2</div><p>목요일 밤 9시 30분, 알림 누르고 입장<small>얼굴 안 보여요. 보기만 해도 OK</small></p></div>
+      <div class="step"><div class="num">3</div><p>댓글로 “안녕하세요” 한마디<small>이름 불러드릴게요 😊</small></p></div>
+    </div>
+    <div class="box">📖 책이 있으면 펼쳐두고 같이 따라 해요<br>🍲 재료는 라이브 전날 스토리에 올려드려요<br>🎁 <b>댓글 남긴 분 중 한 분께 책 선물</b></div>
+    <div class="foot" style="margin-top:auto"><span>함께 만들면, 말이 적어도 가까워져요</span><b>@ssoll0820</b></div>
+  </div>
+</section>
+</body></html>
