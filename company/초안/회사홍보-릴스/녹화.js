@@ -7,9 +7,9 @@ const path = require('path');
 const fs = require('fs');
 
 const DIR = __dirname;
-const FPS = 30, SEC = 31.5, W = 1080, H = 1920;
+const FPS = 30, SEC = 35.7, W = 1080, H = 1920;
 const CRF = process.env.CRF || '20';
-const SHOTS = [2.8, 0, 7.6, 11.8, 16.6, 25.5, 30.0]; // 대표 컷 6장: 쪽지·조직도·레시피·사람 챙기기(손글씨)·예고·식탁 (두 번째 값은 안 씀)
+const SHOTS = [2.8, 0, 8.6, 14.2, 20.4, 29.8, 34.5]; // 대표 컷 6장: 쪽지·조직도·레시피(A4)·고객 관리·예고·식탁 (두 번째 값은 안 씀)
 
 (async () => {
   const browser = await chromium.launch();
