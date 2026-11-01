@@ -1,0 +1,414 @@
+<title>세컨드윈드 결재함</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<style>
+/* 레이아웃: 휴대폰 한 줄 카드 목록. 위는 기다리는 결재, 아래는 접힌 끝난 결재. 결정은 도장 모양으로. */
+:root {
+  --bg: #f3f5f7;
+  --surface: #ffffff;
+  --ink: #17222c;
+  --muted: #5b6875;
+  --line: #d9dfe5;
+  --accent: #1d5a7a;
+  --accent-soft: #e2eef4;
+  --seal: #b8322a;
+  --ok: #2f7a4a;
+  --ok-soft: #e3f1e8;
+  --hold: #9a6a12;
+  --hold-soft: #f6eedc;
+  --no: #b8322a;
+  --no-soft: #f7e3e1;
+  --font-display: "Gowun Batang", "Nanum Myeongjo", serif;
+  --font-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11171c; --surface: #19222a; --ink: #e6ebef; --muted: #9aa7b3; --line: #2c3842;
+    --accent: #7fb8d6; --accent-soft: #1f3340; --seal: #e0675e;
+    --ok: #7fcb98; --ok-soft: #1c3226; --hold: #e0b45c; --hold-soft: #362c17; --no: #e8807a; --no-soft: #3a2220;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11171c; --surface: #19222a; --ink: #e6ebef; --muted: #9aa7b3; --line: #2c3842;
+  --accent: #7fb8d6; --accent-soft: #1f3340; --seal: #e0675e;
+  --ok: #7fcb98; --ok-soft: #1c3226; --hold: #e0b45c; --hold-soft: #362c17; --no: #e8807a; --no-soft: #3a2220;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.55;
+  -webkit-text-size-adjust: 100%;
+}
+.wrap {
+  max-width: 640px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 48px;
+  display: flex; flex-direction: column; gap: 22px;
+}
+header.top { display: flex; flex-direction: column; gap: 4px; }
+.brand { font-size: 12px; letter-spacing: .12em; color: var(--muted); font-weight: 600; }
+h1 { font-family: var(--font-display); font-size: 28px; line-height: 1.2; margin: 0; text-wrap: balance; }
+.lede { color: var(--muted); margin: 0; font-size: 15px; }
+.count { font-variant-numeric: tabular-nums; }
+h2 { font-size: 18px; margin: 0; display: flex; align-items: baseline; gap: 8px; }
+h2 .count { color: var(--muted); font-weight: 500; font-size: 15px; }
+section { display: flex; flex-direction: column; gap: 12px; }
+.list { display: flex; flex-direction: column; gap: 12px; }
+
+.card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0;
+}
+.card-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.no {
+  font-variant-numeric: tabular-nums; font-weight: 600; font-size: 14px;
+  min-width: 34px; height: 26px; padding: 0 8px; border-radius: 13px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--accent-soft); color: var(--accent);
+}
+.chip {
+  font-size: 13px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted);
+}
+.chip.kind-돈 { border-color: var(--seal); color: var(--seal); }
+.state { margin-left: auto; font-size: 13px; font-weight: 600; color: var(--muted); }
+.state.s-보류 { color: var(--hold); }
+.state.s-급함 { color: var(--seal); }
+.state.s-진행 { color: var(--accent); }
+.card h3 { margin: 0; font-size: 17px; line-height: 1.45; font-weight: 600; overflow-wrap: anywhere; }
+.detail { margin: 0; font-size: 15px; color: var(--ink); opacity: .85; overflow-wrap: anywhere; }
+.why { margin: 0; font-size: 14px; color: var(--muted); overflow-wrap: anywhere; }
+.why b { color: var(--ink); font-weight: 600; }
+.meta { margin: 0; font-size: 13px; color: var(--muted); }
+
+.actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+@media (max-width: 360px) { .actions { grid-template-columns: repeat(2, 1fr); } }
+button {
+  font: inherit; font-size: 15px; font-weight: 600; min-height: 46px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer;
+  padding: 0 8px; touch-action: manipulation;
+}
+button:focus-visible, textarea:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+button:disabled { opacity: .5; cursor: default; }
+button.b-승인 { background: var(--ok); border-color: var(--ok); color: var(--surface); }
+button.b-보류 { color: var(--hold); border-color: var(--hold); }
+button.b-고쳐서 { color: var(--accent); border-color: var(--accent); }
+button.b-반려 { color: var(--no); border-color: var(--no); }
+button.sel { outline: 3px solid var(--accent); outline-offset: 1px; }
+.memo { display: flex; flex-direction: column; gap: 8px; }
+.memo label { font-size: 14px; color: var(--muted); }
+textarea {
+  font: inherit; font-size: 16px; width: 100%; min-height: 64px; resize: vertical;
+  border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: var(--bg); color: var(--ink);
+}
+.memo-row { display: flex; gap: 8px; }
+.memo-row button { flex: 1; }
+.memo-row .send { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+
+.decided {
+  display: flex; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 10px;
+  background: var(--bg); border: 1px dashed var(--line);
+}
+.seal {
+  flex: none; width: 54px; height: 54px; border-radius: 50%;
+  border: 2px solid currentColor; display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-weight: 700; font-size: 14px; line-height: 1.1; text-align: center;
+  transform: rotate(-8deg);
+}
+.seal.d-승인 { color: var(--ok); } .seal.d-보류 { color: var(--hold); }
+.seal.d-반려 { color: var(--no); } .seal.d-고쳐서 { color: var(--accent); }
+.decided-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 14px; }
+.decided-text strong { font-size: 15px; }
+.decided-text .m { overflow-wrap: anywhere; }
+.decided-text .sent { color: var(--muted); }
+.linkbtn {
+  min-height: 36px; font-size: 14px; font-weight: 500; border: none; background: none; color: var(--accent);
+  padding: 0; text-align: left; text-decoration: underline; align-self: flex-start;
+}
+.err { color: var(--no); font-size: 14px; margin: 0; }
+
+.empty {
+  background: var(--surface); border: 1px dashed var(--line); border-radius: 14px; padding: 22px 16px;
+  color: var(--muted); text-align: center; font-size: 15px;
+}
+details.done { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+details.done > summary {
+  list-style: none; cursor: pointer; padding: 14px 16px; display: flex; align-items: center; gap: 8px;
+  font-weight: 600; min-height: 50px;
+}
+details.done > summary::-webkit-details-marker { display: none; }
+details.done > summary::after { content: "펼치기"; margin-left: auto; font-size: 13px; color: var(--accent); font-weight: 500; }
+details.done[open] > summary::after { content: "접기"; }
+.done-list { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+.done-row { padding: 12px 16px; display: flex; flex-direction: column; gap: 4px; border-bottom: 1px solid var(--line); min-width: 0; }
+.done-row:last-child { border-bottom: none; }
+.done-row .r1 { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.done-row .t { font-size: 15px; overflow-wrap: anywhere; }
+.done-row .st { font-size: 13px; color: var(--ok); }
+.done-row .st.s-반려 { color: var(--no); }
+.foot { font-size: 13px; color: var(--muted); margin: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  .seal { animation: stamp .25s ease-out; }
+  @keyframes stamp { from { transform: rotate(-8deg) scale(1.4); opacity: 0; } to { transform: rotate(-8deg) scale(1); opacity: 1; } }
+}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <span class="brand">SECOND WIND</span>
+    <h1>세컨드윈드 결재함</h1>
+    <p class="lede">회장님이 결정하실 일만 모았어요. 버튼을 누르면 바로 회사에 전달돼요.</p>
+  </header>
+
+  <section aria-labelledby="h-wait">
+    <h2 id="h-wait">기다리는 결재 <span class="count" id="wait-count"></span></h2>
+    <div class="list" id="wait-list">
+      <div class="empty" id="loading">결재함을 불러오는 중이에요…</div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-done">
+    <h2 id="h-done">끝난 결재 <span class="count" id="done-count"></span></h2>
+    <div id="done-box"></div>
+  </section>
+
+  <p class="foot">반려나 고쳐서 다시를 누르면 한 줄 메모를 남길 수 있어요. 누른 결정은 다음 대화에서 회사가 처리해요.</p>
+</div>
+
+<script>
+(function () {
+  var items = [];
+  var decisions = {};
+  var gotItems = false;
+  var db = null;
+  var memoOpen = {};   // id -> "반려" | "고쳐서 다시"
+  var drafts = {};     // id -> memo text
+  var editing = {};    // id -> true (결정 바꾸기 중)
+  var errors = {};     // id -> message
+  var busy = {};
+  var pendingRender = false;
+
+  var DECISIONS = ["승인", "보류", "고쳐서 다시", "반려"];
+  var MEMO_KINDS = { "반려": true, "고쳐서 다시": true };
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function cssKey(s) { return String(s || "").split(" ")[0]; }
+  function fmtTime(iso) {
+    var d = new Date(iso);
+    if (isNaN(d)) return "";
+    var h = d.getHours(), m = d.getMinutes();
+    var ap = h < 12 ? "오전" : "오후";
+    var hh = h % 12 === 0 ? 12 : h % 12;
+    return (d.getMonth() + 1) + "월 " + d.getDate() + "일 " + ap + " " + hh + ":" + (m < 10 ? "0" : "") + m;
+  }
+  function fmtDate(s) {
+    var p = String(s || "").split("-");
+    return p.length === 3 ? (+p[1]) + "월 " + (+p[2]) + "일" : (s || "");
+  }
+  function stateClass(state) {
+    var s = String(state || "");
+    if (s.indexOf("보류") >= 0) return "s-보류";
+    if (s.indexOf("급함") >= 0) return "s-급함";
+    if (s.indexOf("진행") >= 0) return "s-진행";
+    return "";
+  }
+
+  function setMessage(text) {
+    var wl = document.getElementById("wait-list");
+    wl.textContent = "";
+    wl.appendChild(el("div", "empty", text));
+    document.getElementById("done-box").textContent = "";
+  }
+
+  function renderSoon() {
+    var a = document.activeElement;
+    if (a && a.tagName === "TEXTAREA") { pendingRender = true; return; }
+    render();
+  }
+
+  function render() {
+    pendingRender = false;
+    if (!gotItems) return;
+    var wait = items.filter(function (i) { return i.group !== "done"; })
+                    .sort(function (a, b) { return (a.no || 0) - (b.no || 0); });
+    var done = items.filter(function (i) { return i.group === "done"; })
+                    .sort(function (a, b) { return (b.no || 0) - (a.no || 0); });
+
+    document.getElementById("wait-count").textContent = wait.length + "건";
+    document.getElementById("done-count").textContent = done.length + "건";
+
+    var wl = document.getElementById("wait-list");
+    wl.textContent = "";
+    if (!wait.length) {
+      wl.appendChild(el("div", "empty", "지금 기다리는 결재가 없어요. 새 결재가 오면 여기에 보여요."));
+    }
+    wait.forEach(function (it) { wl.appendChild(card(it)); });
+
+    var box = document.getElementById("done-box");
+    var wasOpen = box.querySelector("details") && box.querySelector("details").open;
+    box.textContent = "";
+    if (!done.length) {
+      box.appendChild(el("div", "empty", "아직 끝난 결재가 없어요."));
+      return;
+    }
+    var det = el("details", "done");
+    if (wasOpen) det.open = true;
+    var sum = el("summary", null, "승인·반려된 " + done.length + "건 보기");
+    det.appendChild(sum);
+    var lst = el("div", "done-list");
+    done.forEach(function (it) {
+      var row = el("div", "done-row");
+      var r1 = el("div", "r1");
+      r1.appendChild(el("span", "no", String(it.no)));
+      var st = String(it.state || "");
+      r1.appendChild(el("span", "st " + (st.indexOf("반려") >= 0 ? "s-반려" : ""), it.status || st));
+      row.appendChild(r1);
+      row.appendChild(el("span", "t", it.title || ""));
+      var d = decisions[it.id];
+      if (d && d.decision) {
+        row.appendChild(el("span", "meta", "회장님 결정: " + d.decision + (d.memo ? " · " + d.memo : "") + " · " + fmtTime(d.at)));
+      }
+      lst.appendChild(row);
+    });
+    det.appendChild(lst);
+    box.appendChild(det);
+  }
+
+  function card(it) {
+    var c = el("article", "card");
+    c.setAttribute("aria-label", it.no + "번 " + (it.title || ""));
+    var head = el("div", "card-head");
+    head.appendChild(el("span", "no", String(it.no)));
+    if (it.kind) head.appendChild(el("span", "chip kind-" + cssKey(it.kind), it.kind));
+    head.appendChild(el("span", "state " + stateClass(it.state), it.state || ""));
+    c.appendChild(head);
+    c.appendChild(el("h3", null, it.title || ""));
+    if (it.detail) c.appendChild(el("p", "detail", it.detail));
+    if (it.why) {
+      var w = el("p", "why");
+      w.appendChild(el("b", null, "왜 결재가 필요한지 "));
+      w.appendChild(document.createTextNode(it.why));
+      c.appendChild(w);
+    }
+    if (it.status && it.status !== it.state) c.appendChild(el("p", "meta", "지금 상태: " + it.status));
+    c.appendChild(el("p", "meta", (it.team ? "담당 " + it.team + " · " : "") + fmtDate(it.date) + " 올림"));
+
+    var d = decisions[it.id];
+    if (d && d.decision && !editing[it.id]) {
+      var box = el("div", "decided");
+      var key = cssKey(d.decision);
+      box.appendChild(el("div", "seal d-" + key, d.decision === "고쳐서 다시" ? "고쳐서\n다시" : d.decision));
+      var tx = el("div", "decided-text");
+      tx.appendChild(el("strong", null, "회장님 " + d.decision));
+      if (d.memo) tx.appendChild(el("span", "m", "메모: " + d.memo));
+      tx.appendChild(el("span", "sent", fmtTime(d.at) + " · 회사에 전달됐어요. 다음 대화에서 처리해요"));
+      box.appendChild(tx);
+      c.appendChild(box);
+      var ch = el("button", "linkbtn", "결정 바꾸기");
+      ch.type = "button";
+      ch.addEventListener("click", function () { editing[it.id] = true; render(); });
+      c.appendChild(ch);
+    } else {
+      var row = el("div", "actions");
+      DECISIONS.forEach(function (name) {
+        var b = el("button", "b-" + cssKey(name) + (memoOpen[it.id] === name ? " sel" : ""), name);
+        b.type = "button";
+        b.disabled = !!busy[it.id];
+        b.addEventListener("click", function () {
+          if (MEMO_KINDS[name]) { memoOpen[it.id] = name; errors[it.id] = ""; render(); focusMemo(it.id); }
+          else { delete memoOpen[it.id]; save(it, name, ""); }
+        });
+        row.appendChild(b);
+      });
+      c.appendChild(row);
+      if (memoOpen[it.id]) {
+        var m = el("div", "memo");
+        var tid = "memo-" + it.id;
+        var lab = el("label", null, memoOpen[it.id] + " 이유를 한 줄로 적어 주세요 (없어도 돼요)");
+        lab.setAttribute("for", tid);
+        var ta = el("textarea");
+        ta.id = tid; ta.rows = 2; ta.maxLength = 300;
+        ta.value = drafts[it.id] || "";
+        ta.addEventListener("input", function () { drafts[it.id] = ta.value; });
+        ta.addEventListener("blur", function () { if (pendingRender) setTimeout(renderSoon, 0); });
+        m.appendChild(lab); m.appendChild(ta);
+        var mr = el("div", "memo-row");
+        var cancel = el("button", null, "취소"); cancel.type = "button";
+        cancel.addEventListener("click", function () { delete memoOpen[it.id]; render(); });
+        var send = el("button", "send", memoOpen[it.id] + " 보내기"); send.type = "button";
+        send.disabled = !!busy[it.id];
+        send.addEventListener("click", function () { save(it, memoOpen[it.id], (drafts[it.id] || "").trim()); });
+        mr.appendChild(cancel); mr.appendChild(send);
+        m.appendChild(mr);
+        c.appendChild(m);
+      }
+      if (editing[it.id]) {
+        var keep = el("button", "linkbtn", "바꾸지 않기"); keep.type = "button";
+        keep.addEventListener("click", function () { delete editing[it.id]; delete memoOpen[it.id]; render(); });
+        c.appendChild(keep);
+      }
+    }
+    if (errors[it.id]) c.appendChild(el("p", "err", errors[it.id]));
+    return c;
+  }
+
+  function focusMemo(id) {
+    var t = document.getElementById("memo-" + id);
+    if (t) t.focus();
+  }
+
+  function save(it, decision, memo) {
+    if (!db) { errors[it.id] = "지금은 저장할 수 없어요. claude.ai에 로그인한 상태로 다시 열어 주세요."; render(); return; }
+    busy[it.id] = true; errors[it.id] = ""; render();
+    var body = { no: it.no, decision: decision, memo: memo || "", at: new Date().toISOString() };
+    db.collection("decisions").doc(it.id).set(body).then(function () {
+      decisions[it.id] = body;
+      delete busy[it.id]; delete memoOpen[it.id]; delete drafts[it.id]; delete editing[it.id];
+      render();
+    }, function (e) {
+      delete busy[it.id];
+      var code = e && e.code;
+      errors[it.id] = code === "invalid_argument"
+        ? "이 계정으로는 결재를 저장할 수 없어요. 회장님 계정으로 열어 주세요."
+        : "저장이 안 됐어요. 인터넷 연결을 확인하고 다시 눌러 주세요.";
+      render();
+    });
+  }
+
+  function start() {
+    if (!window.claude || typeof window.claude.use !== "function") {
+      setTimeout(function () {
+        if (!db) setMessage("이 화면에서는 결재함을 열 수 없어요. claude.ai 앱에서 로그인한 상태로 열어 주세요.");
+      }, 10000);
+      return;
+    }
+    window.claude.use("db").then(function (d) {
+      if (!d) { setMessage("이 화면에서는 결재함을 열 수 없어요. claude.ai 앱에서 로그인한 상태로 열어 주세요."); return; }
+      db = d;
+      db.collection("items").onSnapshot(function (s) {
+        items = s.docs.map(function (x) { var o = Object.assign({}, x.data()); o.id = x.id; return o; });
+        gotItems = true;
+        renderSoon();
+      }, function () { setMessage("결재함을 불러오지 못했어요. 화면을 닫았다가 다시 열어 주세요."); });
+      db.collection("decisions").onSnapshot(function (s) {
+        var next = {};
+        s.docs.forEach(function (x) { next[x.id] = x.data(); });
+        decisions = next;
+        renderSoon();
+      }, function () {});
+    }, function () {
+      setMessage("결재함을 불러오지 못했어요. 화면을 닫았다가 다시 열어 주세요.");
+    });
+  }
+  start();
+})();
+</script>
