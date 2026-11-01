@@ -10,7 +10,7 @@
   - 앱 화면은 본뜬 그림. 앱 이름·로고·회사 이름·냄비 이름·QR·제품 없음.
   - 휴대폰 화면 속에는 읽히는 글자 없음 (색 막대·둥근 카드·점만, 살짝 흐리게) — 회장님 11/1 지시.
   - 글꼴: Pretendard (SIL Open Font License 1.1, 상업용 무료) — fonts/ 폴더
-  - 다음 이야기 예고 장면(20~23초): 흐린 아이콘 카드만, 글자·숫자 없음 (회장님 추가 의견 11/1)
+  - 다음 이야기 예고 장면(20~24.4초): 흐린 아이콘 카드만, 글자·숫자 없음 (회장님 추가 의견 11/1)
   - 1080×1920, 29초. 브라우저에서 열면 그대로 재생됨. 녹화는 녹화.js 가 seek(ms)로 한 장씩 찍음.
 -->
 <style>
@@ -159,7 +159,7 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
 #s5 .runner{position:absolute;left:150px;right:150px;top:1120px;bottom:0;background:#F6EEE2;
   box-shadow:inset 0 0 0 10px rgba(201,120,90,.15)}
 #s5 .edge{position:absolute;left:0;right:0;top:1120px;height:16px;background:#D3AA84}
-#table{position:absolute;inset:0;animation:fadeIn .6s ease 23.0s both}
+#table{position:absolute;inset:0;animation:fadeIn .6s ease 24.4s both}
 .cup{position:absolute;animation:cupIn .8s cubic-bezier(.2,.8,.3,1) var(--d) both}
 @keyframes cupIn{from{opacity:0;transform:translateY(60px)}to{opacity:1;transform:none}}
 .steam{animation:steam 2.4s ease-in-out var(--d) infinite both}
@@ -226,14 +226,14 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
     <div class="cap" style="animation:capIn .5s ease-out 16.0s both, capOut .3s ease-in 19.6s forwards"><span>잡일은 AI가, 그만큼</span><span>서로의 시간이 생겨요</span></div>
   </section>
 
-  <!-- 장면 5 (20~23초): 다음 이야기 예고 — 무엇인지 글자로 적지 않음 -->
-  <section class="scene" id="s6" data-s="20" data-e="23">
+  <!-- 장면 5 (20~24.4초): 다음 이야기 예고 — 무엇인지 글자로 적지 않음 -->
+  <section class="scene" id="s6" data-s="20" data-e="24.4">
     <div id="soon"></div>
-    <div class="cap" style="animation:capIn .5s ease-out 20.2s both, capOut .3s ease-in 22.7s forwards"><span>이 밖에도 AI와 함께</span><span>해 보고 있는 일들,</span><span>하나씩 나눠 볼게요</span></div>
+    <div class="cap" style="animation:capIn .5s ease-out 20.2s both, capOut .3s ease-in 24.3s forwards"><span>이 밖에도 AI와 해 보는 일들,</span><span>하나씩 나눠 볼게요</span></div>
   </section>
 
-  <!-- 장면 6 (23~29초): 아낀 시간은, 곁의 분들과 식탁으로 -->
-  <section class="scene" id="s5" data-s="23" data-e="29">
+  <!-- 장면 6 (24.4~29초): 아낀 시간은, 곁의 분들과 식탁으로 -->
+  <section class="scene" id="s5" data-s="24.4" data-e="29">
     <div id="table">
       <div class="edge"></div>
       <div class="runner"></div>
@@ -246,9 +246,9 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
         <path d="M50 150 h60 l-8 100 h-44 z" fill="#E3EBDD" stroke="#B7C7B0" stroke-width="4"/>
       </svg>
       <!-- 찻잔 1 -->
-      <svg class="cup" style="--d:23.3s;left:180px;top:1030px" width="340" height="330" viewBox="0 0 340 330">
-        <path class="steam" style="--d:23.8s" d="M140 120 c-24 -30 24 -50 0 -80" stroke="#FFFFFF" stroke-width="10" fill="none" stroke-linecap="round" opacity=".7"/>
-        <path class="steam" style="--d:24.6s" d="M190 120 c-24 -30 24 -50 0 -80" stroke="#FFFFFF" stroke-width="10" fill="none" stroke-linecap="round" opacity=".7"/>
+      <svg class="cup" style="--d:24.7s;left:180px;top:1030px" width="340" height="330" viewBox="0 0 340 330">
+        <path class="steam" style="--d:25.2s" d="M140 120 c-24 -30 24 -50 0 -80" stroke="#FFFFFF" stroke-width="10" fill="none" stroke-linecap="round" opacity=".7"/>
+        <path class="steam" style="--d:26.0s" d="M190 120 c-24 -30 24 -50 0 -80" stroke="#FFFFFF" stroke-width="10" fill="none" stroke-linecap="round" opacity=".7"/>
         <ellipse cx="170" cy="285" rx="150" ry="36" fill="#EDE3D6" stroke="#D5C4B0" stroke-width="5"/>
         <path d="M270 175 c55 0 55 70 0 70" stroke="#FBF7F1" stroke-width="20" fill="none"/>
         <path d="M60 150 h220 c0 80 -40 130 -110 130 c-70 0 -110 -50 -110 -130 z" fill="#FBF7F1"/>
@@ -257,9 +257,9 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
         <ellipse cx="170" cy="152" rx="94" ry="18" fill="#B8733F"/>
       </svg>
       <!-- 찻잔 2 -->
-      <svg class="cup" style="--d:23.6s;left:570px;top:1080px" width="340" height="330" viewBox="0 0 340 330">
-        <path class="steam" style="--d:24.2s" d="M145 120 c-24 -30 24 -50 0 -80" stroke="#FFFFFF" stroke-width="10" fill="none" stroke-linecap="round" opacity=".7"/>
-        <path class="steam" style="--d:25.0s" d="M195 120 c-24 -30 24 -50 0 -80" stroke="#FFFFFF" stroke-width="10" fill="none" stroke-linecap="round" opacity=".7"/>
+      <svg class="cup" style="--d:25.0s;left:570px;top:1080px" width="340" height="330" viewBox="0 0 340 330">
+        <path class="steam" style="--d:25.6s" d="M145 120 c-24 -30 24 -50 0 -80" stroke="#FFFFFF" stroke-width="10" fill="none" stroke-linecap="round" opacity=".7"/>
+        <path class="steam" style="--d:26.4s" d="M195 120 c-24 -30 24 -50 0 -80" stroke="#FFFFFF" stroke-width="10" fill="none" stroke-linecap="round" opacity=".7"/>
         <ellipse cx="170" cy="285" rx="150" ry="36" fill="#EDE3D6" stroke="#D5C4B0" stroke-width="5"/>
         <path d="M70 175 c-55 0 -55 70 0 70" stroke="#FBF7F1" stroke-width="20" fill="none"/>
         <path d="M60 150 h220 c0 80 -40 130 -110 130 c-70 0 -110 -50 -110 -130 z" fill="#FBF7F1"/>
@@ -268,13 +268,13 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
         <ellipse cx="170" cy="152" rx="94" ry="18" fill="#B8733F"/>
       </svg>
       <!-- 쿠키 접시 -->
-      <svg class="cup" style="--d:23.9s;left:400px;top:1400px" width="280" height="120" viewBox="0 0 280 120">
+      <svg class="cup" style="--d:25.3s;left:400px;top:1400px" width="280" height="120" viewBox="0 0 280 120">
         <ellipse cx="140" cy="70" rx="130" ry="40" fill="#FFFFFF" stroke="#E2D4C2" stroke-width="5"/>
         <ellipse cx="110" cy="60" rx="42" ry="20" fill="#D9A15F"/><ellipse cx="170" cy="70" rx="42" ry="20" fill="#C98B4E"/>
         <circle cx="100" cy="56" r="4" fill="#7A5440"/><circle cx="122" cy="62" r="4" fill="#7A5440"/><circle cx="178" cy="66" r="4" fill="#7A5440"/>
       </svg>
     </div>
-    <div class="cap"><span style="animation:capIn .6s ease-out 23.8s both">아낀 시간은,</span><span style="animation:capIn .6s ease-out 24.5s both">곁의 분들과 식탁으로</span></div>
+    <div class="cap"><span style="animation:capIn .6s ease-out 24.8s both">아낀 시간은,</span><span style="animation:capIn .6s ease-out 25.5s both">곁의 분들과 식탁으로</span></div>
   </section>
 
 </div>
@@ -284,7 +284,7 @@ const $ = (id) => document.getElementById(id);
 
 /* 장면 1: 쪽지들 */
 (function(){
-  const words = ["장보기","레시피","연락 드리기","모임 날짜","메모","자료 정리","답장","일정","사진 정리","할 일","다시 보기","준비물","확인","목록"];
+  const words = ["장보기","레시피","연락 드리기","가족 약속","메모","자료 정리","답장","일정","사진 정리","할 일","다시 보기","준비물","확인","목록"];
   const colors = ["#FFF1BF","#FBE1D0","#E4EFD9","#FFFFFF","#F4E6FF".replace("F4E6FF","F6E7D8")];
   // 정해진 자리 (매번 같은 그림이 나오게)
   const pos = [[70,1190],[300,1175],[560,1185],[800,1200],[150,1320],[420,1300],[680,1310],[60,1450],[300,1440],[560,1430],[810,1350],[230,1240],[650,1230],[460,1390]];

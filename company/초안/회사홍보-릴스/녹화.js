@@ -9,7 +9,7 @@ const fs = require('fs');
 const DIR = __dirname;
 const FPS = 30, SEC = 29, W = 1080, H = 1920;
 const CRF = process.env.CRF || '20';
-const SHOTS = [2.4, 5.6, 9.8, 13.8, 18.9, 21.8, 27.5]; // 장면 대표 컷 (두 번째 값은 안 씀)
+const SHOTS = [2.4, 5.6, 9.8, 13.8, 18.9, 22.5, 27.5]; // 장면 대표 컷 (두 번째 값은 안 씀)
 
 (async () => {
   const browser = await chromium.launch();
