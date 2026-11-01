@@ -7,16 +7,16 @@ const path = require('path');
 const fs = require('fs');
 
 const DIR = __dirname;
-const FPS = 30, SEC = 34.7, W = 1080, H = 1920;
+const FPS = 30, SEC = 31.5, W = 1080, H = 1920;
 const CRF = process.env.CRF || '20';
-const SHOTS = [2.4, 0, 11.6, 15.6, 20.6, 24.4, 33.5]; // 대표 컷 6장: 책상·조직도·레시피·고객 관리·쫓기지 않도록·식탁 (두 번째 값은 안 씀)
+const SHOTS = [2.8, 0, 7.6, 11.8, 17.2, 21.5, 30.0]; // 대표 컷 6장: 쪽지·조직도·레시피·사람 챙기기·핵심 문장·식탁 (두 번째 값은 안 씀)
 
 (async () => {
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
   const url = 'file://' + path.join(DIR, '릴스-장면.html') + '?record';
   await page.goto(url);
-  await page.evaluate(() => document.fonts.ready);
+  await page.evaluate(() => window.__ready); // 글꼴을 읽고 자막 폭까지 맞춘 뒤
   const ok = await page.evaluate(() => document.fonts.check('800 40px Pretendard') && document.fonts.check('500 40px Pretendard'));
   if (!ok) throw new Error('글꼴을 못 읽음');
   const stage = await page.$('#stage');
