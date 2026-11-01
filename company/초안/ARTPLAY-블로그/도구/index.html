@@ -579,7 +579,7 @@ async function generate(){
         alerts.push("사진 내용을 읽지 못해 사진은 순서만 넣었어요.");
       }
     }
-    descs.forEach((d,i)=>{if(d.privacy.length) alerts.unshift("사진 "+(i+1)+"에 "+d.privacy.join("·")+"이(가) 보여요. 블로그에 올리기 전에 가려 주세요.");});
+    descs.forEach((d,i)=>{if(d.privacy.length) alerts.unshift("사진 "+(i+1)+"에서 보이는 것: "+d.privacy.join("·")+". 블로그에 올리기 전에 가려 주세요.");});
     const input=buildInput(list,descs);
     const prompt=RULES+"\n\n# 이번 현장 입력\n"+input+"\n\n위 지시문의 출력 형식 그대로, [제목] [본문] [해시태그] [확인할 점] 네 칸만 써라.";
     const {text}=await sample(prompt,{cache:false});
