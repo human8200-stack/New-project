@@ -60,7 +60,7 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
 /* ---------- 장면 1: 쌓이는 쪽지 ---------- */
 #s1{background:linear-gradient(#EFE2D0 0,#EADBC6 1150px,var(--wood) 1150px,#A97C59 1920px)}
 #s1 .deskEdge{position:absolute;left:0;right:0;top:1150px;height:18px;background:#C89D78}
-.note{position:absolute;width:210px;height:150px;border-radius:10px;padding:22px 20px;font-weight:700;font-size:34px;
+.note{position:absolute;width:210px;height:150px;border-radius:10px;padding:22px 18px;font-weight:700;font-size:32px;white-space:nowrap;
   color:#5A4033;box-shadow:0 8px 16px rgba(60,40,25,.22);transform:rotate(var(--r));
   animation:noteDrop .5s cubic-bezier(.2,.8,.3,1.1) var(--d1) both}
 .note i{display:block;height:8px;border-radius:4px;background:rgba(90,64,51,.18);margin-top:14px;width:80%}
@@ -105,7 +105,8 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
 .rcard .nm{position:absolute;left:126px;top:34px;width:110px;height:24px;border-radius:12px;background:#D9C6B1}
 .rcard .tg{position:absolute;left:126px;top:76px;width:70px;height:16px;border-radius:8px;background:#EADCCB}
 .rcard .bar{position:absolute;left:18px;right:18px;bottom:20px;height:14px;border-radius:7px;background:#EFE5D8}
-.badge{position:absolute;right:6px;top:-14px;width:40px;height:40px;border:5px solid #fff;background:var(--terra);
+.badge{position:absolute;right:10px;top:-18px;width:46px;height:46px;background:#EBC57A;opacity:.9;
+  clip-path:polygon(50% 0,61% 39%,100% 50%,61% 61%,50% 100%,39% 61%,0 50%,39% 39%);
   border-radius:24px;box-shadow:0 4px 10px rgba(0,0,0,.15)}
 .upbtn{position:absolute;left:40px;right:40px;bottom:34px;height:78px;border-radius:39px;background:var(--terra)}
 .spark{position:absolute;width:26px;height:26px;margin:-13px;border-radius:50%;background:var(--terra);
@@ -116,7 +117,7 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
 #s3{background:#F3EBDF}
 .pslot{position:absolute;top:560px;width:300px;height:620px;transform-origin:50% 0}
 .page{position:absolute;left:16px;right:16px;top:70px;bottom:24px;border-radius:18px;background:#FFFDF7;
-  background-image:repeating-linear-gradient(#FFFDF7 0 46px,#E8DCCB 46px 49px);box-shadow:0 4px 10px rgba(74,52,40,.08);
+  box-shadow:0 4px 10px rgba(74,52,40,.08);
   animation:pop .45s ease-out var(--d) both}
 .page .mk{position:absolute;left:22px;width:34px;height:34px;border-radius:50%}
 .memo{position:absolute;width:120px;height:120px;border-radius:24px;background:#fff;box-shadow:0 8px 16px rgba(74,52,40,.15);
@@ -147,7 +148,7 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
 #s5 .runner{position:absolute;left:150px;right:150px;top:1120px;bottom:0;background:#F6EEE2;
   box-shadow:inset 0 0 0 10px rgba(201,120,90,.15)}
 #s5 .edge{position:absolute;left:0;right:0;top:1120px;height:16px;background:#D3AA84}
-#table{position:absolute;inset:0;animation:fadeIn .6s ease 27.0s both}
+#table{position:absolute;inset:0}
 .cup{position:absolute;animation:cupIn .8s cubic-bezier(.2,.8,.3,1) var(--d) both}
 @keyframes cupIn{from{opacity:0;transform:translateY(60px)}to{opacity:1;transform:none}}
 .steam{animation:steam 2.4s ease-in-out var(--d) infinite both}
@@ -177,7 +178,7 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
 
   <!-- 장면 2 (4~8.2초): 조직도 — 회장 → 사장(AI) → 팀 카드가 하나씩 켜짐 -->
   <section class="scene" id="sOrg" data-s="4.0" data-e="8.2">
-    <div class="orgc" style="left:450px;top:540px;background:#4A3428;animation:pop .45s ease-out 4.1s both">회장</div>
+    <div class="orgc" style="left:450px;top:540px;background:#4A3428;animation:pop .45s ease-out 4.1s both;font-size:56px">나</div>
     <div class="ln v" style="left:536px;top:720px;height:70px;--d:4.45s"></div>
     <div class="orgc" style="left:450px;top:790px;background:#C9785A;font-size:40px;animation:pop .45s ease-out 4.65s both">사장(AI)</div>
     <div class="ln v" style="left:536px;top:970px;height:40px;--d:5.0s"></div>
@@ -206,7 +207,7 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
             <path d="M-7 -16 L7 -16 L0 0 Z" fill="#4A3428"/>
           </g>
           <ellipse cx="62" cy="-78" rx="58" ry="46" fill="#E5C09D"/>
-          <rect x="90" y="-150" width="280" height="110" rx="34" fill="#8FA58A" transform="rotate(22 90 -95)"/>
+          <rect x="90" y="-150" width="1500" height="110" rx="34" fill="#8FA58A" transform="rotate(22 90 -95)"/><!-- 소매는 화면 밖까지 길게: 팔이 늘 화면 밖에서 들어옴 -->
         </g>
       </svg>
     </div>
@@ -305,10 +306,11 @@ function fitCaps(){
 
 /* 장면 1: 쪽지들 */
 (function(){
-  const words = ["장보기","레시피","연락 드리기","가족 약속","메모","자료 정리","답장","일정","사진 정리","할 일","다시 보기","준비물","확인","목록"];
+  const words = ["장보기","레시피","연락 드리기","가족 약속","메모","자료 정리","답장","일정","사진 정리","할 일","다시 보기","준비물"];
   const colors = ["#FFF1BF","#FBE1D0","#E4EFD9","#FFFFFF","#F6E7D8"];
-  const pos = [[70,1190],[300,1175],[560,1185],[800,1200],[150,1320],[420,1300],[680,1310],[60,1450],[300,1440],[560,1430],[810,1350],[230,1240],[650,1230],[460,1390]];
-  const rot = [-8,6,-4,9,5,-7,4,-10,7,-3,8,-5,10,-6];
+  // 글자가 가려지지 않게 4칸×3줄로 (조금씩 비뚤게)
+  const pos = [[40,1185],[290,1180],[540,1190],[790,1182],[80,1345],[330,1352],[580,1342],[830,1350],[30,1510],[280,1505],[530,1512],[780,1508]];
+  const rot = [-4,3,-2,4,3,-4,2,-3,4,-2,3,-3];
   $("notes").innerHTML = words.map((w,i)=>{
     const [x,y] = pos[i];
     return `<div class="note" style="left:${x}px;top:${y}px;background:${colors[i%colors.length]};--r:${rot[i]}deg;--d1:${(0.2+i*0.1).toFixed(2)}s">${w}<i></i><i></i></div>`;
@@ -378,9 +380,10 @@ function fitCaps(){
   const tx = 540, ty = 760;
   let html = icons.map((ic,i)=>{const [x,y,r]=mpos[i];
     return `<div class="memo" style="left:${x}px;top:${y}px;--r:${r}deg;--d1:${(13.1+i*0.08).toFixed(2)}s;--d2:${(13.75+i*0.08).toFixed(2)}s;--dx:${tx-(x+60)}px;--dy:${ty-(y+60)}px"><svg width="80" height="80" viewBox="0 0 80 80">${ic}</svg></div>`;}).join("");
-  const page = (d) => `<div class="page" style="--d:${d}s">
-      <div class="mk" style="top:34px;background:${T}"></div><div class="mk" style="top:132px;background:${M}"></div><div class="mk" style="top:230px;background:${S}"></div><div class="mk" style="top:328px;background:#C9B39C"></div>
-    </div>`;
+  // 노트 한 장: 모인 메모 그림이 페이지에 붙어 있음 (줄 목록·글자 없음)
+  const spots = [[30,40,-8],[140,70,6],[50,190,5],[150,230,-6],[85,330,4]];
+  const page = (d) => `<div class="page" style="--d:${d}s">${icons.map((ic,i)=>{const [x,y,r]=spots[i];
+      return `<svg class="abs" style="left:${x}px;top:${y}px;transform:rotate(${r}deg)" width="90" height="90" viewBox="0 0 80 80"><rect x="2" y="2" width="76" height="76" rx="14" fill="#fff" stroke="#EADCCB" stroke-width="3"/>${ic}</svg>`;}).join("")}</div>`;
   const slots = [ {cx:250, sc:0.5, d:14.65, p:13.2}, {cx:540, sc:0.62, d:14.3, p:13.05, center:true}, {cx:830, sc:0.5, d:14.85, p:13.3} ];
   slots.forEach(s=>{
     html += `<div class="pslot" style="left:${s.cx-150}px;transform:scale(${s.sc})${s.center?'':' translateY(40px)'}">
