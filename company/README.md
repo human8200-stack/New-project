@@ -2,6 +2,8 @@
 
 > 숨이 턱까지 찬 뒤에 찾아오는 두 번째 바람.
 
+📊 그림으로 보기 (가계도·조직도·가치): https://claude.ai/artifact/My4ZoUb3aY4os3AMrjkRMv
+
 ```
                  👑 회장님 (결재 · 로그인 · 결제)
                           │
