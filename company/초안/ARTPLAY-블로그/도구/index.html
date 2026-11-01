@@ -61,10 +61,13 @@ h2.hand{font-family:var(--f-hand);font-weight:400;font-size:26px;line-height:1.1
 .ph{flex:0 0 88px;display:flex;flex-direction:column;align-items:center;gap:4px;position:relative}
 .ph img{width:88px;height:88px;object-fit:cover;border-radius:8px;border:1px solid var(--line);display:block;background:var(--note)}
 .ph .num{font-size:14px;color:var(--muted)}
-.ph .x{position:absolute;top:-8px;right:-8px;width:44px;height:44px;border:0;background:none;display:grid;place-items:center;padding:0}
+.ph .x{position:absolute;top:0;right:0;width:44px;height:44px;border:0;background:none;display:flex;align-items:flex-start;justify-content:flex-end;padding:4px}
+.ph .x:disabled{opacity:.4}
 .ph .x span{width:24px;height:24px;border-radius:50%;background:var(--btn);color:var(--btn-text);display:grid;place-items:center;font-size:15px;line-height:1}
 .add{flex:0 0 88px;width:88px;height:88px;border:2px dashed var(--muted);border-radius:8px;display:grid;place-items:center;font-size:30px;color:var(--muted);background:transparent;position:relative}
 .add input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.add.off{opacity:.45}
+.add.off input{cursor:default}
 .add.busy{font-size:14px}
 
 /* 고르기 버튼 */
@@ -340,7 +343,7 @@ const GROUPS={
 };
 const sel={space:new Set(),work:new Set(),size:new Set(),kind:new Set(["시공 후기"]),consent:new Set(["사진만"])};
 const photos={before:[],after:[]};
-let sample=null, canSee=false, maxImgs=0, current=null, busy=false;
+let sample=null, canSee=false, maxImgs=0, current=null, busy=false, aiReady=false, shrinking=0, pid=0, descCache=null;
 
 /* ---------- 버튼 ---------- */
 document.querySelectorAll(".chips").forEach(box=>{
@@ -383,15 +386,21 @@ async function addFiles(side,files,addBtn){
   let room=MAXSIDE-list.length, failed=0, over=false;
   const arr=Array.from(files||[]);
   if(arr.length>room) over=true;
+  shrinking++;lockPhotos(true);refreshGen();
   addBtn.classList.add("busy");addBtn.firstChild.textContent="줄이는 중";
-  for(const f of arr.slice(0,Math.max(0,room))){
-    try{const blob=await shrink(f);list.push({blob,url:URL.createObjectURL(blob)});}
-    catch(_){failed++;}
-  }
-  addBtn.classList.remove("busy");
+  try{
+    for(const f of arr.slice(0,Math.max(0,room))){
+      try{const blob=await shrink(f);list.push({id:++pid,blob,url:URL.createObjectURL(blob)});}
+      catch(_){failed++;}
+    }
+  }finally{shrinking--;addBtn.classList.remove("busy");}
   const t=[]; if(over) t.push("사진은 전·후 각각 6장까지 넣을 수 있어요.");
   if(failed) t.push(failed+"장은 열 수 없었어요. 다른 사진을 골라 주세요.");
-  renderPhotos(); msg(t.join(" "));
+  renderPhotos(); msg(t.join(" "));refreshGen();
+}
+function lockPhotos(on){
+  document.querySelectorAll(".add").forEach(a=>{a.classList.toggle("off",on);const i=a.querySelector("input");if(i)i.disabled=on;});
+  document.querySelectorAll(".ph .x").forEach(x=>{x.disabled=on;});
 }
 function allPhotos(){return photos.before.map((p,i)=>({...p,side:"전",k:i+1})).concat(photos.after.map((p,i)=>({...p,side:"후",k:i+1})));}
 function renderPhotos(){
@@ -417,6 +426,7 @@ function renderPhotos(){
       a.appendChild(inp);strip.appendChild(a);
     }
   });
+  if(shrinking) lockPhotos(true);
   updateHints();
 }
 function updateHints(){
@@ -432,10 +442,11 @@ function updateHints(){
   }catch(_){sample=null;}
   if(!sample){
     const n=$("#aiNote");n.textContent="이 화면에서는 AI 글쓰기를 쓸 수 없어요. claude.ai 앱이나 사이트에서 이 페이지를 열어 주세요.";n.hidden=false;
-    $("#seeNote").hidden=false; return;
+    $("#seeNote").hidden=false; aiReady=true; refreshGen(); return;
   }
   try{const lim=await sample.limits();if(lim&&lim.images){canSee=true;maxImgs=lim.images.maxCount||1;}}catch(_){}
   $("#seeNote").hidden=canSee;
+  aiReady=true; refreshGen();
 })();
 
 const FAILCOPY={
@@ -446,25 +457,33 @@ const FAILCOPY={
   refused:"이 내용으로는 글을 만들지 못했어요. 메모를 조금 바꿔 다시 눌러 주세요."
 };
 
+const HARD=new Set(["not_granted","sampling_disabled","rate_limited","session_expired","not_declared"]);
 async function describePhotos(list){
   // 사진을 볼 수 있으면, 몇 장씩 나눠 무엇이 보이는지 짧게 받는다.
   const out=list.map(p=>({desc:p.side+" 사진 "+p.k,privacy:[]}));
   const size=Math.max(1,Math.min(maxImgs,6));
+  let failed=0, chunks=0;
   for(let s=0;s<list.length;s+=size){
-    const chunk=list.slice(s,s+size);
-    const order=chunk.map((p,j)=>"- 이미지 "+(j+1)+" = 사진 "+(s+j+1)+" ("+p.side+")").join("\n");
-    const prompt="다음 이미지들은 인테리어 시공 현장 사진이다. 순서대로 아래 번호에 해당한다.\n"+order+
+    const chunk=list.slice(s,s+size); chunks++;
+    const order=chunk.map((p,j)=>"- 이미지 "+(j+1)+": "+p.side+" 사진").join("\n");
+    const prompt="다음 이미지 "+chunk.length+"장은 인테리어 시공 현장 사진이다. 보낸 순서대로 이미지 1부터 "+chunk.length+"까지 번호를 붙인다.\n"+order+
       "\n\n각 사진마다 블로그 사진 설명으로 쓸 짧은 한국어 설명(20자 안팎, 예: \"주방 전체, 낮\", \"좁은 조리대, 물건 많음\", \"화이트 타일 벽 가까이\")을 쓰고, 보이는 자재·색이 있으면 설명에 넣어라. 추측은 하지 말고 보이는 것만 쓴다."+
       "\n또 사진에 사람 얼굴, 가족사진 액자, 차량 번호판, 우편물·택배 송장, 현관 번호·호수·문패, 단지 이름 표지판이 보이면 그 항목 이름을 privacy 배열에 넣어라. 없으면 빈 배열."+
-      "\n\nJSON 배열만 답한다. 예: [{\"n\":1,\"desc\":\"주방 전체, 낮\",\"privacy\":[]}]";
-    const res=await sample.json(prompt,{images:chunk.map(p=>p.blob),modelTier:"quick",cache:false});
-    if(Array.isArray(res)) res.forEach(r=>{
-      const n=Number(r&&r.n); if(!(n>=1&&n<=list.length)) return;
-      if(r.desc) out[n-1].desc=String(r.desc).slice(0,60);
-      if(Array.isArray(r.privacy)) out[n-1].privacy=r.privacy.map(String).filter(Boolean).slice(0,5);
-    });
+      "\n\nJSON 배열만 답한다. n은 위의 이미지 번호(1~"+chunk.length+")다. 예: [{\"n\":1,\"desc\":\"주방 전체, 낮\",\"privacy\":[]}"+(chunk.length>1?",{\"n\":2,\"desc\":\"하부장 가까이\",\"privacy\":[]}":"")+"]";
+    try{
+      const res=await sample.json(prompt,{images:chunk.map(p=>p.blob),modelTier:"quick",cache:false});
+      if(Array.isArray(res)) res.forEach(r=>{
+        const n=Number(r&&r.n); if(!(n>=1&&n<=chunk.length)) return;
+        const o=out[s+n-1];
+        if(r.desc) o.desc=String(r.desc).slice(0,60);
+        if(Array.isArray(r.privacy)) o.privacy=r.privacy.map(String).filter(Boolean).slice(0,5);
+      });
+    }catch(e){
+      if(e&&HARD.has(e.code)) throw e;   // 허락·계정 문제는 글쓰기도 안 되므로 그대로 올린다
+      failed++;
+    }
   }
-  return out;
+  return {out,failed,chunks};
 }
 
 function consentText(){
@@ -484,7 +503,7 @@ function buildInput(list,descs){
   const lines=[
     "공간 종류: "+spaceText()+(sel.space.has("상가")?"":" (주거 공간)"),
     "공사 종류: "+(work||"(없음)"),
-    "공사 범위: "+(work?work+" (자세한 것은 메모 참고)":"(메모 참고)"),
+    "공사 범위: "+(work||"(없음)"),
     "평수: "+sizeText,
     "기간: "+($("#period").value.trim()||"(없음)"),
     "지역: "+region,
@@ -549,13 +568,19 @@ function renderResult(r){
   (r.checks.length?r.checks:["없음"]).forEach(c=>{const li=document.createElement("li");li.textContent=c;ck.appendChild(li);});
   $("#fbBox").hidden=true;
   $("#result").hidden=false;
-  requestAnimationFrame(()=>{fit($("#rBody"));fit($("#rSummary"));});
+  requestAnimationFrame(()=>{fit($("#rBody"));fit($("#rSummary"));fit($("#rTags"));});
 }
 function fit(t){t.style.height="auto";t.style.height=(t.scrollHeight+4)+"px";}
 ["#rBody","#rSummary","#rTags"].forEach(id=>$(id).addEventListener("input",e=>{fit(e.target);if(current){current.summary=$("#rSummary").value;current.body=$("#rBody").value;current.tags=$("#rTags").value;saveCurrentSoon();}}));
 
 /* ---------- 글 만들기 ---------- */
-function setBusy(on){busy=on;const b=$("#genBtn");b.disabled=on;b.textContent=on?"글 쓰는 중… (30초~1분)":"글 만들기";$("#regenBtn").disabled=on;}
+function refreshGen(){
+  const b=$("#genBtn");
+  b.disabled=busy||!aiReady||shrinking>0||!sample;
+  b.textContent=busy?"글 쓰는 중… (30초~1분)":!aiReady?"AI 연결 중…":shrinking>0?"사진 줄이는 중…":"글 만들기";
+  $("#regenBtn").disabled=b.disabled; $("#retryBtn").disabled=b.disabled;
+}
+function setBusy(on){busy=on;refreshGen();}
 function fail(t){$("#failMsg").textContent=t||"글을 못 만들었어요.";$("#failBox").hidden=false;}
 async function generate(){
   if(busy) return;
@@ -566,23 +591,31 @@ async function generate(){
   }
   if(sel.consent.has("아니오")){fail("고객 게시 동의가 없어 글을 만들지 않았어요. 동의를 받은 뒤 다시 눌러 주세요.");return;}
   if(!sample){fail("이 화면에서는 AI 글쓰기를 쓸 수 없어요. claude.ai에서 이 페이지를 열어 주세요.");return;}
+  if(!aiReady||shrinking>0) return;
   setBusy(true);
   try{
     const list=allPhotos();
     let descs=list.map(p=>({desc:p.side+" 사진 "+p.k,privacy:[]}));
     const alerts=[];
-    if(list.length&&canSee){
-      try{descs=await describePhotos(list);}
-      catch(e){
-        if(e&&(e.code==="not_granted"||e.code==="sampling_disabled"||e.code==="rate_limited"||e.code==="session_expired")) throw e;
-        canSee=false;$("#seeNote").hidden=false;
-        alerts.push("사진 내용을 읽지 못해 사진은 순서만 넣었어요.");
-      }
+    const key=list.map(p=>p.id).join(",");
+    if(list.length&&descCache&&descCache.key===key){
+      // 같은 사진이면 지난 설명을 다시 쓴다 (다시 만들기·다시 시도)
+      descs=descCache.descs.map(d=>({desc:d.desc,privacy:d.privacy.slice()}));
+      if(descCache.note) alerts.push(descCache.note);
+    }else if(list.length&&canSee){
+      const d=await describePhotos(list);
+      descs=d.out;
+      let note="";
+      if(d.failed&&d.failed===d.chunks){note="사진 내용을 읽지 못해 사진은 순서만 넣었어요.";}
+      else if(d.failed){note="사진 일부는 내용을 읽지 못해 순서만 넣었어요.";}
+      if(note) alerts.push(note);
+      descCache={key,descs:descs.map(x=>({desc:x.desc,privacy:x.privacy.slice()})),note};
     }
     descs.forEach((d,i)=>{if(d.privacy.length) alerts.unshift("사진 "+(i+1)+"에서 보이는 것: "+d.privacy.join("·")+". 블로그에 올리기 전에 가려 주세요.");});
     const input=buildInput(list,descs);
     const prompt=RULES+"\n\n# 이번 현장 입력\n"+input+"\n\n위 지시문의 출력 형식 그대로, [제목] [본문] [해시태그] [확인할 점] 네 칸만 써라.";
-    const {text}=await sample(prompt,{cache:false});
+    const {text,truncated}=await sample(prompt,{cache:false});
+    if(truncated) alerts.unshift("글이 길어서 끝이 잘렸어요. 본문 끝부분을 확인하거나 [다시 만들기]를 눌러 주세요.");
     const p=parse(text);
     if(!p.ok) throw {code:"bad_format"};
     if(!p.titles.length&&!p.body){fail(p.checks.join(" ")||"글을 못 만들었어요.");return;}
@@ -710,6 +743,6 @@ A. 이번 집은 3주가 걸렸어요. 공사 범위에 따라 달라서 상담 
   add("p","lbl","확인할 점");add("div","paper",p.checks.map(c=>"- "+c).join("\n"));
 })();
 
-renderPhotos();onChoice();
+renderPhotos();onChoice();refreshGen();
 })();
 </script>
