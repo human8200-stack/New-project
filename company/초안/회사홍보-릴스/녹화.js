@@ -7,9 +7,9 @@ const path = require('path');
 const fs = require('fs');
 
 const DIR = __dirname;
-const FPS = 30, SEC = 29, W = 1080, H = 1920;
+const FPS = 30, SEC = 34.7, W = 1080, H = 1920;
 const CRF = process.env.CRF || '20';
-const SHOTS = [2.4, 5.6, 9.8, 13.8, 18.9, 22.5, 27.5]; // 장면 대표 컷 (두 번째 값은 안 씀)
+const SHOTS = [2.4, 0, 11.6, 15.6, 20.6, 24.4, 33.5]; // 대표 컷 6장: 책상·조직도·레시피·고객 관리·쫓기지 않도록·식탁 (두 번째 값은 안 씀)
 
 (async () => {
   const browser = await chromium.launch();
@@ -26,7 +26,7 @@ const SHOTS = [2.4, 5.6, 9.8, 13.8, 18.9, 22.5, 27.5]; // 장면 대표 컷 (두
     '-c:v', 'libx264', '-preset', 'slow', '-crf', CRF, '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-movflags', '+faststart', '-an', out],
     { stdio: ['pipe', 'inherit', 'inherit'] });
 
-  const total = FPS * SEC;
+  const total = Math.round(FPS * SEC);
   for (let f = 0; f < total; f++) {
     await page.evaluate((ms) => window.seek(ms), (f * 1000) / FPS);
     const buf = await stage.screenshot({ type: 'jpeg', quality: 95 });

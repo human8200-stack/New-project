@@ -2,16 +2,17 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<title>회사 소개 릴스 — 장면 (코드 영상, 29초)</title>
+<title>회사 소개 릴스 — 장면 (코드 영상, 3판, 34.7초)</title>
 <!--
-  회사 소개 릴스 2판+ (2026-11-01)
+  회사 소개 릴스 3판 (2026-11-01)
   메시지: 혼자 붙잡던 일을, 같이 쓰는 도구로 나눴다. 주인공은 곁의 분들.
-  같이 쓰는 도구: 레시피함, 고객 관리 프로그램 (강의북은 넣지 않음 — 회장님 11/1 말씀)
-  - 앱 화면은 본뜬 그림. 앱 이름·로고·회사 이름·냄비 이름·QR·제품 없음.
-  - 휴대폰 화면 속에는 읽히는 글자 없음 (색 막대·둥근 카드·점만, 살짝 흐리게) — 회장님 11/1 지시.
+  같이 쓰는 도구: 레시피함, 고객 관리 프로그램 (비슷한 무게로). 강의북은 넣지 않음.
+  - 앱 화면은 본뜬 그림. 화면 속 읽히는 글자 없음(색 막대·동그라미·종 모양만, 살짝 흐리게).
+  - 앱 이름·로고·회사 이름·냄비 이름·QR·제품·암웨이 표시 없음. 숫자 없음.
+  - 조직도: 회장 → 사장(AI) → 팀 카드 12개(기획·리서치·디자인·개발·콘텐츠·검수·인스타그램·유튜브·편집·출판·마케팅·회계)만.
   - 글꼴: Pretendard (SIL Open Font License 1.1, 상업용 무료) — fonts/ 폴더
-  - 다음 이야기 예고 장면(20~24.4초): 흐린 아이콘 카드만, 글자·숫자 없음 (회장님 추가 의견 11/1)
-  - 1080×1920, 29초. 브라우저에서 열면 그대로 재생됨. 녹화는 녹화.js 가 seek(ms)로 한 장씩 찍음.
+  - 1080×1920, 34.7초. 브라우저에서 열면 그대로 재생됨. 녹화는 녹화.js 가 seek(ms)로 한 장씩 찍음.
+  - 2판(29초) 소스는 이 파일의 이전 판, 영상은 릴스-미리보기-2판.mp4
 -->
 <style>
 @font-face { font-family: "Pretendard"; font-weight: 500; src: url("fonts/Pretendard-Medium.woff2") format("woff2"); }
@@ -64,12 +65,12 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
 @keyframes noteDrop{from{opacity:0;transform:translate(0,-900px) rotate(calc(var(--r) + 40deg))}to{opacity:1;transform:rotate(var(--r))}}
 @keyframes noteFly{from{opacity:1;transform:rotate(var(--r))}to{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(0deg) scale(.12)}}
 #figure{position:absolute;left:240px;top:560px;width:600px;height:700px;
-  animation:fadeOut .5s ease 3.0s forwards}
+  animation:fadeOut .5s ease 3.7s forwards}
 #arm{transform-box:view-box;transform-origin:470px 520px;animation:armUp .6s ease-out 1.2s both}
 @keyframes armUp{from{transform:rotate(55deg);opacity:0}to{transform:none;opacity:1}}
 #head{transform-box:view-box;transform-origin:300px 420px;animation:sigh 1.2s ease-in-out 1.7s both}
 @keyframes sigh{0%{transform:none}50%{transform:rotate(-7deg) translateY(10px)}100%{transform:rotate(-5deg) translateY(8px)}}
-#p1wrap{position:absolute;left:375px;top:740px;width:330px;height:640px;animation:riseIn .6s cubic-bezier(.2,.8,.3,1) 3.1s both}
+#p1wrap{position:absolute;left:375px;top:740px;width:330px;height:640px;animation:riseIn .6s cubic-bezier(.2,.8,.3,1) 3.8s both}
 #p1wrap .phone{width:330px;height:640px;border-radius:50px;padding:12px}
 #p1wrap .screen{border-radius:40px}
 .tidy{position:absolute;left:20px;right:20px;height:104px;border-radius:24px;background:#fff;
@@ -78,7 +79,22 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
 .tidy b{width:60px;height:60px;border-radius:18px;flex:none}
 .tidy i{display:block;height:16px;width:130px;border-radius:8px;background:#E6D9C9}
 
-/* ---------- 장면 2: 레시피 같이 보기 ---------- */
+
+/* ---------- 조직도 ---------- */
+#sOrg{background:var(--cream)}
+.orgc{position:absolute;width:180px;height:180px;border-radius:50%;color:#fff;font-weight:800;font-size:48px;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 12px 24px rgba(74,52,40,.2)}
+.ln{position:absolute;background:#CDB8A2;border-radius:4px}
+.ln.v{width:8px;transform-origin:50% 0;animation:growY .3s ease-out var(--d) both}
+.ln.h{height:8px;transform-origin:50% 50%;animation:growX .4s ease-out var(--d) both}
+@keyframes growY{from{transform:scaleY(0)}to{transform:none}}
+@keyframes growX{from{transform:scaleX(0)}to{transform:none}}
+.team{position:absolute;width:290px;height:96px;border-radius:26px;font-weight:800;font-size:42px;
+  display:flex;align-items:center;justify-content:center;
+  animation:fadeIn .3s ease var(--d0) both, lightUp .35s ease-out var(--d) both}
+@keyframes lightUp{from{background:#EADFD1;color:#BCAB9B;transform:scale(1)}60%{transform:scale(1.07)}to{background:var(--c);color:#fff;transform:scale(1);box-shadow:0 8px 16px rgba(74,52,40,.18)}}
+
+/* ---------- 장면 3: 레시피 같이 보기 ---------- */
 #s2{background:var(--cream)}
 .slot{position:absolute;top:760px;width:300px;height:620px;transform-origin:0 0}
 .rhead{height:96px;background:var(--brown2);position:relative}
@@ -112,7 +128,6 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
 /* ---------- 장면 3: 고객 일정 같이 보기 ---------- */
 #s3{background:#F3EBDF}
 .cslot{position:absolute;width:360px;height:700px;transform-origin:50% 100%}
-@keyframes handIn{from{opacity:0;transform:translateX(-380px)}to{opacity:1;transform:none}}
 .cslot .phone{width:360px;height:700px;border-radius:52px}
 .chead{padding:58px 26px 0;font-weight:800;font-size:40px;color:var(--brown)}
 .week{display:flex;gap:8px;padding:16px 22px 10px}
@@ -130,36 +145,43 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
 .evnew .ev{background:#FFF6EA;border:3px solid var(--terra)}
 .cshift{animation:cshift .4s ease-out var(--d) both}
 @keyframes cshift{from{transform:none}to{transform:translateY(122px)}}
+
+.ev .av{position:absolute;left:30px;top:26px;width:56px;height:56px;border-radius:50%;background:var(--c,#C9B39C);opacity:.55}
+.ev.p{padding-left:104px}
+.bell{position:absolute;right:24px;top:56px;width:52px;height:52px;transform-origin:50% 10%;animation:ring .5s ease-in-out var(--d) 3 alternate both}
+@keyframes ring{0%{transform:rotate(0)}50%{transform:rotate(18deg)}100%{transform:rotate(-18deg)}}
+.bdot{position:absolute;right:20px;top:52px;width:22px;height:22px;border-radius:50%;background:#D9534F;border:3px solid #fff;animation:pop .3s ease-out var(--d) both}
 .pulse{animation:pulse .5s ease-in-out var(--d) 2 alternate both}
 @keyframes pulse{from{transform:scale(1)}to{transform:scale(1.18)}}
 
-/* ---------- 장면 4: 잡일은 AI가 ---------- */
-#s4{background:var(--cream)}
-.chip{position:absolute;left:70px;width:400px;height:124px;border-radius:62px;color:#fff;font-weight:800;font-size:52px;
-  display:flex;align-items:center;justify-content:center;box-shadow:0 10px 20px rgba(74,52,40,.18);
-  transform:rotate(var(--r));animation:chipDrop .55s cubic-bezier(.3,.9,.4,1.15) var(--d) both}
-@keyframes chipDrop{from{opacity:0;transform:translateY(-900px) rotate(calc(var(--r) - 25deg))}to{opacity:1;transform:rotate(var(--r))}}
-#clockWrap{position:absolute;left:540px;top:860px;width:480px;height:480px;animation:pop .5s ease-out 16.1s both}
-#minute{transform-box:view-box;transform-origin:240px 240px;animation:rewindM 2.6s cubic-bezier(.45,0,.3,1) 17.0s both}
-#hour{transform-box:view-box;transform-origin:240px 240px;animation:rewindH 2.6s cubic-bezier(.45,0,.3,1) 17.0s both}
+/* ---------- 장면 5: 쫓기지 않도록 ---------- */
+#s4{background:linear-gradient(#EFE2D0,#EADBC6)}
+.note2{position:absolute;width:210px;height:150px;border-radius:10px;padding:22px 20px;font-weight:700;font-size:34px;
+  color:#5A4033;box-shadow:0 8px 16px rgba(60,40,25,.22);transform:rotate(var(--r));
+  animation:fadeIn .3s ease 21.6s both, blowAway 1.3s cubic-bezier(.5,0,.7,.6) var(--d) forwards}
+.note2 i{display:block;height:8px;border-radius:4px;background:rgba(90,64,51,.18);margin-top:14px;width:80%}
+@keyframes blowAway{from{opacity:1;transform:rotate(var(--r))}to{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(calc(var(--r) + 50deg))}}
+#clockWrap{position:absolute;left:300px;top:840px;width:480px;height:480px;animation:pop .5s ease-out 21.8s both}
+#minute{transform-box:view-box;transform-origin:240px 240px;animation:rewindM 2.6s cubic-bezier(.45,0,.3,1) 22.8s both}
+#hour{transform-box:view-box;transform-origin:240px 240px;animation:rewindH 2.6s cubic-bezier(.45,0,.3,1) 22.8s both}
 @keyframes rewindM{from{transform:rotate(0)}to{transform:rotate(-720deg)}}
 @keyframes rewindH{from{transform:rotate(0)}to{transform:rotate(-60deg)}}
-#rewArrow{animation:fadeIn .4s ease 16.8s both}
+#rewArrow{animation:fadeIn .4s ease 22.6s both}
 
 
-/* ---------- 장면 5: 다음 이야기 예고 ---------- */
+/* ---------- 장면 6: 다음 이야기 예고 ---------- */
 #s6{background:linear-gradient(#F7EFE3,#EFE3D3)}
 .soon{position:absolute;width:300px;height:300px;border-radius:40px;background:#FFFBF4;box-shadow:0 14px 30px rgba(74,52,40,.14);
   display:flex;align-items:center;justify-content:center;filter:blur(5px);opacity:.75;
   transform:rotate(var(--r));animation:soonUp 1.1s cubic-bezier(.2,.8,.3,1) var(--d) both}
 @keyframes soonUp{from{opacity:0;transform:translateY(220px) rotate(var(--r))}to{opacity:.75;transform:rotate(var(--r))}}
 
-/* ---------- 장면 6: 식탁 ---------- */
+/* ---------- 장면 7: 식탁 ---------- */
 #s5{background:radial-gradient(900px 700px at 180px 380px,#FFF6E6 0,rgba(255,246,230,0) 70%),linear-gradient(#F3E6D4 0,#EEDDC7 1120px,#C69A72 1120px,#B3845E 1920px)}
 #s5 .runner{position:absolute;left:150px;right:150px;top:1120px;bottom:0;background:#F6EEE2;
   box-shadow:inset 0 0 0 10px rgba(201,120,90,.15)}
 #s5 .edge{position:absolute;left:0;right:0;top:1120px;height:16px;background:#D3AA84}
-#table{position:absolute;inset:0;animation:fadeIn .6s ease 24.4s both}
+#table{position:absolute;inset:0;animation:fadeIn .6s ease 30.1s both}
 .cup{position:absolute;animation:cupIn .8s cubic-bezier(.2,.8,.3,1) var(--d) both}
 @keyframes cupIn{from{opacity:0;transform:translateY(60px)}to{opacity:1;transform:none}}
 .steam{animation:steam 2.4s ease-in-out var(--d) infinite both}
@@ -169,8 +191,8 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
 <body>
 <div id="stage">
 
-  <!-- 장면 1 (0~6.2초): 혼자 붙잡던 일을 → 같이 쓰는 도구로 -->
-  <section class="scene" id="s1" data-s="0" data-e="6.2">
+  <!-- 장면 1 (0~7.9초): 혼자 붙잡던 일을 → 같이 쓰는 도구로 -->
+  <section class="scene" id="s1" data-s="0" data-e="7.9">
     <div class="deskEdge"></div>
     <svg id="figure" viewBox="0 0 600 700">
       <!-- 뒷모습 실루엣 (얼굴 없음) -->
@@ -191,25 +213,36 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
         <div class="rhead" style="height:100px"></div>
       </div></div>
     </div>
-    <div class="cap" style="animation:capIn .5s ease-out .3s both, capOut .3s ease-in 2.9s forwards"><span>혼자 붙잡던 일을</span></div>
-    <div class="cap" style="animation:capIn .5s ease-out 3.4s both, capOut .3s ease-in 5.9s forwards"><span>같이 쓰는 도구로</span></div>
+    <div class="cap" style="animation:capIn .5s ease-out .3s both, capOut .3s ease-in 3.8s forwards"><span>혼자 붙잡던 일을</span></div>
+    <div class="cap" style="animation:capIn .5s ease-out 4.2s both, capOut .3s ease-in 7.6s forwards"><span>같이 쓰는 도구로</span></div>
   </section>
 
-  <!-- 장면 2 (6.2~11초): 한 분이 올린 레시피, 모두의 휴대폰에 -->
-  <section class="scene" id="s2" data-s="6.2" data-e="11">
+  <!-- 장면 2 (7.9~12.1초): 조직도 — 회장 → 사장(AI) → 팀 카드가 하나씩 켜짐 -->
+  <section class="scene" id="sOrg" data-s="7.9" data-e="12.1">
+    <div class="orgc" style="left:450px;top:540px;background:#4A3428;animation:pop .45s ease-out 8.0s both">회장</div>
+    <div class="ln v" style="left:536px;top:720px;height:70px;--d:8.35s"></div>
+    <div class="orgc" style="left:450px;top:790px;background:#C9785A;font-size:40px;animation:pop .45s ease-out 8.55s both">사장(AI)</div>
+    <div class="ln v" style="left:536px;top:970px;height:40px;--d:8.9s"></div>
+    <div class="ln h" style="left:205px;top:1006px;width:678px;--d:9.0s"></div>
+    <div id="orgCards"></div>
+    <div class="cap" style="animation:capIn .5s ease-out 8.1s both, capOut .3s ease-in 11.8s forwards"><span>잡일은 AI 팀이</span><span>나눠 맡고</span></div>
+  </section>
+
+  <!-- 장면 3 (12.1~16.9초): 한 분이 올린 레시피, 모두의 휴대폰에 -->
+  <section class="scene" id="s2" data-s="12.1" data-e="16.9">
     <div id="s2phones"></div>
-    <div class="cap" style="animation:capIn .5s ease-out 6.5s both, capOut .3s ease-in 10.6s forwards"><span>한 분이 올린 레시피,</span><span>모두의 휴대폰에</span></div>
+    <div class="cap" style="animation:capIn .5s ease-out 12.4s both, capOut .3s ease-in 16.5s forwards"><span>한 분이 올린 레시피,</span><span>모두의 휴대폰에</span></div>
   </section>
 
-  <!-- 장면 3 (11~15.8초): 처음 쓰는 분도 헤매지 않게 — 손 여러 개가 같은 화면(고객 관리 도구를 본뜬 모양)을 가리킴 -->
-  <section class="scene" id="s3" data-s="11" data-e="15.8">
+  <!-- 장면 4 (16.9~21.7초): 고객 관리 — 휴대폰 3대에 같은 연락 목록·종 알림이 함께 뜸 (글자 없음) -->
+  <section class="scene" id="s3" data-s="16.9" data-e="21.7">
     <div id="s3phones"></div>
-    <div class="cap" style="animation:capIn .5s ease-out 11.3s both, capOut .3s ease-in 15.4s forwards"><span>처음 쓰는 분도</span><span>헤매지 않게</span></div>
+    <div class="cap" style="animation:capIn .5s ease-out 17.1s both, capOut .3s ease-in 21.4s forwards"><span>놓치기 쉬운 연락도,</span><span>같이 챙기고</span></div>
   </section>
 
-  <!-- 장면 4 (15.8~20초): 잡일은 AI가, 그만큼 서로의 시간이 생겨요 -->
-  <section class="scene" id="s4" data-s="15.8" data-e="20">
-    <div id="chips"></div>
+  <!-- 장면 5 (21.7~25.7초): 이런 일들에, 더는 쫓기지 않도록 — 첫 장면 쪽지가 날아가고 시계가 되감김 -->
+  <section class="scene" id="s4" data-s="21.7" data-e="25.7">
+    <div id="calmNotes"></div>
     <div id="clockWrap">
       <svg viewBox="0 0 480 480" width="480" height="480">
         <g id="rewArrow">
@@ -223,17 +256,17 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
         <circle cx="240" cy="240" r="16" fill="#4A3428"/>
       </svg>
     </div>
-    <div class="cap" style="animation:capIn .5s ease-out 16.0s both, capOut .3s ease-in 19.6s forwards"><span>잡일은 AI가, 그만큼</span><span>서로의 시간이 생겨요</span></div>
+    <div class="cap" style="animation:capIn .5s ease-out 21.9s both, capOut .3s ease-in 25.4s forwards"><span>이런 일들에,</span><span>더는 쫓기지 않도록</span></div>
   </section>
 
-  <!-- 장면 5 (20~24.4초): 다음 이야기 예고 — 무엇인지 글자로 적지 않음 -->
-  <section class="scene" id="s6" data-s="20" data-e="24.4">
+  <!-- 장면 6 (25.7~30.1초): 다음 이야기 예고 — 무엇인지 글자로 적지 않음 -->
+  <section class="scene" id="s6" data-s="25.7" data-e="30.1">
     <div id="soon"></div>
-    <div class="cap" style="animation:capIn .5s ease-out 20.2s both, capOut .3s ease-in 24.3s forwards"><span>이 밖에도 AI와 해 보는 일들,</span><span>하나씩 나눠 볼게요</span></div>
+    <div class="cap" style="animation:capIn .5s ease-out 25.9s both, capOut .3s ease-in 30.0s forwards"><span>이 밖에도 AI와 해 보는 일들,</span><span>하나씩 나눠 볼게요</span></div>
   </section>
 
-  <!-- 장면 6 (24.4~29초): 아낀 시간은, 곁의 분들과 식탁으로 -->
-  <section class="scene" id="s5" data-s="24.4" data-e="29">
+  <!-- 장면 7 (30.1~34.7초): 아낀 시간은, 곁의 분들과 식탁으로 -->
+  <section class="scene" id="s5" data-s="30.1" data-e="34.7">
     <div id="table">
       <div class="edge"></div>
       <div class="runner"></div>
@@ -246,9 +279,9 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
         <path d="M50 150 h60 l-8 100 h-44 z" fill="#E3EBDD" stroke="#B7C7B0" stroke-width="4"/>
       </svg>
       <!-- 찻잔 1 -->
-      <svg class="cup" style="--d:24.7s;left:180px;top:1030px" width="340" height="330" viewBox="0 0 340 330">
-        <path class="steam" style="--d:25.2s" d="M140 120 c-24 -30 24 -50 0 -80" stroke="#FFFFFF" stroke-width="10" fill="none" stroke-linecap="round" opacity=".7"/>
-        <path class="steam" style="--d:26.0s" d="M190 120 c-24 -30 24 -50 0 -80" stroke="#FFFFFF" stroke-width="10" fill="none" stroke-linecap="round" opacity=".7"/>
+      <svg class="cup" style="--d:30.4s;left:180px;top:1030px" width="340" height="330" viewBox="0 0 340 330">
+        <path class="steam" style="--d:30.9s" d="M140 120 c-24 -30 24 -50 0 -80" stroke="#FFFFFF" stroke-width="10" fill="none" stroke-linecap="round" opacity=".7"/>
+        <path class="steam" style="--d:31.7s" d="M190 120 c-24 -30 24 -50 0 -80" stroke="#FFFFFF" stroke-width="10" fill="none" stroke-linecap="round" opacity=".7"/>
         <ellipse cx="170" cy="285" rx="150" ry="36" fill="#EDE3D6" stroke="#D5C4B0" stroke-width="5"/>
         <path d="M270 175 c55 0 55 70 0 70" stroke="#FBF7F1" stroke-width="20" fill="none"/>
         <path d="M60 150 h220 c0 80 -40 130 -110 130 c-70 0 -110 -50 -110 -130 z" fill="#FBF7F1"/>
@@ -257,9 +290,9 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
         <ellipse cx="170" cy="152" rx="94" ry="18" fill="#B8733F"/>
       </svg>
       <!-- 찻잔 2 -->
-      <svg class="cup" style="--d:25.0s;left:570px;top:1080px" width="340" height="330" viewBox="0 0 340 330">
-        <path class="steam" style="--d:25.6s" d="M145 120 c-24 -30 24 -50 0 -80" stroke="#FFFFFF" stroke-width="10" fill="none" stroke-linecap="round" opacity=".7"/>
-        <path class="steam" style="--d:26.4s" d="M195 120 c-24 -30 24 -50 0 -80" stroke="#FFFFFF" stroke-width="10" fill="none" stroke-linecap="round" opacity=".7"/>
+      <svg class="cup" style="--d:30.7s;left:570px;top:1080px" width="340" height="330" viewBox="0 0 340 330">
+        <path class="steam" style="--d:31.3s" d="M145 120 c-24 -30 24 -50 0 -80" stroke="#FFFFFF" stroke-width="10" fill="none" stroke-linecap="round" opacity=".7"/>
+        <path class="steam" style="--d:32.1s" d="M195 120 c-24 -30 24 -50 0 -80" stroke="#FFFFFF" stroke-width="10" fill="none" stroke-linecap="round" opacity=".7"/>
         <ellipse cx="170" cy="285" rx="150" ry="36" fill="#EDE3D6" stroke="#D5C4B0" stroke-width="5"/>
         <path d="M70 175 c-55 0 -55 70 0 70" stroke="#FBF7F1" stroke-width="20" fill="none"/>
         <path d="M60 150 h220 c0 80 -40 130 -110 130 c-70 0 -110 -50 -110 -130 z" fill="#FBF7F1"/>
@@ -268,18 +301,18 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
         <ellipse cx="170" cy="152" rx="94" ry="18" fill="#B8733F"/>
       </svg>
       <!-- 쿠키 접시 -->
-      <svg class="cup" style="--d:25.3s;left:400px;top:1400px" width="280" height="120" viewBox="0 0 280 120">
+      <svg class="cup" style="--d:31.0s;left:400px;top:1400px" width="280" height="120" viewBox="0 0 280 120">
         <ellipse cx="140" cy="70" rx="130" ry="40" fill="#FFFFFF" stroke="#E2D4C2" stroke-width="5"/>
         <ellipse cx="110" cy="60" rx="42" ry="20" fill="#D9A15F"/><ellipse cx="170" cy="70" rx="42" ry="20" fill="#C98B4E"/>
         <circle cx="100" cy="56" r="4" fill="#7A5440"/><circle cx="122" cy="62" r="4" fill="#7A5440"/><circle cx="178" cy="66" r="4" fill="#7A5440"/>
       </svg>
     </div>
-    <div class="cap"><span style="animation:capIn .6s ease-out 24.8s both">아낀 시간은,</span><span style="animation:capIn .6s ease-out 25.5s both">곁의 분들과 식탁으로</span></div>
+    <div class="cap"><span style="animation:capIn .6s ease-out 30.5s both">아낀 시간은,</span><span style="animation:capIn .6s ease-out 31.2s both">곁의 분들과 식탁으로</span></div>
   </section>
 
 </div>
 <script>
-const TOTAL = 29000;
+const TOTAL = 34700;
 const $ = (id) => document.getElementById(id);
 
 /* 장면 1: 쪽지들 */
@@ -294,16 +327,31 @@ const $ = (id) => document.getElementById(id);
   words.forEach((w,i)=>{
     const [x,y] = pos[i];
     const dx = tx - (x+105), dy = ty - (y+75);
-    html += `<div class="note" style="left:${x}px;top:${y}px;background:${colors[i%colors.length]};--r:${rot[i]}deg;--d1:${(0.2+i*0.1).toFixed(2)}s;--d2:${(3.6+i*0.06).toFixed(2)}s;--dx:${dx}px;--dy:${dy}px">${w}<i></i><i></i></div>`;
+    html += `<div class="note" style="left:${x}px;top:${y}px;background:${colors[i%colors.length]};--r:${rot[i]}deg;--d1:${(0.2+i*0.1).toFixed(2)}s;--d2:${(4.3+i*0.06).toFixed(2)}s;--dx:${dx}px;--dy:${dy}px">${w}<i></i><i></i></div>`;
   });
   $("notes").innerHTML = html;
   // 휴대폰 안 정리된 카드
   const tidy = [[0,"#C9785A"],[0,"#8FA58A"],[0,"#D9A64E"],[0,"#7A5440"]]; // 글자 없음
   $("p1screen").insertAdjacentHTML("beforeend", tidy.map((t,j)=>
-    `<div class="tidy" style="top:${125+j*122}px;--d:${(4.3+j*0.28).toFixed(2)}s"><b style="background:${t[1]}"></b><i></i></div>`).join(""));
+    `<div class="tidy" style="top:${125+j*122}px;--d:${(5.0+j*0.28).toFixed(2)}s"><b style="background:${t[1]}"></b><i></i></div>`).join(""));
 })();
 
-/* 장면 2: 휴대폰 4대 — 레시피 */
+
+/* 조직도 팀 카드 (암웨이사업팀 등은 넣지 않음, 숫자 없음) */
+(function(){
+  const names = ["기획","리서치","디자인","개발","콘텐츠","검수","인스타그램","유튜브","편집","출판","마케팅","회계"];
+  const cs = ["#8FA58A","#C9785A","#D9A64E","#7A5440"];
+  const lefts = [60,395,730];
+  let html = "";
+  [205,540,875].forEach(x=>{ html += `<div class="ln v" style="left:${x-4}px;top:1006px;height:40px;--d:9.25s"></div>`; });
+  names.forEach((n,i)=>{
+    const col=i%3, row=Math.floor(i/3);
+    html += `<div class="team" style="left:${lefts[col]}px;top:${1040+row*112}px;--c:${cs[(i+row)%4]};--d0:${(9.2+i*0.03).toFixed(2)}s;--d:${(9.5+i*0.14).toFixed(2)}s">${n}</div>`;
+  });
+  $("orgCards").innerHTML = html;
+})();
+
+/* 장면 3: 휴대폰 4대 — 레시피 (5.9초 뒤로) */
 (function(){
   const lefts = [18,282,546,810];
   const top = 760, sc = 0.84;
@@ -317,9 +365,9 @@ const $ = (id) => document.getElementById(id);
   const rows = `<div class="row"><b></b><i></i></div><div class="row"><b></b><i style="width:90px"></i></div><div class="row"><b></b><i style="width:140px"></i></div><div class="row"><b></b><i style="width:100px"></i></div>`;
   lefts.forEach((l,k)=>{
     const isSender = k===0;
-    const d = isSender ? 7.55 : (8.55 + (k-1)*0.2);
+    const d = isSender ? 13.45 : (14.45 + (k-1)*0.2);
     html += `<div class="slot" style="left:${l}px;transform:scale(${sc}) translateY(${isSender?-40:0}px)">
-      <div class="phone" style="animation:pop .45s ease-out ${(6.3+k*0.1).toFixed(2)}s both">
+      <div class="phone" style="animation:pop .45s ease-out ${(12.2+k*0.1).toFixed(2)}s both">
         ${isSender?"":`<div class="glow" style="--d:${d}s"></div>`}
         <div class="screen"><div class="notch"></div><div class="rhead"></div>
           <div class="rows shift" style="--d:${(d-0.1).toFixed(2)}s">${rows}</div>
@@ -330,62 +378,60 @@ const $ = (id) => document.getElementById(id);
   });
   // 누르는 손가락 표시 (보내는 휴대폰의 '올리기' 버튼)
   const bx = 24 + 150*sc, by = top + (-40 + 620 - 34 - 39)*sc;
-  html += `<div class="dot" style="left:${bx}px;top:${by}px;animation:tap .7s ease-out 7.0s both"></div>`;
+  html += `<div class="dot" style="left:${bx}px;top:${by}px;animation:tap .7s ease-out 12.9s both"></div>`;
   // 퍼져 나가는 점
   [1,2,3].forEach(k=>{
     const ex = lefts[k] + 150*sc, ey = top + 200*sc;
     const sx = bx, sy = top + 160*sc;
-    html += `<div class="spark" style="left:${sx}px;top:${sy}px;--dx:${ex-sx}px;--dy:${ey-sy}px;--d:${(7.95+(k-1)*0.2).toFixed(2)}s"></div>`;
+    html += `<div class="spark" style="left:${sx}px;top:${sy}px;--dx:${ex-sx}px;--dy:${ey-sy}px;--d:${(13.85+(k-1)*0.2).toFixed(2)}s"></div>`;
   });
   $("s2phones").innerHTML = html;
 })();
 
-/* 장면 3: 손 여러 개가 같은 화면 하나를 가리킴 — 화면 속은 모양만 */
+/* 장면 4: 고객 관리 — 휴대폰 3대, 같은 목록과 종 알림 (이름·글자 없음) */
 (function(){
+  const slots = [
+    {left:10, top:840, sc:0.8, rot:-5, p:17.1},
+    {left:360, top:780, sc:1, rot:0, p:17.0, center:true},
+    {left:710, top:840, sc:0.8, rot:5, p:17.2},
+  ];
   const week = `<div class="week">${[0,1,2,3,4].map(i=>`<div class="${i===2?'on':''}"><b></b></div>`).join("")}</div>`;
-  const ev = (c,w) => `<div class="ev" style="--c:${c}"><div class="n"></div><div class="w" style="width:${w}px"></div></div>`;
-  const list = ev("#8FA58A",150)+ev("#D9A64E",110)+ev("#C9B39C",170)+ev("#B7A08A",120);
-  let html = `<div class="cslot" style="left:360px;top:800px">
-      <div class="phone" style="animation:pop .45s ease-out 11.0s both">
-        <div class="glow" style="--d:12.7s;border-radius:64px"></div>
+  const ev = (c,w) => `<div class="ev p" style="--c:${c}"><b class="av"></b><div class="n"></div><div class="w" style="width:${w}px"></div></div>`;
+  const list = ev("#8FA58A",130)+ev("#D9A64E",100)+ev("#C9B39C",150)+ev("#B7A08A",110);
+  const bell = `<svg class="bell" viewBox="0 0 24 24" style="--d:VAR"><path d="M12 2.5a6 6 0 0 0-6 6v4.2l-2 3.3h16l-2-3.3V8.5a6 6 0 0 0-6-6z" fill="#7A5440"/><circle cx="12" cy="19.6" r="2.2" fill="#7A5440"/></svg>`;
+  let html = "";
+  slots.forEach(s=>{
+    const d = s.center ? 18.3 : (s.left>400 ? 19.2 : 19.0);
+    html += `<div class="cslot" style="left:${s.left}px;top:${s.top}px;transform:scale(${s.sc}) rotate(${s.rot}deg)">
+      <div class="phone" style="animation:pop .45s ease-out ${s.p}s both">
+        ${s.center?"":`<div class="glow" style="--d:${d}s;border-radius:64px"></div>`}
         <div class="screen"><div class="notch"></div>
-          <div class="chead"><div style="width:120px;height:30px;border-radius:15px;background:#D9C6B1"></div></div>${week}
-          <div class="clist cshift" style="--d:12.6s">${list}</div>
-          <div class="evnew" style="--d:12.7s">${ev("#C9785A",140)}</div>
+          <div class="chead"><div style="width:120px;height:30px;border-radius:15px;background:#D9C6B1"></div></div>
+          ${bell.replace("VAR", d+"s")}<div class="bdot" style="--d:${d}s"></div>
+          ${week}
+          <div class="clist cshift" style="--d:${(d-0.1).toFixed(2)}s">${list}</div>
+          <div class="evnew" style="--d:${d}s">${ev("#C9785A",120)}</div>
         </div>
       </div></div>`;
-  // 손: 소매 + 손바닥 + 펼친 검지 (반지·손톱 등 특정 사람 표시 없음)
-  const hand = (sleeve, skin) => `<svg width="460" height="160" viewBox="0 0 460 160">
-      <rect x="0" y="28" width="210" height="104" rx="22" fill="${sleeve}"/>
-      <rect x="185" y="34" width="140" height="96" rx="46" fill="${skin}"/>
-      <rect x="280" y="52" width="170" height="34" rx="17" fill="${skin}"/>
-      <ellipse cx="250" cy="36" rx="44" ry="18" fill="${skin}"/>
-    </svg>`;
-  const hands = [
-    {tx:400, ty:1240, ang:0,   sl:"#8FA58A", sk:"#E8C3A0", d:11.5},
-    {tx:680, ty:1050, ang:180, sl:"#C9785A", sk:"#D9AF8A", d:11.8, flip:true},
-    {tx:575, ty:1420, ang:-90, sl:"#D9A64E", sk:"#F0CFB0", d:12.1},
-  ];
-  hands.forEach(h=>{
-    html += `<div class="abs" style="left:${h.tx-450}px;top:${h.ty-69}px;width:460px;height:160px;transform-origin:450px 69px;transform:rotate(${h.ang}deg)${h.flip?' scaleY(-1)':''}">
-      <div style="animation:handIn .7s cubic-bezier(.2,.8,.3,1) ${h.d}s both">${hand(h.sl,h.sk)}</div></div>`;
   });
-  html += `<div class="dot" style="left:540px;top:1180px;animation:tap .7s ease-out 12.4s both"></div>`;
+  html += `<div class="dot" style="left:540px;top:1080px;animation:tap .7s ease-out 17.95s both"></div>`;
   $("s3phones").innerHTML = html;
 })();
 
-/* 장면 4: 떨어지는 칩 + 시계 눈금 */
+/* 장면 5: 날아가는 쪽지 + 시계 눈금 */
 (function(){
-  const chips = [["자료 정리","#8FA58A",-3],["디자인","#C9785A",4],["검수","#D9A64E",-5],["다시 쓰기","#7A5440",3]];
-  $("chips").innerHTML = chips.map((c,i)=>
-    `<div class="chip" style="top:${1330 - i*142}px;background:${c[1]};--r:${c[2]}deg;--d:${(16.25+i*0.32).toFixed(2)}s">${c[0]}</div>`).join("");
+  // 첫 장면의 쪽지들이 바람에 날아감
+  const ns = [["장보기",60,640,-8,-700,-260,"#FFF1BF"],["연락 드리기",810,620,7,700,-300,"#FBE1D0"],["자료 정리",30,1120,5,-760,60,"#E4EFD9"],
+              ["답장",840,1150,-6,760,40,"#FFFFFF"],["일정",120,1420,8,-700,300,"#F6E7D8"],["할 일",760,1430,-4,700,320,"#FFF1BF"]];
+  $("calmNotes").innerHTML = ns.map((n,i)=>
+    `<div class="note2" style="left:${n[1]}px;top:${n[2]}px;--r:${n[3]}deg;--dx:${n[4]}px;--dy:${n[5]}px;background:${n[6]};--d:${(22.4+i*0.12).toFixed(2)}s">${n[0]}<i></i></div>`).join("");
   let t = "";
   for (let i=0;i<12;i++){ t += `<rect x="236" y="${i%3?70:64}" width="8" height="${i%3?22:34}" rx="4" fill="#B79A82" transform="rotate(${i*30} 240 240)"/>`; }
   $("ticks").innerHTML = t;
 })();
 
 
-/* 장면 5: 흐린 예고 카드 (냄비, 카메라, 펜, 책 — 글자 없음) */
+/* 장면 6: 흐린 예고 카드 (냄비, 카메라, 펜, 책 — 글자 없음) */
 (function(){
   const B='#7A5440', T='#C9785A', S='#8FA58A', M='#D9A64E';
   const icons = [
@@ -394,7 +440,7 @@ const $ = (id) => document.getElementById(id);
     `<rect x="40" y="40" width="120" height="140" rx="12" fill="#F1E6D6"/><rect x="58" y="70" width="80" height="10" rx="5" fill="#CDB8A2"/><rect x="58" y="96" width="60" height="10" rx="5" fill="#CDB8A2"/><g transform="rotate(40 120 120)"><rect x="110" y="30" width="22" height="120" rx="6" fill="${M}"/><path d="M110 150 h22 l-11 24 z" fill="${B}"/></g>`,
     `<path d="M100 60 C75 45 45 45 25 52 V165 C45 158 75 158 100 172 Z" fill="${S}"/><path d="M100 60 C125 45 155 45 175 52 V165 C155 158 125 158 100 172 Z" fill="${T}"/><rect x="97" y="58" width="6" height="116" fill="${B}"/>`
   ];
-  const pos = [[110,880,-6,20.15],[640,820,5,20.3],[160,1260,4,20.45],[620,1210,-5,20.6]];
+  const pos = [[110,880,-6,25.85],[640,820,5,26.0],[160,1260,4,26.15],[620,1210,-5,26.3]];
   $("soon").innerHTML = icons.map((ic,i)=>{const [x,y,r,d]=pos[i];
     return `<div class="soon" style="left:${x}px;top:${y}px;--r:${r}deg;--d:${d}s"><svg width="200" height="200" viewBox="0 0 200 200">${ic}</svg></div>`;}).join("");
 })();
