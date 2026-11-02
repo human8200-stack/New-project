@@ -104,22 +104,32 @@
   .notice .easy { margin: 10px 0 0; font-size: 16px; }
 
   /* 사진이 큰 카드: 사진 위, 글 아래 */
+  /* 펼치기 카드: 처음엔 사진 + 제목만, 누르면 재료 버튼이 아래로 펼쳐짐 */
   .dish { overflow: hidden; }
+  .dish summary { list-style: none; cursor: pointer; display: block; -webkit-tap-highlight-color: transparent; }
+  .dish summary::-webkit-details-marker { display: none; }
   .dish .photo { position: relative; aspect-ratio: 4 / 3; background: var(--beige); }
   .dish .photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .dish .ep { position: absolute; top: 14px; left: 14px; background: rgba(248,246,242,.94); color: var(--olive);
               font-size: 13px; font-weight: 700; border-radius: 999px; padding: 2px 11px; }
-  .dish .body { padding: 16px 16px 18px; }
-  .dish h3 { margin: 0; font-size: 22px; text-align: center; line-height: 1.35; }
-  .dish .sub { margin: 0; text-align: center; color: var(--taupe); font-size: 17px; }
-  .dish .say { margin: 8px 0 14px; font-size: 16px; text-align: center; }
+  .dish .title { display: flex; align-items: center; gap: 12px; min-height: 76px; padding: 12px 16px 12px 20px; }
+  .dish .tt { flex: 1; }
+  .dish .tt b { display: block; font-size: 21px; line-height: 1.35; }
+  .dish .sub { display: block; color: var(--taupe); font-size: 17px; line-height: 1.3; }
+  .dish .chev { flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--ivory); border: 1px solid var(--beige);
+                display: flex; align-items: center; justify-content: center; color: var(--olive); transition: transform .25s ease; }
+  .dish .chev svg { width: 22px; height: 22px; }
+  .dish[open] .chev { transform: rotate(180deg); background: var(--olive); border-color: var(--olive); color: var(--white); }
+  .dish .body { padding: 0 16px 18px; border-top: 1px solid var(--beige); }
+  .dish .fee { margin: 12px 0 0; font-size: 14px; font-weight: 700; color: var(--olive); text-align: center;
+               background: var(--olive-soft); border-radius: 999px; padding: 4px 12px; }
+  .dish .say { margin: 10px 0 12px; font-size: 16px; text-align: center; }
   .items { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .item { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
           min-height: 52px; padding: 6px 10px; border-radius: 999px;
           background: var(--ivory); border: 1px solid var(--beige);
           text-decoration: none; font-size: 17px; font-weight: 700; line-height: 1.25; }
   .item .slot { font-size: 12px; font-weight: 400; color: var(--taupe); }
-  .fee { margin: 12px 0 0; font-size: 14px; color: var(--olive); text-align: center; }
 
   .foot { text-align: center; margin-top: 28px; font-size: 15px; color: var(--taupe); }
   .foot p { margin: 0; }
@@ -195,28 +205,36 @@
 
     <div class="stack">
       <!-- 블록 1: 마약계란 · 재료 근거: v3/마약계란-캡션.md, 노션 레시피함 마약달걀 · 사진: EP.03 인스타용 영상 15.6초 -->
-      <article class="card dish">
-        <div class="photo"><img src="사진/ep03-마약계란.jpg" alt="흰쌀밥 위 마약계란에 양념을 끼얹는 손" loading="lazy"><span class="ep">EP.03</span></div>
+      <details class="card dish">
+        <summary>
+          <div class="photo"><img src="사진/ep03-마약계란.jpg" alt="흰쌀밥 위 마약계란에 양념을 끼얹는 손" loading="lazy"><span class="ep">EP.03</span></div>
+          <div class="title">
+            <span class="tt"><b>마약계란 장보기</b><span class="sub en">Soy Marinated Eggs</span></span>
+            <span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+          </div>
+        </summary>
         <div class="body">
-          <h3>마약계란 장보기</h3>
-          <p class="sub en">Soy Marinated Eggs</p>
+          <p class="fee">쿠팡 파트너스 링크 · 수수료를 받아요</p>
           <p class="say">달걀 10개와 간장·물·물엿 70ml씩이면 시작할 수 있어요.</p>
           <ul class="items">
             <li><a class="item" href="#" data-link="" data-q="계란">달걀<span class="slot">링크 자리</span></a></li>
             <li><a class="item" href="#" data-link="" data-q="간장">간장<span class="slot">링크 자리</span></a></li>
             <li><a class="item" href="#" data-link="" data-q="물엿">물엿<span class="slot">링크 자리</span></a></li>
           </ul>
-          <p class="fee">쿠팡 파트너스 링크 · 수수료를 받아요</p>
         </div>
-      </article>
+      </details>
 
-
-      <!-- 블록 2: 보리 버섯 리조또 · 재료 근거: 노션 EP.02 장면 목록 2번 + EP.02 화면 자막(소금·후추·파마산) · 사진: EP.02 썸네일(EP02-리조또.jpg) 가운데 -->
-      <article class="card dish">
-        <div class="photo"><img src="사진/ep02-보리버섯리조또.jpg" alt="보리 버섯 리조또 위에 파마산 치즈를 갈아 뿌리는 손" loading="lazy"><span class="ep">EP.02</span></div>
+      <!-- 블록 2: 보리 버섯 리조또 · 재료 근거: 노션 EP.02 장면 목록 2번 + EP.02 화면 자막 · 사진: EP.02 썸네일(EP02-리조또.jpg) 가운데 -->
+      <details class="card dish">
+        <summary>
+          <div class="photo"><img src="사진/ep02-보리버섯리조또.jpg" alt="보리 버섯 리조또 위에 파마산 치즈를 갈아 뿌리는 손" loading="lazy"><span class="ep">EP.02</span></div>
+          <div class="title">
+            <span class="tt"><b>보리 버섯 리조또 장보기</b><span class="sub en">Barley Mushroom Risotto</span></span>
+            <span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+          </div>
+        </summary>
         <div class="body">
-          <h3>보리 버섯 리조또 장보기</h3>
-          <p class="sub en">Barley Mushroom Risotto</p>
+          <p class="fee">쿠팡 파트너스 링크 · 수수료를 받아요</p>
           <p class="say">쌀 대신 보리로, 표고버섯 향이 깊은 리조또예요.</p>
           <ul class="items">
             <li><a class="item" href="#" data-link="" data-q="보리쌀">보리쌀<span class="slot">링크 자리</span></a></li>
@@ -224,9 +242,8 @@
             <li><a class="item" href="#" data-link="" data-q="생크림">생크림<span class="slot">링크 자리</span></a></li>
             <li><a class="item" href="#" data-link="" data-q="파마산 치즈">파마산 치즈<span class="slot">링크 자리</span></a></li>
           </ul>
-          <p class="fee">쿠팡 파트너스 링크 · 수수료를 받아요</p>
         </div>
-      </article>
+      </details>
     </div>
   </section>
 
