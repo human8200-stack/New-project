@@ -129,6 +129,7 @@
           min-height: 52px; padding: 6px 10px; border-radius: 999px;
           background: var(--ivory); border: 1px solid var(--beige);
           text-decoration: none; font-size: 17px; font-weight: 700; line-height: 1.25; }
+  .items-empty { margin: 0; text-align: center; font-size: 15px; color: var(--taupe); }
   .item .slot { font-size: 12px; font-weight: 400; color: var(--taupe); }
 
   .foot { text-align: center; margin-top: 28px; font-size: 15px; color: var(--taupe); }
@@ -216,11 +217,7 @@
         <div class="body">
           <p class="fee">쿠팡 파트너스 링크 · 수수료를 받아요</p>
           <p class="say">달걀 10개와 간장·물·물엿 70ml씩이면 시작할 수 있어요.</p>
-          <ul class="items">
-            <li><a class="item" href="#" data-link="" data-q="계란">달걀<span class="slot">링크 자리</span></a></li>
-            <li><a class="item" href="#" data-link="" data-q="간장">간장<span class="slot">링크 자리</span></a></li>
-            <li><a class="item" href="#" data-link="" data-q="물엿">물엿<span class="slot">링크 자리</span></a></li>
-          </ul>
+          <ul class="items" data-dish="마약계란"></ul>
         </div>
       </details>
 
@@ -236,12 +233,7 @@
         <div class="body">
           <p class="fee">쿠팡 파트너스 링크 · 수수료를 받아요</p>
           <p class="say">쌀 대신 보리로, 표고버섯 향이 깊은 리조또예요.</p>
-          <ul class="items">
-            <li><a class="item" href="#" data-link="" data-q="보리쌀">보리쌀<span class="slot">링크 자리</span></a></li>
-            <li><a class="item" href="#" data-link="" data-q="생표고버섯">표고버섯<span class="slot">링크 자리</span></a></li>
-            <li><a class="item" href="#" data-link="" data-q="생크림">생크림<span class="slot">링크 자리</span></a></li>
-            <li><a class="item" href="#" data-link="" data-q="파마산 치즈">파마산 치즈<span class="slot">링크 자리</span></a></li>
-          </ul>
+          <ul class="items" data-dish="보리 버섯 리조또"></ul>
         </div>
       </details>
     </div>
@@ -252,20 +244,39 @@
     <p class="en">From my kitchen to your table, with love.</p>
   </footer>
 
-  <p class="preview">미리보기 · 아직 공개 전이에요 (링크 자리는 쿠팡 파트너스 링크로 바뀝니다)</p>
+  <p class="preview">미리보기 · 아직 공개 전이에요 (재료는 노션 "🛒 장보기 재료" 표에서 쿠팡 링크를 넣은 것만 보여요)</p>
 </main>
+<script src="장보기-재료.js"></script>
 <script>
-  // 링크 자리: 진짜 링크가 들어오기 전에는 눌러도 아무 데도 가지 않는다.
-  // 회사가 data-link 에 쿠팡 파트너스 링크를 넣으면 그 주소로 열린다.
-  document.querySelectorAll('.item').forEach(function (a) {
-    var link = a.getAttribute('data-link');
-    if (link) {
-      a.href = link; a.target = '_blank'; a.rel = 'sponsored noopener';
-      var s = a.querySelector('.slot'); if (s) s.remove();
-    } else {
-      a.addEventListener('click', function (e) { e.preventDefault(); });
-    }
-  });
+  // 재료 버튼은 장보기-재료.js(노션 "🛒 장보기 재료" 표를 옮긴 파일) 한 곳에서 읽는다.
+  // 쿠팡 링크가 비었거나 보이기가 꺼진 재료는 보이지 않는다.
+  // 주소 끝에 ?preview 를 붙이면(회사 확인용) 링크가 빈 재료도 "링크 자리"로 보여 준다.
+  (function () {
+    var data = window.MAISON_EDEL_SHOP || [];
+    var preview = /[?&]preview/.test(location.search);
+    document.querySelectorAll('ul.items[data-dish]').forEach(function (ul) {
+      var dish = ul.getAttribute('data-dish');
+      var list = data.filter(function (d) {
+        return d.요리 === dish && d.보이기 !== false && (preview || /^https:\/\//.test(d.링크 || ''));
+      }).sort(function (x, y) { return (x.순서 || 0) - (y.순서 || 0); });
+      if (!list.length) {
+        var p = document.createElement('p'); p.className = 'items-empty';
+        p.textContent = '재료 링크를 준비하고 있어요.';
+        ul.replaceWith(p); return;
+      }
+      list.forEach(function (d) {
+        var li = document.createElement('li'); var a = document.createElement('a');
+        a.className = 'item'; a.textContent = d.이름;
+        if (/^https:\/\//.test(d.링크 || '')) {
+          a.href = d.링크; a.target = '_blank'; a.rel = 'sponsored noopener';
+        } else {
+          a.href = '#'; a.addEventListener('click', function (e) { e.preventDefault(); });
+          var s = document.createElement('span'); s.className = 'slot'; s.textContent = '링크 자리'; a.appendChild(s);
+        }
+        li.appendChild(a); ul.appendChild(li);
+      });
+    });
+  })();
   // 일정 꼬리표: 날짜가 있으면 오늘 기준 D-숫자로 바꾼다 (당일 = OPEN, 지나면 공개됨)
   document.querySelectorAll('.row[data-date]').forEach(function (r) {
     var t = new Date(r.getAttribute('data-date')); if (isNaN(t)) return;
