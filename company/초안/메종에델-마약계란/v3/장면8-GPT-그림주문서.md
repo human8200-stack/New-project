@@ -38,7 +38,7 @@ Light: soft natural window light coming from the cook's left and slightly behind
 
 Colour: warm, natural colour like a softly lit home kitchen in the morning: honey-brown wood, ivory and oatmeal tones, gentle warmth without any yellow cast, soft muted saturation, deep but never crushed shadows with visible detail in the dark areas.
 
-Setting: dark wooden table, a folded linen napkin at the top left edge, never in the lower quarter, softly blurred sunlit kitchen in the background. Only the rice bowl and one small sauce dish; nothing else in focus.
+Setting: dark wooden table, a folded linen napkin at the top right edge, never in the lower quarter, softly blurred sunlit kitchen in the background. Only the rice bowl and one small sauce dish; nothing else in focus.
 
 Do not include: any text, letters, logos, brand marks, watermark, steam, a third hand, extra or missing fingers, or a whole uncut egg.
 ```
