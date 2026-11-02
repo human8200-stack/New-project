@@ -81,30 +81,30 @@ Fixed camera, same angle and framing, no zoom, no pan. The hands move at the rea
 
 ---
 
-## 장면8 2판 영상 지시문 (11/2, 만들지 않음 · 회장님 승인 전 · seedance-2 4초 720p 9:16 = 120크레딧)
+## 장면8 2판 영상 지시문 (11/2, 회장님 "승인" · 만들기 전 검수 3곳 고침 · seedance-2 4초 720p 9:16 = 120크레딧)
 
 - 회장님 원문: "마지막 영상에 한번 뿌리고 계란을 으깨며 밥과 함께 섞어서 입쪽으로 가지고 가는 것"
 - 시작 사진: `장면8-GPT-시작사진-1.jpg` 그대로 (새 사진 필요 없음 — 이미 숟가락으로 뿌리는 중이고, 사람이 식탁 건너편에서 마주 서 있어 숟가락이 그림 위쪽 = 사람 입 쪽으로 빠져나갈 자리가 있음. 얼굴은 사진 밖이라 숟가락이 위로 나가도 얼굴이 생길 이유가 없음). 끝 사진·기준 사진 없음.
 - 그림 위치: 사람이 마주 서 있어 **사람 오른손 = 그림 왼쪽, 사람 왼손 = 그림 오른쪽, 사람 입 쪽 = 그림 위쪽.**
-- 동작 시간표 (4초, 사람 속도): 0~0.6초 남은 양념 뿌리기 → 0.6~1.5초 숟가락 옆면으로 계란 꾹 눌러 으깨기 → 1.5~2.7초 밥과 두 번 섞기 → 2.7~4.0초 한 숟가락 떠서 위로(사람 입 쪽) 올리며 화면 위로 빠져나감.
+- 동작 시간표 (4초, 사람 속도): 0~0.6초 남은 양념 뿌리기 → 0.6~2.6초 숟가락 옆면으로 계란을 꾹 눌러 으깨며 밥과 두 번 섞기 → 2.6~4.0초 한 숟가락 떠서 위로(사람 입 쪽) 올리며 화면 위로 빠져나감.
 - 걱정 (먼저 말씀드림): 4초에 동작 4개라 빠듯함. 사람 속도는 되지만 으깨기·섞기가 짧게 나올 수 있음. 1·2편 편집 길이(1.3~2초)로 보면 편집에서 쓸 부분은 충분함.
 
 ### 영어 지시문 (그대로 붙여 넣기)
 ```
-Fixed camera, same angle and framing, no zoom, no pan. The hands move at the real, natural speed of a home cook, never in slow motion and never pausing. The action is already in progress in the first frame and is still in progress in the last frame; the right hand never stops and never holds still at the end. The cook stands on the far side of the table facing the camera, so her right hand is on the left side of the picture and her mouth is above the top of the frame; her face is never shown. First, the cook's right hand (on the left side of the picture), keeping the same grip on the spoon, tips the spoon and the rest of the soy sauce with diced onion, scallion, red pepper and sesame seeds pours onto the egg halves in one quick pour. Without pausing, she turns the spoon and presses its side firmly down into the soft-boiled egg halves, breaking them open: the jammy orange yolk bursts and spreads over the rice and soaks into the grains. Then she mixes the broken egg, yolk, sauce and rice together with two quick turns of the spoon, and the white rice grains turn golden-brown and coated as they mix. Finally she scoops up one spoonful of the mixed rice and egg and lifts it straight up toward her mouth, toward the top of the frame, and the spoon leaves the frame at the top edge; in the last frame the spoon is still rising out of the top of the frame. The spoon always moves above the bowl and toward the top of the frame and never passes through the lower quarter of the picture, which stays empty dark wooden table the whole time. The cook's left hand (on the right side of the picture) keeps holding the right side of the rim of the rice bowl and never moves; the bowl does not slide. Every action really happens: the egg really breaks under the spoon, the yolk really spreads and soaks into the rice, the rice grains really move and mix, and nothing spills out of the bowl. The spoon is held the same way throughout, with the handle resting across the curled middle finger, between the pad of the thumb and the side of the index finger. Two hands, five fingers each; the right hand never lets go of the spoon. The small sauce dish, the linen mat, the cream blouse sleeves, the light and the colours stay the same. No face, no voices or speaking, no steam, no text, no logos.
+Fixed camera, same angle and framing, no zoom, no pan. The hands move at the real, natural speed of a home cook, never in slow motion and never pausing. The action is already in progress in the first frame and is still in progress in the last frame; the right hand never stops and never holds still at the end. The cook stands on the far side of the table facing the camera, so her right hand is on the left side of the picture and her mouth is above the top of the frame; her face is never shown. First, the cook's right hand (on the left side of the picture), keeping the same grip on the spoon, tips the spoon and the rest of the soy sauce with diced onion, scallion, red pepper and sesame seeds pours onto the egg halves in one quick pour. Without pausing, she turns the spoon and presses its side firmly down through both cut egg halves, mashing the white and the jammy orange yolk into the rice, and keeps mashing and mixing in the same motion with two quick turns of the spoon, and the white rice grains turn golden-brown and coated as they mix. Finally she scoops up one spoonful of the mixed rice and egg and lifts it straight up toward her mouth, toward the top of the frame, and the spoon leaves the frame at the top edge; in the last frame the spoon is still rising out of the top of the frame. The spoon and hands stay over the bowl or above it and never enter the lower quarter of the picture, which stays empty dark wooden table the whole time. The cook's left hand (on the right side of the picture) keeps holding the right side of the rim of the rice bowl and never moves; the bowl does not slide. Every action really happens: the egg really breaks under the spoon, the yolk really spreads and soaks into the rice, the rice grains really move and mix, and nothing spills out of the bowl. The spoon is held the same way throughout, with the handle resting across the curled middle finger, between the pad of the thumb and the side of the index finger. Two hands, five fingers each; the right hand never lets go of the spoon. The small sauce dish, the linen mat, the cream blouse sleeves, the light and the colours stay the same. No face, no mouth, lips or chin ever appear. No human voice, no speaking, no eating, chewing or slurping sounds. No steam, no text, no logos.
 ```
 
 ### 한국어 뜻
 카메라 고정, 같은 각도·구도, 확대·돌리기 없음. 손은 실제 사람 속도, 느린 동작·멈춤 없음. 첫 화면·마지막 화면 모두 동작 중이고, 오른손은 끝에서도 멈추지 않음. 사람은 식탁 건너편에서 카메라를 마주 보고 서 있어서 오른손은 그림 왼쪽, 입은 화면 위쪽 밖에 있음. 얼굴은 나오지 않음.
 1. 사람 오른손(그림 왼쪽)이 같은 쥐는 법으로 숟가락을 기울여, 남은 양념(간장·양파·쪽파·빨강 파프리카·깨)을 계란 위에 한 번에 빠르게 뿌린다.
-2. 멈추지 않고 숟가락을 돌려 옆면으로 반숙 계란을 꾹 눌러 깬다. 촉촉한 주황 노른자가 터져 밥 위로 퍼지고 밥알에 스며든다.
-3. 깬 계란·노른자·양념·밥을 숟가락으로 두 번 빠르게 섞는다. 흰 밥알이 노릇한 갈색으로 묻으며 섞인다.
+2. 멈추지 않고 숟가락을 돌려 옆면으로 반 자른 계란 두 쪽을 꾹 눌러, 흰자와 촉촉한 주황 노른자를 밥에 으깨 넣고, 같은 동작으로 숟가락을 두 번 빠르게 돌려 으깨며 섞는다. 흰 밥알이 노릇한 갈색으로 묻으며 섞인다.
+3. (2와 한 동작)
 4. 섞인 밥과 계란을 한 숟가락 떠서 입 쪽(화면 위쪽)으로 곧게 올리고, 숟가락이 화면 위 끝으로 빠져나간다. 마지막 화면은 숟가락이 아직 위로 빠져나가는 중.
-- 숟가락은 늘 그릇 위와 화면 위쪽으로만 움직이고, 아래쪽 1/4(빈 원목 식탁)은 끝까지 지나가지 않음.
+- 숟가락은 늘 그릇 위나 그보다 위에만 있고, 아래쪽 1/4(빈 원목 식탁)은 끝까지 지나가지 않음.
 - 왼손(그림 오른쪽)은 밥공기 오른쪽 가장자리를 잡고 움직이지 않음, 그릇은 미끄러지지 않음.
 - 모든 동작이 실제로: 계란이 숟가락에 실제로 깨지고, 노른자가 실제로 퍼져 밥에 스며들고, 밥알이 실제로 움직이며 섞이고, 그릇 밖으로 흘리지 않음.
 - 숟가락 쥐는 법은 처음부터 끝까지 같음(손잡이가 말아 쥔 가운뎃손가락 위, 엄지 안쪽과 검지 옆면 사이). 손 2개·손가락 각 5개, 오른손은 숟가락을 놓지 않음.
-- 양념 종지·린넨 매트·크림 소매·빛·색 그대로. 얼굴·사람 목소리·말소리·김·글자·로고 없음.
+- 양념 종지·린넨 매트·크림 소매·빛·색 그대로. 얼굴·입·입술·턱은 절대 안 나옴. 사람 목소리·말소리·먹는·씹는·후루룩 소리 없음. 김·글자·로고 없음.
 
 ### 만든 뒤 확인 (0.25초마다, 기준 문서 10장)
 1. 멈춤: 멈춘 화면 없음. 첫 화면·마지막 화면도 움직이는 중.
@@ -122,3 +122,11 @@ Fixed camera, same angle and framing, no zoom, no pan. The hands move at the rea
 - 앞 장면(장면7 양념 끼얹기)과는 움직이는 중에 0.3초 겹치기.
 - 색: EP.03 목표값(밝기 85~95 · 따뜻함 25~35 · 진하기 10~12 · 그림자 24 이상), 장면 3·4·5·7과 같게.
 - 소리: 양념이 떨어지는 소리, 숟가락이 그릇·계란에 닿는 소리만. 사람 목소리·음악 없음 (음악은 인스타 앱에서).
+
+### 장면8 2판 결과 (11/2) — `장면8-2판-GPT.mp4` (런웨이 dc807a8c-a94d-4939-9f5e-29e0d53daaaa, 120크레딧, 잔액 444)
+- 4.06초, 720×1280, 소리 있음(32kHz 2채널). 0.25초 화면 모음 `장면8-2판-GPT-장면들.jpg`
+- 순서: 0~0.75초 뿌리기 → 1.0~1.9초 숟가락 옆면으로 계란 누르기 → **1.9초에 화면이 튐(계란 두 쪽이 한 장 사이에 사라지고 밥 전체가 이미 갈색으로 섞인 상태로 바뀜, 화면 차이 10.0)** → 2.0~3.0초 섞기 → 3.0~3.5초 한 숟가락 뜨기 → 3.5~4.0초 위로 올림 (마지막 화면에서 숟가락은 가슴 높이, 화면 위로 다 빠져나가지는 않음).
+- 0.2초에도 작은 튐 1곳(숟가락 위 양념이 한 장 사이에 줄어듦, 화면 차이 10.3).
+- 멈춤 없음(가장 작은 화면 차이 0.87, 평균 3.45). 사람 속도.
+- 손: 왼손은 그릇 오른쪽 가장자리에서 그대로, 손가락 5개. 오른손 숟가락 쥐는 법 그대로. 얼굴·입·턱 안 나옴. 아래 1/4 빈자리 그대로(화면 차이 평균 0.18). 김·글자 없음.
+- 소리 분석: 0.1초마다 가장 센 음 높이가 440·660·620·590·520·390Hz처럼 계단식으로 딱딱 바뀜(라·미·레#·레·도·솔 피아노 음) → **배경 음악(피아노 선율)이 들어 있음.** 사람 말소리처럼 음이 미끄러지는 곳은 없음, 먹는·씹는·후루룩 소리 없음. 2.75초에 높은 소리(3kHz 위 38%) 짧게 — 숟가락이 그릇에 닿는 소리로 보임. 편집에서 소리를 빼고 숟가락·그릇 소리만 넣어야 함.
