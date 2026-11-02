@@ -1,16 +1,16 @@
 // 릴스-장면.html 을 1초 30장씩 찍어 mp4로 묶는다 (소리 없음).
 // 쓰는 법: node 녹화.js   (playwright, ffmpeg 필요)
-// 결과: 릴스-미리보기.mp4, 릴스-장면들.jpg (콘티-9판 검수용 시각 8컷 모음)
+// 결과: 릴스-미리보기.mp4, 릴스-장면들.jpg (콘티-10판 4장 검수용 시각 11컷 모음)
 const { chromium } = require('playwright');
 const { spawn, execFileSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
 const DIR = __dirname;
-const FPS = 30, SEC = 37.6, W = 1080, H = 1920;
+const FPS = 30, SEC = 38.8, W = 1080, H = 1920;
 const CRF = process.env.CRF || '20';
-// 9판: 콘티-9판.md 3-6의 검수용 시각 (영상 시각) — 첫 자막 두 줄 · 알림+A4 · 계획표 · 강의 노트 · 재생 버튼 · 책 · 카드 · 끝 화면 = 8컷 (4칸 × 2줄)
-const SHOTS = [2.3, 22.8, 25.7, 26.7, 27.2, 27.7, 30.5, 37.0];
+// 10판: 콘티-10판.md 4장의 검수용 시각 (영상 시각) — 첫 자막 · 조직도 · 책상으로 돌아옴 · 알림+A4 · 공부 계획표 · 상담 노트 · 한 해 계획표 · 선 그래프 · 책 · 카드 · 끝 화면 = 11컷 (4칸 × 3줄, 마지막 칸은 빈칸)
+const SHOTS = [2.3, 7.0, 8.5, 22.8, 26.2, 27.1, 27.5, 27.95, 28.9, 31.8, 38.2];
 
 (async () => {
   const browser = await chromium.launch();
@@ -37,7 +37,7 @@ const SHOTS = [2.3, 22.8, 25.7, 26.7, 27.2, 27.7, 30.5, 37.0];
   ff.stdin.end();
   await new Promise((r) => ff.on('close', r));
 
-  // 8컷 모음
+  // 검수용 컷 모음
   const tmp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'reel-'));
   const picks = SHOTS;
   const files = [];
@@ -51,7 +51,7 @@ const SHOTS = [2.3, 22.8, 25.7, 26.7, 27.2, 27.7, 30.5, 37.0];
   const args = ['-y', '-loglevel', 'error'];
   files.forEach((f) => args.push('-i', f));
   const fc = files.map((_, i) => `[${i}:v]scale=360:640[v${i}]`).join(';') + ';' +
-    files.map((_, i) => `[v${i}]`).join('') + `xstack=inputs=${files.length}:layout=` +
+    files.map((_, i) => `[v${i}]`).join('') + `xstack=inputs=${files.length}:fill=black:layout=` +
     files.map((_, i) => `${(i % 4) * 360}_${Math.floor(i / 4) * 640}`).join('|') + '[o]';
   args.push('-filter_complex', fc, '-map', '[o]', '-q:v', '3', path.join(DIR, '릴스-장면들.jpg'));
   execFileSync('ffmpeg', args);
