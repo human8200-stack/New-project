@@ -1,6 +1,6 @@
 // 릴스-장면.html 을 1초 30장씩 찍어 mp4로 묶는다 (소리 없음).
 // 쓰는 법: node 녹화.js   (playwright, ffmpeg 필요)
-// 12판: 39.9초 (끝 장면 1.1초 늘림), 마지막 컷 39.6초 · 13판: 장면6 자막만 바뀜, 길이 같음
+// 12판: 39.9초 (끝 장면 1.1초 늘림), 마지막 컷 39.6초 · 13판: 장면6 자막만 바뀜 · 14판: 장면9 자막만 바뀜, 길이 같음
 // 결과: 릴스-미리보기.mp4, 릴스-장면들.jpg (콘티-10판 4장 검수용 시각 11컷 모음)
 const { chromium } = require('playwright');
 const { spawn, execFileSync } = require('child_process');
