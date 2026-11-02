@@ -95,7 +95,6 @@
           background: var(--ivory); border: 1px solid var(--beige);
           text-decoration: none; font-size: 17px; font-weight: 700; line-height: 1.25; }
   .items-empty { margin: 0; text-align: center; font-size: 15px; color: var(--taupe); }
-  .item .slot { font-size: 12px; font-weight: 400; color: var(--taupe); }
 
   .dish .tt b .no { font-family: Arial, sans-serif; font-size: 13px; font-weight: 700; color: var(--olive);
                     background: var(--olive-soft); border-radius: 999px; padding: 1px 8px; margin-right: 6px; vertical-align: 2px; }
@@ -110,7 +109,6 @@
           border: 1px solid var(--olive); background: transparent; color: var(--olive); font: inherit; font-size: 16px; font-weight: 700; cursor: pointer; }
   .none { text-align: center; color: var(--taupe); font-size: 15px; margin: 16px 0 0; }
   [hidden] { display: none !important; }
-  .preview { margin-top: 22px; font-size: 13px; color: var(--taupe); text-align: center; border-top: 1px dashed var(--beige); padding-top: 12px; }
   @media (max-width: 340px) { .items { grid-template-columns: 1fr; } }
 </style>
 </head>
@@ -148,18 +146,15 @@
   </section>
 
 
-  <p class="preview">미리보기 · 아직 공개 전이에요</p>
 </main>
 <script src="장보기-재료.js"></script>
 <script>
   // 요리 블록과 재료 버튼은 장보기-재료.js 한 곳에서 읽어 만든다.
   // 쿠팡 링크가 비었거나 보이기가 꺼진 재료는 보이지 않는다.
-  // 주소 끝에 ?preview 를 붙이면(회사 확인용) 링크가 빈 재료도 "링크 자리"로 보여 준다.
   (function () {
     var FIRST = 8; // 처음에 보이는 요리 수, 이보다 많으면 검색 칸과 "더 보기"
     var dishes = (window.MAISON_EDEL_DISHES || []).slice().sort(function (x, y) { return (y.순서 || 0) - (x.순서 || 0); });
     var items = window.MAISON_EDEL_SHOP || [];
-    var preview = /[?&]preview/.test(location.search);
     var isLink = function (u) { return /^https:\/\//.test(u || ''); };
     var box = document.getElementById('dishes'), more = document.getElementById('more');
     var search = document.getElementById('search'), q = document.getElementById('q'), none = document.getElementById('none');
@@ -170,7 +165,7 @@
     dishes.forEach(function (d) {
       var mine = items.filter(function (i) { return i.요리 === d.요리 && i.보이기 !== false; })
                       .sort(function (x, y) { return (x.순서 || 0) - (y.순서 || 0); });
-      var shown = mine.filter(function (i) { return preview || isLink(i.링크); });
+      var shown = mine.filter(function (i) { return isLink(i.링크); });
       var det = el('details', 'card dish'), sum = el('summary');
       var th = el('span', 'thumb');
       if (d.사진) { var img = el('img'); img.src = d.사진; img.alt = d.요리; img.loading = 'lazy'; th.appendChild(img); }
@@ -190,8 +185,7 @@
         var ul = el('ul', 'items');
         shown.forEach(function (i) {
           var li = el('li'), a = el('a', 'item', i.이름);
-          if (isLink(i.링크)) { a.href = i.링크; a.target = '_blank'; a.rel = 'sponsored noopener'; }
-          else { a.href = '#'; a.addEventListener('click', function (e) { e.preventDefault(); }); a.appendChild(el('span', 'slot', '링크 자리')); }
+          a.href = i.링크; a.target = '_blank'; a.rel = 'sponsored noopener';
           li.appendChild(a); ul.appendChild(li);
         });
         body.appendChild(ul);
