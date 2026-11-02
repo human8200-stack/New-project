@@ -65,19 +65,9 @@
   .card { background: var(--white); border-radius: 28px; box-shadow: 0 6px 18px rgba(62,62,62,.07); }
   .stack { display: grid; gap: 14px; margin-top: 16px; }
 
-  /* 2. 알약 모양 버튼: 왼쪽 동그란 작은 사진 + 가운데 글 */
-  .pill { display: flex; align-items: center; min-height: 76px; padding: 8px; text-decoration: none; border-radius: 999px; }
-  .pill .thumb { flex: none; width: 60px; height: 60px; border-radius: 50%; overflow: hidden; background: var(--ivory);
-                 display: flex; align-items: center; justify-content: center; color: var(--olive); }
-  .pill .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .pill .thumb svg { width: 26px; height: 26px; }
-  .pill .tx { flex: 1; text-align: center; font-size: 18px; font-weight: 700; padding-right: 60px; line-height: 1.35; }
-  .pill .tx small { display: block; font-size: 14px; font-weight: 400; color: var(--taupe); }
-
-  .wave { display: block; margin: 26px auto 18px; width: 120px; height: 12px; color: var(--taupe); }
 
   /* 4. 요리별 장보기 */
-  .shop-head { text-align: center; }
+  .shop-head { text-align: center; margin-top: 14px; }
   .shop-head h2 { font-size: 24px; margin: 0; }
   .shop-head .en { color: var(--taupe); font-size: 18px; margin: 0; }
 
@@ -113,6 +103,9 @@
 
   .foot { text-align: center; margin-top: 28px; font-size: 15px; color: var(--taupe); }
   .foot p { margin: 0; }
+  .foot .yt { margin-top: 10px; }
+  .foot .yt a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border: 1px solid var(--beige);
+                border-radius: 999px; background: var(--white); color: var(--taupe); font-size: 14px; text-decoration: none; }
   .foot .en { font-size: 20px; color: var(--charcoal); margin-top: 6px; }
   .preview { margin-top: 22px; font-size: 13px; color: var(--taupe); text-align: center; border-top: 1px dashed var(--beige); padding-top: 12px; }
   @media (max-width: 340px) { .items { grid-template-columns: 1fr; } .pill .tx { padding-right: 8px; } }
@@ -139,31 +132,13 @@
     <p class="ai">영상은 AI로 만들고, 레시피는 실제로 만들어 본 레시피예요</p>
   </div>
 
-  <!-- 2. 알약 버튼 -->
-  <div class="stack">
-    <a class="card pill" href="https://youtube.com/@maison_edel" target="_blank" rel="noopener">
-      <span class="thumb"><img src="사진/작은-마약계란-위에서.jpg" alt=""></span>
-      <span class="tx">유튜브 채널<small>@maison_edel</small></span>
-    </a>
-    <a class="card pill" href="https://www.youtube.com/shorts/t_sjAIX4AUM" target="_blank" rel="noopener">
-      <span class="thumb"><img src="사진/작은-보리.jpg" alt=""></span>
-      <span class="tx">최신 편 보기<small>EP.02 보리 버섯 리조또</small></span>
-    </a>
-    <a class="card pill" href="https://www.instagram.com/maison_edel_" target="_blank" rel="noopener">
-      <span class="thumb"><img src="사진/작은-껍질까기.jpg" alt=""></span>
-      <span class="tx">인스타그램 바로가기<small>@maison_edel_</small></span>
-    </a>
-  </div>
-
-  <svg class="wave" viewBox="0 0 120 12" aria-hidden="true"><path d="M0 6 L7.5 1 L15 6 L22.5 1 L30 6 L37.5 1 L45 6 L52.5 1 L60 6 L67.5 1 L75 6 L82.5 1 L90 6 L97.5 1 L105 6 L112.5 1 L120 6" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
-
-  <!-- 3. 요리별 장보기 (쿠팡 파트너스 링크가 있는 칸) -->
+  <!-- 요리별 장보기 (페이지의 중심, 쿠팡 파트너스 링크가 있는 칸)
+       새 편이 나오면 아래 목록 맨 위에 <details> 블록을 하나 추가한다 (최신 요리가 맨 위) -->
   <section aria-labelledby="shop-title">
     <div class="shop-head">
       <h2 id="shop-title">🌿 요리별 장보기</h2>
       <p class="en">From my kitchen to your table</p>
     </div>
-
 
     <div class="stack">
       <!-- 블록 1: 마약계란 (EP.03) -->
@@ -198,6 +173,8 @@
 
   <footer class="foot">
     <p>레시피는 인스타 @maison_edel_ 게시글에 있어요.</p>
+    <!-- 유튜브 링크: 회장님이 빼라고 하시면 아래 한 줄만 지운다 -->
+    <p class="yt"><a href="https://youtube.com/@maison_edel" target="_blank" rel="noopener">유튜브 @maison_edel</a></p>
     <p class="en">From my kitchen to your table, with love.</p>
   </footer>
 
