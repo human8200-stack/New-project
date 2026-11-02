@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
-<meta name="theme-color" content="#F8F6F2">
+<meta name="theme-color" content="#EFE8DC">
 <title>Maison Edel</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Cormorant+Garamond:ital,wght@1,500;1,600&display=swap" rel="stylesheet">
 <style>
-  /* 메종에델 확정 색 (노션 작업실 3번 비주얼 규칙) */
+  /* 메종에델 확정 색 (노션 작업실 3번 비주얼 규칙) + 부드러운 바탕 두 단계 */
   :root {
     --ivory: #F8F6F2;
     --beige: #E8DDCF;
@@ -18,135 +18,173 @@
     --olive: #6B7258;
     --charcoal: #3E3E3E;
     --white: #FFFFFF;
+    --band: #EFE8DC;      /* 맨 위 띠: 베이지를 아이보리 쪽으로 */
+    --page: #F3EFE8;      /* 페이지 바탕: 아이보리와 베이지 사이 */
+    --olive-soft: #E6E8DF; /* 올리브를 아주 엷게 (D-day 꼬리표) */
   }
   * { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
   body {
-    margin: 0;
-    color: var(--charcoal);
-    background: var(--ivory);
-    /* 창가에서 들어오는 오전 햇살 느낌: 왼쪽 위가 아주 살짝 따뜻하게 */
-    background-image: radial-gradient(120% 60% at 0% 0%, #FFFDF8 0%, rgba(248,246,242,0) 60%);
-    background-repeat: no-repeat;
+    margin: 0; color: var(--charcoal); background: var(--page);
     font-family: "Gowun Batang", "Apple SD Gothic Neo", "Malgun Gothic", serif;
-    font-size: 18px;
-    line-height: 1.6;
-    word-break: keep-all;
+    font-size: 18px; line-height: 1.6; word-break: keep-all;
   }
-  .wrap { max-width: 480px; margin: 0 auto; padding: 32px 16px 36px; }
   a { color: inherit; }
   .en { font-family: "Cormorant Garamond", Georgia, serif; font-style: italic; }
 
-  /* 1. 이름과 한 줄 소개 */
-  .top { text-align: center; margin-bottom: 24px; }
-  .mark {
-    width: 84px; height: 84px; margin: 0 auto 14px; border-radius: 50%;
-    background: var(--white); border: 1.5px solid var(--olive);
-    box-shadow: 0 0 0 5px var(--ivory), 0 0 0 6px var(--beige);
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    color: var(--olive);
+  /* 1. 맨 위 대가 표시 띠: 흘러가지 않고 한 번에 다 읽히게 (줄바꿈) */
+  .band {
+    position: sticky; top: 0; z-index: 5;
+    background: var(--band); color: var(--olive);
+    border-bottom: 1px solid var(--beige);
+    padding: 9px 16px; text-align: center;
+    font-size: 15px; font-weight: 700; line-height: 1.45;
   }
-  .mark .me { font-size: 30px; line-height: 1; }
-  .mark .est { font-size: 9px; letter-spacing: .2em; margin-top: 4px; padding-left: .2em; }
-  .letters { font-size: 13px; letter-spacing: .5em; padding-left: .5em; color: var(--taupe); margin: 0; }
-  h1 { font-size: 32px; margin: 2px 0 0; font-weight: 700; }
-  .slogan { margin: 6px 0 0; font-size: 17px; }
-  .slogan-en { margin: 0; font-size: 18px; color: var(--taupe); }
-  .ai { display: inline-block; margin: 12px 0 0; font-size: 14px; color: var(--olive);
-        border: 1px solid var(--beige); border-radius: 999px; padding: 4px 14px; background: var(--white); }
 
-  /* 2. 버튼 목록 */
-  .links { display: grid; gap: 10px; margin: 0 0 34px; padding: 0; list-style: none; }
-  .btn {
-    display: flex; align-items: center; gap: 14px;
-    min-height: 60px; padding: 10px 16px;
-    background: var(--white); border: 1px solid var(--beige); border-radius: 16px;
-    text-decoration: none; font-size: 18px; font-weight: 700;
-    box-shadow: 0 2px 10px rgba(62,62,62,.05);
-  }
-  .btn .ic { flex: none; width: 36px; height: 36px; border-radius: 50%; background: var(--ivory);
-             display: flex; align-items: center; justify-content: center; color: var(--olive); }
-  .btn .ic svg { width: 18px; height: 18px; }
-  .btn .tx { flex: 1; }
-  .btn small { display: block; font-weight: 400; font-size: 14px; color: var(--taupe); line-height: 1.4; }
-  .btn .go { color: var(--olive); font-size: 22px; }
-  .btn.later { background: transparent; box-shadow: none; border-style: dashed; color: var(--taupe); }
-  .btn.later .go { font-size: 14px; }
+  .wrap { max-width: 480px; margin: 0 auto; padding: 0 16px 36px; }
 
-  /* 3. 요리별 장보기 */
-  .shop-head { text-align: center; margin: 0 0 12px; }
+  /* 이름 줄 */
+  .head { display: flex; align-items: center; gap: 12px; padding: 18px 2px 14px; border-bottom: 1px solid var(--beige); }
+  .mark { flex: none; width: 52px; height: 52px; border-radius: 50%; background: var(--white);
+          border: 1.5px solid var(--olive); display: flex; align-items: center; justify-content: center;
+          color: var(--olive); font-size: 22px; }
+  .head .name { flex: 1; }
+  .head .name b { display: block; font-size: 21px; line-height: 1.25; }
+  .head .name span { font-size: 14px; color: var(--taupe); }
+  .ig { flex: none; width: 48px; height: 48px; border-radius: 50%; background: var(--white);
+        border: 1px solid var(--beige); display: flex; align-items: center; justify-content: center; color: var(--charcoal); }
+  .ig svg { width: 22px; height: 22px; }
+
+  .intro { text-align: center; padding: 18px 0 6px; }
+  .intro p { margin: 0; }
+  .intro .slogan { font-size: 18px; }
+  .intro .ai { display: inline-block; margin-top: 10px; font-size: 14px; color: var(--olive);
+               background: var(--white); border: 1px solid var(--beige); border-radius: 999px; padding: 4px 14px; }
+
+  /* 카드 공통: 흰 카드, 크게 둥근 모서리, 엷은 그림자 */
+  .card { background: var(--white); border-radius: 28px; box-shadow: 0 6px 18px rgba(62,62,62,.07); }
+  .stack { display: grid; gap: 14px; margin-top: 16px; }
+
+  /* 2. 알약 모양 버튼: 왼쪽 동그란 작은 사진 + 가운데 글 */
+  .pill { display: flex; align-items: center; min-height: 76px; padding: 8px; text-decoration: none; border-radius: 999px; }
+  .pill .thumb { flex: none; width: 60px; height: 60px; border-radius: 50%; overflow: hidden; background: var(--ivory);
+                 display: flex; align-items: center; justify-content: center; color: var(--olive); }
+  .pill .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .pill .thumb svg { width: 26px; height: 26px; }
+  .pill .tx { flex: 1; text-align: center; font-size: 18px; font-weight: 700; padding-right: 60px; line-height: 1.35; }
+  .pill .tx small { display: block; font-size: 14px; font-weight: 400; color: var(--taupe); }
+
+  /* 3. 일정 칸: 꼬리표 + 날짜·제목이 세로줄로 이어짐 */
+  .sched { padding: 20px 18px 18px; }
+  .sched h2 { font-size: 17px; margin: 0 0 12px; color: var(--olive); }
+  .row { display: grid; grid-template-columns: 82px 1fr; column-gap: 14px; }
+  .row .tag { align-self: start; margin-top: 4px; justify-self: start;
+              font-family: Arial, sans-serif; font-size: 14px; font-weight: 700; color: var(--olive);
+              background: var(--olive-soft); padding: 4px 16px 4px 12px;
+              clip-path: polygon(0 0, 84% 0, 100% 50%, 84% 100%, 0 100%); border-radius: 6px 0 0 6px; }
+  .row .tag.now { background: var(--olive); color: var(--white); }
+  .row .line { position: relative; padding: 0 0 16px 18px; border-left: 1.5px solid var(--beige); }
+  .row:last-child .line { padding-bottom: 2px; }
+  .row .line::before { content: ""; position: absolute; left: -5px; top: 11px; width: 8px; height: 8px; border-radius: 50%; background: var(--taupe); }
+  .row .tag.now + .line::before { background: var(--olive); }
+  .row .when { font-size: 15px; color: var(--taupe); margin: 0; }
+  .row .what { font-size: 18px; font-weight: 700; margin: 0; line-height: 1.4; }
+  .row.empty .what { font-weight: 400; color: var(--taupe); font-size: 16px; }
+
+  .wave { display: block; margin: 26px auto 18px; width: 120px; height: 12px; color: var(--taupe); }
+
+  /* 4. 요리별 장보기 */
+  .shop-head { text-align: center; }
   .shop-head h2 { font-size: 24px; margin: 0; }
   .shop-head .en { color: var(--taupe); font-size: 18px; margin: 0; }
-
-  /* 대가 표시: 장보기 칸 맨 위, 가장 크게 */
-  .notice {
-    background: var(--olive); color: var(--white);
-    border-radius: 16px; padding: 18px 18px 16px; margin: 0 0 20px;
-  }
-  .notice .tag { display: inline-block; font-size: 14px; font-weight: 700; background: var(--white);
-                 color: var(--olive); border-radius: 6px; padding: 1px 9px; margin-bottom: 8px; }
+  .notice { background: var(--olive); color: var(--white); border-radius: 22px; padding: 18px 18px 16px; margin-top: 14px; }
+  .notice .t { display: inline-block; font-size: 14px; font-weight: 700; background: var(--white); color: var(--olive);
+               border-radius: 6px; padding: 1px 9px; margin-bottom: 8px; }
   .notice .must { margin: 0; font-size: 21px; font-weight: 700; line-height: 1.5; }
   .notice .easy { margin: 10px 0 0; font-size: 16px; }
 
-  .dish { background: var(--white); border-radius: 18px; overflow: hidden; margin: 0 0 18px;
-          box-shadow: 0 4px 18px rgba(62,62,62,.08); }
-  .photo { position: relative; aspect-ratio: 4 / 3; background: var(--beige); }
-  .photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  /* 영상 썸네일과 같은 글자: 작은 MAISON EDEL → 한국어 제목 → 영어 기울임, 흰 글자 + 엷은 그림자 */
-  .photo .cap { position: absolute; inset: auto 0 0 0; padding: 40px 16px 14px; text-align: center; color: #fff;
-                background: linear-gradient(to top, rgba(30,26,22,.62), rgba(30,26,22,0)); text-shadow: 0 1px 6px rgba(0,0,0,.35); }
-  .photo .cap .s { font-size: 11px; letter-spacing: .45em; padding-left: .45em; opacity: .9; margin: 0; }
-  .photo .cap h3 { font-size: 25px; margin: 0; line-height: 1.3; }
-  .photo .cap .en { font-size: 18px; margin: 0; }
-  .photo .ep { position: absolute; top: 12px; left: 12px; background: rgba(248,246,242,.92); color: var(--olive);
-               font-size: 13px; font-weight: 700; border-radius: 999px; padding: 2px 10px; }
-  .body { padding: 14px 16px 16px; }
-  .say { margin: 0 0 12px; font-size: 16px; }
+  /* 사진이 큰 카드: 사진 위, 글 아래 */
+  .dish { overflow: hidden; }
+  .dish .photo { position: relative; aspect-ratio: 4 / 3; background: var(--beige); }
+  .dish .photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .dish .ep { position: absolute; top: 14px; left: 14px; background: rgba(248,246,242,.94); color: var(--olive);
+              font-size: 13px; font-weight: 700; border-radius: 999px; padding: 2px 11px; }
+  .dish .body { padding: 16px 16px 18px; }
+  .dish h3 { margin: 0; font-size: 22px; text-align: center; line-height: 1.35; }
+  .dish .sub { margin: 0; text-align: center; color: var(--taupe); font-size: 17px; }
+  .dish .say { margin: 8px 0 14px; font-size: 16px; text-align: center; }
   .items { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .item { display: flex; flex-direction: column; justify-content: center; min-height: 52px; padding: 8px 12px;
-          background: var(--ivory); border: 1px solid var(--beige); border-radius: 12px;
-          text-decoration: none; font-size: 17px; font-weight: 700; line-height: 1.3; }
+  .item { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+          min-height: 52px; padding: 6px 10px; border-radius: 999px;
+          background: var(--ivory); border: 1px solid var(--beige);
+          text-decoration: none; font-size: 17px; font-weight: 700; line-height: 1.25; }
   .item .slot { font-size: 12px; font-weight: 400; color: var(--taupe); }
   .fee { margin: 12px 0 0; font-size: 14px; color: var(--olive); text-align: center; }
 
-  .foot { text-align: center; margin-top: 26px; font-size: 15px; color: var(--taupe); }
+  .foot { text-align: center; margin-top: 28px; font-size: 15px; color: var(--taupe); }
   .foot p { margin: 0; }
   .foot .en { font-size: 20px; color: var(--charcoal); margin-top: 6px; }
-  .preview { margin-top: 22px; font-size: 13px; color: var(--taupe); text-align: center;
-             border-top: 1px dashed var(--beige); padding-top: 12px; }
-  @media (max-width: 340px) { .items { grid-template-columns: 1fr; } }
+  .preview { margin-top: 22px; font-size: 13px; color: var(--taupe); text-align: center; border-top: 1px dashed var(--beige); padding-top: 12px; }
+  @media (max-width: 340px) { .items { grid-template-columns: 1fr; } .pill .tx { padding-right: 8px; } }
 </style>
 </head>
 <body>
+
+<!-- 1. 대가 표시 (쿠팡 파트너스 문장 원문 그대로, 맨 위에 늘 보이게) -->
+<div class="band" role="note">[광고] 이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.</div>
+
 <main class="wrap">
 
-  <!-- 1. 메종에델 이름과 한 줄 소개 (노션 브랜드 문구 그대로) -->
-  <header class="top">
-    <div class="mark" aria-hidden="true"><span class="me en">ME</span><span class="est">EST. 2026</span></div>
-    <p class="letters">MAISON EDEL</p>
-    <h1>메종 에델</h1>
-    <p class="slogan">햇살이 스며드는 주방, 계절을 요리하는 시간.</p>
-    <p class="slogan-en en">La beauté du quotidien</p>
-    <p class="ai">영상은 AI로 만들고, 레시피는 실제로 만들어 본 레시피예요</p>
+  <!-- 이름 줄 -->
+  <header class="head">
+    <div class="mark en" aria-hidden="true">ME</div>
+    <div class="name"><b>Maison Edel</b><span>메종 에델 · 에델의 식탁</span></div>
+    <a class="ig" href="https://www.instagram.com/maison_edel_" target="_blank" rel="noopener" aria-label="인스타그램">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1" fill="currentColor"/></svg>
+    </a>
   </header>
 
-  <!-- 2. 버튼 목록 -->
-  <ul class="links">
-    <li><a class="btn" href="https://youtube.com/@maison_edel" target="_blank" rel="noopener">
-      <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l10.5-6.5z"/></svg></span>
-      <span class="tx">유튜브 채널<small>@maison_edel</small></span><span class="go">›</span></a></li>
-    <li><a class="btn" href="https://www.youtube.com/shorts/t_sjAIX4AUM" target="_blank" rel="noopener">
-      <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg></span>
-      <span class="tx">최신 편<small>EP.02 보리 버섯 리조또</small></span><span class="go">›</span></a></li>
-    <li><a class="btn" href="https://smartstore.naver.com/yookgongee/products/10630629510" target="_blank" rel="noopener">
-      <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5.5C6.5 4.5 9.5 4.5 12 6c2.5-1.5 5.5-1.5 8-.5V19c-2.5-1-5.5-1-8 .5-2.5-1.5-5.5-1.5-8-.5z"/><path d="M12 6v13.5"/></svg></span>
-      <span class="tx">『슬기로운 요리생활』 책<small>레시피 63가지를 담은 요리책</small></span><span class="go">›</span></a></li>
-    <li><span class="btn later" aria-disabled="true">
-      <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 9h14l-1.5 10h-11z"/><path d="M9 9V7a3 3 0 0 1 6 0v2"/></svg></span>
-      <span class="tx">공구 소식<small>준비하고 있어요</small></span><span class="go">곧</span></span></li>
-  </ul>
+  <div class="intro">
+    <p class="slogan">햇살이 스며드는 주방, 계절을 요리하는 시간.</p>
+    <p class="ai">영상은 AI로 만들고, 레시피는 실제로 만들어 본 레시피예요</p>
+  </div>
 
-  <!-- 3. 요리별 장보기 (쿠팡 파트너스 링크가 있는 칸) -->
+  <!-- 2. 알약 버튼 -->
+  <div class="stack">
+    <a class="card pill" href="https://youtube.com/@maison_edel" target="_blank" rel="noopener">
+      <span class="thumb"><img src="사진/작은-보리.jpg" alt=""></span>
+      <span class="tx">유튜브 채널<small>@maison_edel</small></span>
+    </a>
+    <a class="card pill" href="https://www.youtube.com/shorts/t_sjAIX4AUM" target="_blank" rel="noopener">
+      <span class="thumb"><img src="사진/작은-리조또.jpg" alt=""></span>
+      <span class="tx">최신 편 보기<small>EP.02 보리 버섯 리조또</small></span>
+    </a>
+    <a class="card pill" href="https://smartstore.naver.com/yookgongee/products/10630629510" target="_blank" rel="noopener">
+      <span class="thumb" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 5.5C6.5 4.5 9.5 4.5 12 6c2.5-1.5 5.5-1.5 8-.5V19c-2.5-1-5.5-1-8 .5-2.5-1.5-5.5-1.5-8-.5z"/><path d="M12 6v13.5"/></svg></span>
+      <span class="tx">『슬기로운 요리생활』 책<small>레시피 63가지를 담은 요리책</small></span>
+    </a>
+    <a class="card pill" href="https://www.instagram.com/maison_edel_" target="_blank" rel="noopener">
+      <span class="thumb"><img src="사진/작은-사과.jpg" alt=""></span>
+      <span class="tx">인스타그램 바로가기<small>@maison_edel_</small></span>
+    </a>
+
+    <!-- 3. 공구·새 편 일정 -->
+    <section class="card sched" aria-label="공구와 새 편 일정">
+      <h2>공구 · 새 편 일정</h2>
+      <div class="row" data-date="2026-11-04T21:00:00+09:00">
+        <span class="tag">D-2</span>
+        <div class="line"><p class="when">11.4(수) 밤 9시</p><p class="what">새 편 · 마약계란</p></div>
+      </div>
+      <div class="row empty">
+        <span class="tag">곧</span>
+        <div class="line"><p class="when">공동구매</p><p class="what">준비하고 있어요</p></div>
+      </div>
+    </section>
+  </div>
+
+  <svg class="wave" viewBox="0 0 120 12" aria-hidden="true"><path d="M0 6 L7.5 1 L15 6 L22.5 1 L30 6 L37.5 1 L45 6 L52.5 1 L60 6 L67.5 1 L75 6 L82.5 1 L90 6 L97.5 1 L105 6 L112.5 1 L120 6" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+
+  <!-- 4. 요리별 장보기 (쿠팡 파트너스 링크가 있는 칸) -->
   <section aria-labelledby="shop-title">
     <div class="shop-head">
       <h2 id="shop-title">🌿 요리별 장보기</h2>
@@ -154,80 +192,76 @@
     </div>
 
     <div class="notice" role="note">
-      <span class="tag">광고 · 쿠팡 파트너스</span>
+      <span class="t">광고 · 쿠팡 파트너스</span>
       <p class="must">이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.</p>
       <p class="easy">아래 장보기 링크로 사시면 메종 에델이 쿠팡에서 수수료를 받아요.</p>
     </div>
 
-    <!-- 블록 1: 마약계란 · 재료 근거: v3/마약계란-캡션.md, 노션 레시피함 마약달걀 · 사진: EP.03 인스타용 영상 15.6초 장면 -->
-    <article class="dish">
-      <div class="photo">
-        <img src="사진/ep03-마약계란.jpg" alt="흰쌀밥 위에 반 갈라 올린 마약계란에 양념을 끼얹는 손" loading="lazy">
-        <span class="ep">EP.03</span>
-        <div class="cap"><p class="s">MAISON EDEL</p><h3>마약계란</h3><p class="en">Soy Marinated Eggs</p></div>
-      </div>
-      <div class="body">
-        <p class="say">달걀 10개와 간장·물·물엿 70ml씩이면 시작할 수 있어요.</p>
-        <ul class="items">
-          <li><a class="item" href="#" data-link="" data-q="계란">달걀<span class="slot">링크 자리</span></a></li>
-          <li><a class="item" href="#" data-link="" data-q="간장">간장<span class="slot">링크 자리</span></a></li>
-          <li><a class="item" href="#" data-link="" data-q="물엿">물엿<span class="slot">링크 자리</span></a></li>
-          <li><a class="item" href="#" data-link="" data-q="양파">양파<span class="slot">링크 자리</span></a></li>
-          <li><a class="item" href="#" data-link="" data-q="쪽파">쪽파<span class="slot">링크 자리</span></a></li>
-          <li><a class="item" href="#" data-link="" data-q="빨간 파프리카">빨간 파프리카<span class="slot">링크 자리</span></a></li>
-          <li><a class="item" href="#" data-link="" data-q="통깨">깨<span class="slot">링크 자리</span></a></li>
-          <li><a class="item" href="#" data-link="" data-q="키친타월">키친타월<span class="slot">링크 자리</span></a></li>
-        </ul>
-        <p class="fee">쿠팡 파트너스 링크 · 수수료를 받아요</p>
-      </div>
-    </article>
+    <div class="stack">
+      <!-- 블록 1: 마약계란 · 재료 근거: v3/마약계란-캡션.md, 노션 레시피함 마약달걀 · 사진: EP.03 인스타용 영상 15.6초 -->
+      <article class="card dish">
+        <div class="photo"><img src="사진/ep03-마약계란.jpg" alt="흰쌀밥 위 마약계란에 양념을 끼얹는 손" loading="lazy"><span class="ep">EP.03</span></div>
+        <div class="body">
+          <h3>마약계란 장보기</h3>
+          <p class="sub en">Soy Marinated Eggs</p>
+          <p class="say">달걀 10개와 간장·물·물엿 70ml씩이면 시작할 수 있어요.</p>
+          <ul class="items">
+            <li><a class="item" href="#" data-link="" data-q="계란">달걀<span class="slot">링크 자리</span></a></li>
+            <li><a class="item" href="#" data-link="" data-q="간장">간장<span class="slot">링크 자리</span></a></li>
+            <li><a class="item" href="#" data-link="" data-q="물엿">물엿<span class="slot">링크 자리</span></a></li>
+            <li><a class="item" href="#" data-link="" data-q="양파">양파<span class="slot">링크 자리</span></a></li>
+            <li><a class="item" href="#" data-link="" data-q="쪽파">쪽파<span class="slot">링크 자리</span></a></li>
+            <li><a class="item" href="#" data-link="" data-q="빨간 파프리카">빨간 파프리카<span class="slot">링크 자리</span></a></li>
+            <li><a class="item" href="#" data-link="" data-q="통깨">깨<span class="slot">링크 자리</span></a></li>
+            <li><a class="item" href="#" data-link="" data-q="키친타월">키친타월<span class="slot">링크 자리</span></a></li>
+          </ul>
+          <p class="fee">쿠팡 파트너스 링크 · 수수료를 받아요</p>
+        </div>
+      </article>
 
-    <!-- 블록 2: 카라멜 사과 케이크 · 재료 근거: 노션 7번 레시피 칸 EP.01 · 사진: EP.01 영상 31초 완성 장면 -->
-    <article class="dish">
-      <div class="photo">
-        <img src="사진/ep01-카라멜사과케이크.jpg" alt="한 조각 잘라낸 카라멜 사과 케이크" loading="lazy">
-        <span class="ep">EP.01</span>
-        <div class="cap"><p class="s">MAISON EDEL</p><h3>카라멜 사과 케이크</h3><p class="en">Caramel Apple Cake</p></div>
-      </div>
-      <div class="body">
-        <p class="say">사과는 껍질째 써요. 오븐 없이 팬에 굽는 케이크예요.</p>
-        <ul class="items">
-          <li><a class="item" href="#" data-link="" data-q="사과">사과<span class="slot">링크 자리</span></a></li>
-          <li><a class="item" href="#" data-link="" data-q="설탕">설탕<span class="slot">링크 자리</span></a></li>
-          <li><a class="item" href="#" data-link="" data-q="무염버터">무염버터<span class="slot">링크 자리</span></a></li>
-          <li><a class="item" href="#" data-link="" data-q="계란">계란<span class="slot">링크 자리</span></a></li>
-          <li><a class="item" href="#" data-link="" data-q="박력분">박력분<span class="slot">링크 자리</span></a></li>
-          <li><a class="item" href="#" data-link="" data-q="베이킹파우더">베이킹파우더<span class="slot">링크 자리</span></a></li>
-          <li><a class="item" href="#" data-link="" data-q="유산지">유산지<span class="slot">링크 자리</span></a></li>
-        </ul>
-        <p class="fee">쿠팡 파트너스 링크 · 수수료를 받아요</p>
-      </div>
-    </article>
+      <!-- 블록 2: 카라멜 사과 케이크 · 재료 근거: 노션 7번 레시피 칸 EP.01 · 사진: EP.01 영상 31초 -->
+      <article class="card dish">
+        <div class="photo"><img src="사진/ep01-카라멜사과케이크.jpg" alt="한 조각 잘라낸 카라멜 사과 케이크" loading="lazy"><span class="ep">EP.01</span></div>
+        <div class="body">
+          <h3>카라멜 사과 케이크 장보기</h3>
+          <p class="sub en">Caramel Apple Cake</p>
+          <p class="say">사과는 껍질째 써요. 오븐 없이 팬에 굽는 케이크예요.</p>
+          <ul class="items">
+            <li><a class="item" href="#" data-link="" data-q="사과">사과<span class="slot">링크 자리</span></a></li>
+            <li><a class="item" href="#" data-link="" data-q="설탕">설탕<span class="slot">링크 자리</span></a></li>
+            <li><a class="item" href="#" data-link="" data-q="무염버터">무염버터<span class="slot">링크 자리</span></a></li>
+            <li><a class="item" href="#" data-link="" data-q="계란">계란<span class="slot">링크 자리</span></a></li>
+            <li><a class="item" href="#" data-link="" data-q="박력분">박력분<span class="slot">링크 자리</span></a></li>
+            <li><a class="item" href="#" data-link="" data-q="베이킹파우더">베이킹파우더<span class="slot">링크 자리</span></a></li>
+            <li><a class="item" href="#" data-link="" data-q="유산지">유산지<span class="slot">링크 자리</span></a></li>
+          </ul>
+          <p class="fee">쿠팡 파트너스 링크 · 수수료를 받아요</p>
+        </div>
+      </article>
 
-    <!-- 블록 3: 보리 버섯 리조또 · 재료 근거: 노션 EP.02 장면 목록 2번 + EP.02 화면 자막(소금·후추·파마산) · 사진: EP.02 인스타용 영상 16초 장면 -->
-    <article class="dish">
-      <div class="photo">
-        <img src="사진/ep02-보리버섯리조또.jpg" alt="표고버섯 보리 리조또 위에 파마산 치즈를 갈아 뿌리는 손" loading="lazy">
-        <span class="ep">EP.02</span>
-        <div class="cap"><p class="s">MAISON EDEL</p><h3>보리 버섯 리조또</h3><p class="en">Barley Mushroom Risotto</p></div>
-      </div>
-      <div class="body">
-        <p class="say">쌀 대신 보리로, 표고버섯 향이 깊은 리조또예요.</p>
-        <ul class="items">
-          <li><a class="item" href="#" data-link="" data-q="보리쌀">보리쌀<span class="slot">링크 자리</span></a></li>
-          <li><a class="item" href="#" data-link="" data-q="양파">양파<span class="slot">링크 자리</span></a></li>
-          <li><a class="item" href="#" data-link="" data-q="마늘">마늘<span class="slot">링크 자리</span></a></li>
-          <li><a class="item" href="#" data-link="" data-q="생표고버섯">표고버섯<span class="slot">링크 자리</span></a></li>
-          <li><a class="item" href="#" data-link="" data-q="올리브오일">올리브 오일<span class="slot">링크 자리</span></a></li>
-          <li><a class="item" href="#" data-link="" data-q="우유">우유<span class="slot">링크 자리</span></a></li>
-          <li><a class="item" href="#" data-link="" data-q="생크림">생크림<span class="slot">링크 자리</span></a></li>
-          <li><a class="item" href="#" data-link="" data-q="파마산 치즈">파마산 치즈<span class="slot">링크 자리</span></a></li>
-          <li><a class="item" href="#" data-link="" data-q="소금">소금<span class="slot">링크 자리</span></a></li>
-          <li><a class="item" href="#" data-link="" data-q="후추">후추<span class="slot">링크 자리</span></a></li>
-        </ul>
-        <p class="fee">쿠팡 파트너스 링크 · 수수료를 받아요</p>
-      </div>
-    </article>
+      <!-- 블록 3: 보리 버섯 리조또 · 재료 근거: 노션 EP.02 장면 목록 2번 + EP.02 화면 자막(소금·후추·파마산) · 사진: EP.02 인스타용 영상 16초 -->
+      <article class="card dish">
+        <div class="photo"><img src="사진/ep02-보리버섯리조또.jpg" alt="보리 버섯 리조또 위에 파마산 치즈를 갈아 뿌리는 손" loading="lazy"><span class="ep">EP.02</span></div>
+        <div class="body">
+          <h3>보리 버섯 리조또 장보기</h3>
+          <p class="sub en">Barley Mushroom Risotto</p>
+          <p class="say">쌀 대신 보리로, 표고버섯 향이 깊은 리조또예요.</p>
+          <ul class="items">
+            <li><a class="item" href="#" data-link="" data-q="보리쌀">보리쌀<span class="slot">링크 자리</span></a></li>
+            <li><a class="item" href="#" data-link="" data-q="양파">양파<span class="slot">링크 자리</span></a></li>
+            <li><a class="item" href="#" data-link="" data-q="마늘">마늘<span class="slot">링크 자리</span></a></li>
+            <li><a class="item" href="#" data-link="" data-q="생표고버섯">표고버섯<span class="slot">링크 자리</span></a></li>
+            <li><a class="item" href="#" data-link="" data-q="올리브오일">올리브 오일<span class="slot">링크 자리</span></a></li>
+            <li><a class="item" href="#" data-link="" data-q="우유">우유<span class="slot">링크 자리</span></a></li>
+            <li><a class="item" href="#" data-link="" data-q="생크림">생크림<span class="slot">링크 자리</span></a></li>
+            <li><a class="item" href="#" data-link="" data-q="파마산 치즈">파마산 치즈<span class="slot">링크 자리</span></a></li>
+            <li><a class="item" href="#" data-link="" data-q="소금">소금<span class="slot">링크 자리</span></a></li>
+            <li><a class="item" href="#" data-link="" data-q="후추">후추<span class="slot">링크 자리</span></a></li>
+          </ul>
+          <p class="fee">쿠팡 파트너스 링크 · 수수료를 받아요</p>
+        </div>
+      </article>
+    </div>
   </section>
 
   <footer class="foot">
@@ -248,6 +282,15 @@
     } else {
       a.addEventListener('click', function (e) { e.preventDefault(); });
     }
+  });
+  // 일정 꼬리표: 날짜가 있으면 오늘 기준 D-숫자로 바꾼다 (당일 = OPEN, 지나면 공개됨)
+  document.querySelectorAll('.row[data-date]').forEach(function (r) {
+    var t = new Date(r.getAttribute('data-date')); if (isNaN(t)) return;
+    var day = function (d) { return Math.floor((d.getTime() + 9 * 3600e3) / 86400e3); }; // 한국 날짜 기준
+    var n = day(t) - day(new Date()); var tag = r.querySelector('.tag');
+    if (n > 0) tag.textContent = 'D-' + n;
+    else if (n === 0) { tag.textContent = 'OPEN'; tag.classList.add('now'); }
+    else { tag.textContent = '공개됨'; }
   });
 </script>
 </body>
