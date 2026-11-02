@@ -108,3 +108,23 @@ Fixed camera, same angle and framing, no zoom, no pan. The hands move at the rea
 - 장면6b 전체 2~2.5초. 안 B: 영상1에서 간장·물 붓기 약 1.2초 → 같은 구도로 뚝 끊어 → 영상2에서 물엿 붓기·섞기 약 1.2초. 앞(쪽파)·뒤(양념 끼얹기)와는 0.3초 겹치기.
 - 화면 글자 (안): 간장·물·물엿 각 70ml / soy sauce · water · syrup, 70 ml each (위에서 80%)
 - 소리: 붓는 소리, 컵 내려놓는 소리, 숟가락이 볼에 닿는 소리만.
+
+
+---
+
+## 안 A로 만듦 (11/2, 회장님 "a", 120크레딧)
+- 시작 사진: `장면6b-GPT-시작사진-2.jpg` (회장님 ChatGPT, 다시 받은 것). 볼 테두리 파란 줄은 사진 그대로 둠. 쪽파 고리 모양, 컵 화면 안, 숟가락 그림 왼쪽.
+- 지시문: 안 A 초안 + 기준 문장(②) + 품질관리팀 두 문장(빈 컵 내려놓는 자리, 묽은 간장이 살짝 튀며 빨리 퍼짐). 물엿은 붓지 않음(화면 글자).
+
+### 실제로 넣은 영어 지시문
+```
+Fixed camera, same angle and framing, no zoom, no pan. The hands move at the real, natural speed of a home cook, never in slow motion and never pausing. The action is already in progress in the first frame and is still in progress in the last frame; the right hand never stops and never holds still at the end; both hands stay in the frame. The cook's right hand (on the left side of the picture) quickly pours the soy sauce from the small glass measuring cup onto the vegetables, the thin, watery dark soy sauce splashing lightly and spreading quickly over the bottom of the bowl, then sets the empty cup down on the empty part of the mat just to the left of the bowl (left side of the picture), behind the cup of water, and picks up the cup of water by its handle and pours the water into the bowl in a steady stream, sets it down, picks up the stainless steel spoon, holding it with the handle resting across the curled middle finger, between the pad of the thumb and the side of the index finger, and gives the sauce a quick stir around the bowl; in the last frame the spoon is still circling. The cook's left hand (on the right side of the picture) keeps holding the right side of the rim of the bowl and never moves; the bowl does not slide. Every action really happens: the liquids really flow and spread, nothing spills over the rim, the cups never knock into each other, and the cup of corn syrup stays where it is on the mat and is not poured. The scallion pieces stay small round green rings. Two hands, five fingers each; each cup is held by its handle. The bowl with its thin blue rim, the mat, the cream blouse sleeves, the light and the colours stay the same. No steam, no text, no numbers, no logos.
+```
+
+### 결과 (11/2) — `장면6b-새로-GPT.mp4` (런웨이 d07d9523-4851-449f-b5a1-24ca28ddde94, 120크레딧, 잔액 564)
+- 4.06초, 720×1280, 소리 있음. 0.25초 화면 모음 `장면6b-새로-GPT-장면들.jpg`
+- 순서: 0~0.5초 간장 붓기 → 0.75초 간장 컵 내려놓기 → 1.0~1.5초 물 컵 들기 → 1.5~2.25초 물 붓기 → 2.5초 물 컵 내려놓기 → 2.75초 숟가락 들기 → 3.0~4.0초 휘젓기(마지막 화면도 휘젓는 중). 물엿 컵은 제자리, 붓지 않음.
+- 멈춤: 멈춘 화면 0개 (가장 작은 화면 차이 0.99, 평균 4.36). 사람 속도.
+- 손: 왼손은 볼 오른쪽 가장자리에서 그대로. 오른손은 컵을 손잡이로 쥐고, 숟가락도 쥠. 컵끼리 부딪힘 없음. 쪽파 고리 모양 유지. 볼 파란 줄 그대로.
+- **틀린 것**: 내려놓은 간장 컵에 간장이 반쯤 남아 있음 (0.75초부터 끝까지 그림 왼쪽에 진한 간장 컵이 보임). 간장 붓기가 약 0.5초로 짧아 볼 바닥에 간장이 거의 안 보이다가, 물을 부은 뒤(2.25초)에야 진한 양념이 보임.
+- 편집 제안: 간장 컵이 화면 왼쪽 끝에 있으니, 1.5~4.0초(물 붓기 → 휘젓기)를 쓰면서 왼쪽을 조금 잘라 내면 덜 보임. 또는 0~0.6초 간장 붓기 + 2.9~4.0초 휘젓기를 같은 구도로 뚝 끊어 이음.
