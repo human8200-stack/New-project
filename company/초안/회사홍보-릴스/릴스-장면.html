@@ -2,20 +2,22 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<title>회사 소개 릴스 — 장면 (코드 영상, 8판, 37.4초)</title>
+<title>회사 소개 릴스 — 장면 (코드 영상, 9판, 37.6초)</title>
 <!--
-  회사 소개 릴스 8판 (2026-11-02) — 설계: 콘티-7판.md 6장 "끝 부분 고침안" (디자인팀)
+  회사 소개 릴스 9판 (2026-11-02) — 설계: 콘티-9판.md 3장 (디자인팀)
+  - 9판: 첫 장면을 0.6초 늘림 (seek() 맨 앞 HOLD). 그래서 아래 CSS·CAPTIONS·data-s/e 숫자는 "코드 시각" = 영상 시각 - 0.6 (영상 2.6초 뒤부터)
   - 자막 문구는 아래 <script> 맨 위 CAPTIONS 한곳에만 있습니다. 바꾸면 node 녹화.js 로 다시 뽑습니다.
     (긴 줄은 화면 폭에 맞게 글씨가 저절로 줄어듭니다. 한 화면 2줄까지)
-  - 흐름 (캡션 문단 순서와 같음): 할 일 쌓임(1~4) → 마음(5) → AI 팀이 정리(6~8) → 핵심 문장(9) → 끝 장면(11: 그 사람이 창가에서 차 한 모금). 설거지(10)는 8판에서 뺌
+  - 흐름 (캡션 문단 순서와 같음): 할 일 쌓임(1~4) → 마음(5) → AI 팀이 정리(6~7: 레시피 A4 + 알림) → 스쳐 가는 일들(8: 그림 6장) → 핵심 문장(9) → 끝 장면(10: 그 사람이 창가에서 차 한 모금)
   - 장면 1~5는 한 책상(#sPile) 안에서 이어짐. 물건이 사라지지 않고 계속 쌓이다가 5번에서 흐려짐.
   - 조직도: 나 → 사장(AI)(옆에 사장실·기획팀) → 본부 4개 → 본부별 팀 이름. 암웨이사업팀·객원멤버는 넣지 않음. 숫자·회사 이름 없음.
   - 사람은 뒷모습과 손만. 얼굴 없음. 사람 이름·날짜·제품 이름·로고 없음 (달력은 칸만, 숫자 없음).
-  - 장면 바꿈 길이: section 의 data-f(초, 다음 장면으로 넘어갈 때). 없으면 0.4. 9→11 은 0.8 (천천히 겹쳐 바뀜).
+  - 장면 바꿈 길이: section 의 data-f(초, 다음 장면으로 넘어갈 때). 없으면 0.4. 9→10 은 0.8 (천천히 겹쳐 바뀜).
   - 화면이 멈추지 않게: 모든 장면이 천천히 다가가고(조금씩 커짐), 장면마다 계속 움직이는 것(깜빡임·하트·김·햇살)이 있음.
   - 글꼴: Pretendard (SIL Open Font License 1.1, 상업용 무료) — fonts/ 폴더
-  - 1080×1920, 37.4초. 브라우저에서 열면 그대로 재생됨. 녹화는 녹화.js 가 seek(ms)로 한 장씩 찍음.
-  - 이전 판: 릴스-장면-7판.html / 릴스-미리보기-7판.mp4 / 릴스-게시용-7판.mp4 (37.4초, 설거지 있음)
+  - 1080×1920, 37.6초. 브라우저에서 열면 그대로 재생됨. 녹화는 녹화.js 가 seek(ms)로 한 장씩 찍음.
+  - 이전 판: 릴스-장면-8판.html / 릴스-미리보기-8판.mp4 / 릴스-게시용-8판.mp4 (37.4초, 7·8번 따로, 끝에 "보여 드릴게요")
+           릴스-장면-7판.html / 릴스-미리보기-7판.mp4 / 릴스-게시용-7판.mp4 (37.4초, 설거지 있음)
            릴스-장면-6판.html / 릴스-미리보기-6판.mp4 / 릴스-게시용-6판.mp4 (35.7초)
 -->
 <style>
@@ -141,11 +143,11 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
 #s2{background:var(--cream)}
 .pick{position:absolute;left:14px;right:14px;height:104px;border-radius:24px;border:6px solid var(--terra);opacity:0;animation:pickOn .4s ease-out var(--d) both}
 @keyframes pickOn{from{opacity:0;transform:scale(1.08)}to{opacity:1;transform:none}}
-#printer{position:absolute;left:460px;top:780px;width:560px;height:240px}
-#pled{animation:blink 1s ease-in-out 21.0s infinite both}
-#paperBox{position:absolute;left:520px;top:960px;width:440px;height:620px;overflow:hidden}
+#printer{position:absolute;left:460px;top:1020px;width:560px;height:240px}
+#pled{animation:blink 1s ease-in-out 20.8s infinite both}
+#paperBox{position:absolute;left:520px;top:1200px;width:440px;height:620px;overflow:hidden}
 #paper{position:absolute;left:20px;top:0;width:400px;height:566px;background:#fff;border-radius:6px;
-  box-shadow:0 10px 24px rgba(74,52,40,.18);animation:printOut 1.4s cubic-bezier(.3,.1,.3,1) 21.3s both}
+  box-shadow:0 10px 24px rgba(74,52,40,.18);animation:printOut 1.2s cubic-bezier(.3,.1,.3,1) 21.0s both}
 @keyframes printOut{from{transform:translateY(-575px)}to{transform:none}}
 #paper .ttl{position:absolute;left:0;right:0;top:34px;text-align:center;font-weight:800;font-size:38px;color:var(--brown)}
 #paper .blurz{position:absolute;inset:100px 30px 30px;filter:blur(2.4px)}
@@ -157,11 +159,7 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
   animation:twinkle 1.4s ease-in-out var(--d) infinite both}
 @keyframes twinkle{0%,100%{opacity:0;transform:scale(.4) rotate(0)}50%{opacity:1;transform:scale(1) rotate(45deg)}}
 
-/* ---------- 장면 8: 알림 팝업 3개 ---------- */
-#s3{background:#F3EBDF}
-.listRow{position:absolute;left:18px;right:18px;height:92px;border-radius:20px;background:#fff;box-shadow:0 4px 10px rgba(74,52,40,.08)}
-.listRow b{position:absolute;left:16px;top:20px;width:52px;height:52px;border-radius:50%;background:#E2D3C1}
-.listRow i{position:absolute;left:84px;top:36px;width:130px;height:16px;border-radius:8px;background:#E2D3C1}
+/* ---------- 장면 7 위쪽: 알림 팝업 3개 (글자 없이 아이콘 + 흐린 줄 + 체크) ---------- */
 .popc{position:absolute;left:150px;width:660px;height:132px;border-radius:32px;background:#fff;z-index:10;
   box-shadow:0 18px 36px rgba(74,52,40,.22);display:flex;align-items:center;gap:22px;padding:0 100px 0 26px;
   font-weight:800;font-size:38px;letter-spacing:-0.02em;color:var(--brown);white-space:nowrap;
@@ -170,6 +168,24 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
 .popc .ic{flex:none;width:84px;height:84px;border-radius:22px;background:#F4ECE1;display:flex;align-items:center;justify-content:center}
 .chk{position:absolute;right:26px;top:38px;width:56px;height:56px;border-radius:50%;background:var(--sage);
   display:flex;align-items:center;justify-content:center;animation:pop .4s ease-out var(--d) both}
+.popc .bl{display:flex;flex-direction:column;gap:16px}
+.popc .bl i{display:block;width:280px;height:18px;border-radius:9px;background:#D9C6B1}
+.popc .bl u{display:block;width:180px;height:14px;border-radius:7px;background:#EADCCB}
+
+/* ---------- 장면 8: 스쳐 가는 일들 (그림 6장이 0.5초마다 옆으로 휙) ---------- */
+#sMix{background:var(--cream)}
+#mixGlow{position:absolute;left:160px;top:770px;width:760px;height:760px;border-radius:50%;
+  background:radial-gradient(#FBF6EE 0,#FBF6EE 55%,rgba(251,246,238,0) 70%)}
+#mixStrip{position:absolute;left:0;top:0;width:6480px;height:1920px;animation:mixSwipe 2.15s 24.85s both}
+@keyframes mixSwipe{
+  0%{transform:none;animation-timing-function:ease-out}
+  6.98%,23.26%{transform:translateX(-1080px);animation-timing-function:ease-out}
+  30.23%,46.51%{transform:translateX(-2160px);animation-timing-function:ease-out}
+  53.49%,69.77%{transform:translateX(-3240px);animation-timing-function:ease-out}
+  76.74%,93.02%{transform:translateX(-4320px);animation-timing-function:ease-out}
+  100%{transform:translateX(-5400px)}}
+.mp{position:absolute;top:0;width:1080px;height:1920px}
+.msh{box-shadow:0 10px 24px rgba(74,52,40,.18)}
 
 /* ---------- 장면 9: 손글씨 카드 + 핵심 문장 ---------- */
 #sCore{background:radial-gradient(800px 800px at 540px 960px,#FFF8EC 0,var(--cream) 70%)}
@@ -181,7 +197,7 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
   75%{transform:translate(420px,205px)}80%{transform:translate(500px,300px)}100%{transform:translate(560px,300px)}}
 .fh{position:absolute;width:44px;height:44px;opacity:0;animation:floatUp 3.2s ease-in-out var(--d) infinite both}
 
-/* ---------- 장면 11: 끝 식탁 ---------- */
+/* ---------- 장면 10: 끝 식탁 ---------- */
 #s5{background:radial-gradient(900px 700px at 180px 380px,#FFF6E6 0,rgba(255,246,230,0) 70%),linear-gradient(#F3E6D4 0,#EEDDC7 1120px,#C69A72 1120px,#B3845E 1920px)}
 #s5 .runner{position:absolute;left:150px;right:150px;top:1120px;bottom:0;background:#F6EEE2;box-shadow:inset 0 0 0 10px rgba(201,120,90,.15)}
 #s5 .edge{position:absolute;left:0;right:0;top:1120px;height:16px;background:#D3AA84}
@@ -216,9 +232,9 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
   66.667%{transform:rotate(97.6deg);animation-timing-function:ease-in-out}100%{transform:none}}
 #cupSettle{transform-box:view-box;animation:settle .25s ease-out 35.8s both}
 @keyframes settle{0%{transform:translateY(-6px)}60%{transform:translateY(2px)}100%{transform:none}}
-#handleRow{position:absolute;left:0;right:0;top:740px;text-align:center;z-index:20}
+#handleRow{position:absolute;left:0;right:0;top:560px;text-align:center;z-index:20}
 #handle{display:inline-block;height:96px;line-height:88px;padding:0 44px;border-radius:48px;background:#FFFBF4;border:4px solid var(--terra);
-  font-weight:800;font-size:56px;letter-spacing:-0.01em;color:var(--brown);animation:handleIn .5s ease-out 35.3s both}
+  font-weight:800;font-size:56px;letter-spacing:-0.01em;color:var(--brown);animation:handleIn .5s ease-out 33.3s both}
 @keyframes handleIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
 </style>
 </head>
@@ -292,16 +308,17 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
     <div id="orgTree"></div>
   </section>
 
-  <!-- 장면 7 (20~23.8초): 레시피 — 메뉴를 누르면 프린터에서 A4 한 장이 반듯하게 나옴 -->
-  <section class="scene" id="s2" data-s="20.0" data-e="23.8">
-    <div class="phone" style="left:60px;top:770px;animation:pop .45s ease-out 20.05s both">
+  <!-- 장면 7 (코드 20~24.4초 / 영상 20.6~25.0초): 아래 — 메뉴를 누르면 프린터에서 A4 한 장. 위 — 알림 3개가 가지런히 뜨고 체크 -->
+  <section class="scene" id="s2" data-s="20.0" data-e="24.4">
+    <div id="pops"></div>
+    <div class="phone" style="left:60px;top:1080px;animation:pop .45s ease-out 20.05s both">
       <div class="screen" id="menuScreen"><div class="notch"></div>
         <div style="position:absolute;left:0;right:0;top:0;height:96px;background:var(--brown2)"></div>
       </div>
     </div>
-    <div class="dot" style="left:210px;top:1100px;animation:tap .7s ease-out 20.7s both"></div>
-    <div class="spark" style="left:340px;top:1090px;--dx:300px;--dy:-150px;--d:21.0s"></div>
-    <svg id="printer" viewBox="0 0 560 240" style="animation:pop .45s ease-out 20.2s both">
+    <div class="dot" style="left:210px;top:1410px;animation:tap .7s ease-out 20.5s both"></div>
+    <div class="spark" style="left:340px;top:1400px;--dx:300px;--dy:-150px;--d:20.8s"></div>
+    <svg id="printer" viewBox="0 0 560 240" style="animation:pop .45s ease-out 20.15s both">
       <rect x="70" y="0" width="420" height="70" rx="14" fill="#D8CCBC"/>
       <rect x="0" y="50" width="560" height="160" rx="30" fill="#EDE4D8"/>
       <rect x="0" y="170" width="560" height="40" rx="18" fill="#DCD0C0"/>
@@ -315,16 +332,14 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
         <div class="blurz"><div class="fd"></div><div id="paperLines"></div></div>
       </div>
     </div>
-    <div class="shine" style="left:930px;top:1180px;--d:22.8s"></div>
-    <div class="shine" style="left:500px;top:1400px;width:44px;height:44px;--d:23.2s"></div>
+    <div class="shine" style="left:930px;top:1420px;--d:22.2s"></div>
+    <div class="shine" style="left:500px;top:1640px;width:44px;height:44px;--d:22.5s"></div>
   </section>
 
-  <!-- 장면 8 (23.8~27.4초): 알림 팝업 3개가 가지런히 — 필터 / 병·상자 / 달력 -->
-  <section class="scene" id="s3" data-s="23.8" data-e="27.4">
-    <div class="phone" style="left:70px;top:740px;animation:pop .45s ease-out 23.85s both">
-      <div class="screen" id="listScreen"><div class="notch"></div></div>
-    </div>
-    <div id="pops"></div>
+  <!-- 장면 8 (코드 24.4~27.4초 / 영상 25.0~28.0초): 스쳐 가는 일들 — 레시피 A4 → 안부 달력 → 공부 계획표 → 강의 노트 → 요리 영상 → 책. 글자·이름·로고 없음 -->
+  <section class="scene" id="sMix" data-s="24.4" data-e="27.4">
+    <div id="mixGlow"></div>
+    <div id="mixStrip"></div>
   </section>
 
   <!-- 장면 9 (27.4~31.6초): 손글씨 카드 + 핵심 문장. 다음 장면으로 0.8초 천천히 겹쳐 바뀜 (31.2~32.0) -->
@@ -346,8 +361,8 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
     </div>
   </section>
 
-  <!-- 장면 11 (31.6~37.4초): 끝 장면 — 장면 4의 그 사람(뒷모습)이 창가 빛 아래 차 한 모금. 회장님 두 줄 → 다음 편 약속 → 본계정 이름 -->
-  <section class="scene" id="s5" data-s="31.6" data-e="37.4">
+  <!-- 장면 10 (코드 31.6~37.0초 / 영상 32.2~37.6초): 끝 장면 — 장면 4의 그 사람(뒷모습)이 창가 빛 아래 차 한 모금. 회장님 두 줄 → 본계정 이름 -->
+  <section class="scene" id="s5" data-s="31.6" data-e="37.0">
     <div id="table">
       <div class="edge"></div>
       <div class="runner"></div>
@@ -412,24 +427,23 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
 </div>
 <script>
 /* ================================================================
-   자막 — 문구는 여기 한곳에만 있습니다 (8판)
+   자막 — 문구는 여기 한곳에만 있습니다 (9판, 숫자는 코드 시각)
    lines: 한 화면 2줄까지 / in·out: 나타나는·사라지는 초 / stagger: 줄마다 늦게 나오기(초)
    top: 자막 높이(px) / size: 글씨 크기 고정(px) / color: 묶음 전체 글자 색 / color2: 둘째 줄 색
    ================================================================ */
 const CAPTIONS = [
-  { scene: "sPile", lines: ["할 일이 많아서였어요"],                                          in: 0.3,  out: 2.4, size: 96 },
+  { scene: "sPile", lines: ["AI로 작은 회사를 꾸렸어요", "할 일이 너무 많아서요"],              in: 0.2,  stagger: 0.6, out: 2.4, size: 96 },
   { scene: "sPile", lines: ["오늘은 무슨 요리를 할지 찾고", "레시피는 A4에 옮겨 적고, 뽑고"],      in: 2.8,  stagger: 1.2, out: 5.7 },
   { scene: "sPile", lines: ["필터·생활용품 관리해 드릴 때", "특별한 날은 미리 안부 전하고"],       in: 6.2,  stagger: 1.2, out: 9.1 },
   { scene: "sPile", lines: ["오래 해 온 저도 늘 정신없어요", "처음이면 얼마나 막막할까"],          in: 9.6,  stagger: 1.0, out: 12.3 },
   { scene: "sPile", lines: ["조금 더 쉬웠으면 하는 마음", "그게 회사를 꾸린 진짜 이유"],          in: 12.8, stagger: 0.9, out: 15.3, top: 760 },
   { scene: "sOrg",  lines: ["그래서 일은 AI 팀이", "나눠 맡아요"],                              in: 15.8, out: 19.7 },
-  { scene: "s2",    lines: ["레시피를 골라", "A4 한 장으로 뽑는 일"],                            in: 20.2, out: 23.5 },
-  { scene: "s3",    lines: ["관리해 드릴 때와 특별한 날", "먼저 짚어 주는 일"],                   in: 24.0, stagger: 0.8, out: 27.1 },
+  { scene: "s2",    lines: ["레시피는 A4 한 장으로", "관리·특별한 날은 먼저 짚어 주고"],          in: 20.2, stagger: 1.8, out: 24.1 },
+  { scene: "sMix",  lines: ["아이 공부 계획도, 강의 정리도", "요리 영상도, 책도"],               in: 25.2, stagger: 0.7 },
   { scene: "sCore", lines: ["나머지는 우리가 할게요", "당신은 마음만 전해 주세요"],              in: 27.6, stagger: 0.9, top: 600 },
   { scene: "s5",    lines: ["AI가 할 일은 AI가", "사람이 할 일은 사람이"],                       in: 32.1, stagger: 0.5, top: 280, color2: "var(--terra)" },
-  { scene: "s5",    lines: ["어떻게 만들었는지", "하나씩 보여 드릴게요"],                        in: 34.6, stagger: 0.35, top: 540, size: 64, color: "var(--brown2)" },
 ];
-const TOTAL = 37400;
+const TOTAL = 37600; // 영상 길이 (ms)
 const MAX_W = 980;
 const $ = (id) => document.getElementById(id);
 
@@ -549,19 +563,63 @@ function calendar(w, marks, sw, anim){
   $("paperLines").innerHTML = p;
 })();
 
-/* 장면 8: 휴대폰 목록 + 알림 팝업 3개 (오른쪽 끝 체크) */
+/* 장면 7 위쪽: 알림 팝업 3개 (글자 없이 아이콘 + 흐린 줄 2개, 오른쪽 끝 체크) */
 (function(){
-  let h = "";
-  for (let i=0;i<5;i++) h += `<div class="listRow" style="top:${110+i*104}px"><b></b><i style="width:${[130,100,150,110,120][i]}px"></i></div>`;
-  $("listScreen").insertAdjacentHTML("beforeend", h);
   const chk = (d)=>`<div class="chk" style="--d:${(d+0.3).toFixed(2)}s"><svg width="30" height="30" viewBox="0 0 30 30"><path d="M6 16 L12.5 22 L24 9" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`;
   const items = [
-    [860, 24.3, ICON.filter(64), "필터 바꿀 때가 됐어요"],
-    [1010, 24.8, ICON.bottle(64).replace('width="40"','width="40"') + ICON.box(44,64), "다 떨어질 때가 됐어요"],
-    [1160, 25.3, calendar(60,[[3,4]],20,null), "곧 특별한 날이에요"],
+    [560, 22.3, ICON.filter(64)],
+    [710, 22.6, ICON.bottle(64) + ICON.box(44,64)],
+    [860, 22.9, calendar(60,[[3,4]],20,null)],
   ];
-  $("pops").innerHTML = items.map(([top,d,ic,txt],i)=>
-    `<div class="popc" style="top:${top}px;--d:${d}s"><div class="ic" style="gap:2px">${ic}</div>${txt}${chk(d)}</div>`).join("");
+  $("pops").innerHTML = items.map(([top,d,ic])=>
+    `<div class="popc" style="top:${top}px;--d:${d}s"><div class="ic" style="gap:2px">${ic}</div><div class="bl"><i></i><u></u></div>${chk(d)}</div>`).join("");
+})();
+
+/* 장면 8: 스쳐 가는 일들 — 판 6장 (판 안 좌표, 그림 가운데 540,1150). 글자·이름·로고 없음 */
+(function(){
+  const P = [];
+  // ① 레시피 A4 (제목 글자 없음)
+  let l = "";
+  [150,175,200,240,265,290,315,355,380,405].forEach((y,i)=>{ l += `<div class="abs" style="left:0;top:${y}px;height:14px;border-radius:7px;background:#D9C6B1;width:${[300,260,280,320,240,300,200,310,270,180][i]}px"></div>`; });
+  P.push(`<div class="abs msh" style="left:340px;top:867px;width:400px;height:566px;background:#fff;border-radius:6px">
+    <div class="abs" style="inset:100px 30px 30px;filter:blur(2.4px)">
+      <div class="abs" style="left:110px;top:6px;width:120px;height:120px;border-radius:50%;background:#F1D9B5"><div class="abs" style="inset:14px;border-radius:50%;background:#C98B52"></div></div>${l}</div></div>`);
+  // ② 안부: 달력(칸만) + 하트
+  P.push(`<div class="abs" style="left:360px;top:935px;filter:drop-shadow(0 10px 24px rgba(74,52,40,.18))">${calendar(360,[[3,4]],7,null)}</div>
+    <svg class="abs" style="left:680px;top:900px" width="80" height="80" viewBox="0 0 120 120">${ICON.heart("#C9785A")}</svg>`);
+  // ③ 아이 공부 계획표: 띠 + 칸 5×4 (8칸 채움) + 연필
+  const fill = {0:"var(--sage)",2:"var(--mustard)",6:"#F2C7A5",8:"var(--sky)",11:"var(--sage)",13:"#F2C7A5",15:"var(--mustard)",17:"var(--sky)"};
+  let g = "";
+  for (let r=0;r<4;r++) for (let c=0;c<5;c++){ const k=r*5+c;
+    g += `<div class="abs" style="left:${32+c*98}px;top:${97+r*74}px;width:84px;height:60px;border-radius:10px;background:${fill[k]||"#EADFD1"}"></div>`; }
+  P.push(`<div class="abs msh" style="left:270px;top:940px;width:540px;height:420px;background:#fff;border-radius:20px;overflow:hidden">
+      <div class="abs" style="left:0;right:0;top:0;height:56px;background:var(--sky)"></div>${g}</div>
+    <div class="abs" style="left:700px;top:1260px;width:24px;height:230px;transform:rotate(30deg);transform-origin:12px 0">
+      <div class="abs" style="left:0;top:0;width:24px;height:200px;border-radius:4px;background:var(--mustard)"></div>
+      <div class="abs" style="left:0;top:200px;width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-top:30px solid var(--brown)"></div></div>`);
+  // ④ 강의 정리 노트: 스프링 고리 8개 + 가로줄 9개 + 3번째 줄 형광 띠 + 점 3개
+  let n = "";
+  for (let i=0;i<8;i++) n += `<div class="abs" style="left:-13px;top:${40+i*66}px;width:26px;height:26px;border-radius:50%;border:6px solid #BFB3A5;background:var(--cream)"></div>`;
+  for (let i=0;i<9;i++){ const y = 90+i*50;
+    if (i===2) n += `<div class="abs" style="left:70px;top:${y-24}px;width:300px;height:30px;border-radius:6px;background:var(--mustard);opacity:.45"></div>`;
+    n += `<div class="abs" style="left:50px;right:30px;top:${y}px;height:4px;border-radius:2px;background:#E3D6C6"></div>`; }
+  [0,3,6].forEach(i=>{ n += `<div class="abs" style="left:50px;top:${90+i*50-20}px;width:12px;height:12px;border-radius:50%;background:var(--terra)"></div>`; });
+  P.push(`<div class="abs msh" style="left:310px;top:870px;width:460px;height:560px;background:#fff;border-radius:14px">${n}</div>`);
+  // ⑤ 요리 영상: 가로 태블릿 + 흐린 냄비·접시 + 재생 버튼 + 진행 줄
+  P.push(`<div class="abs msh" style="left:220px;top:950px;width:640px;height:400px;background:#2E2622;border-radius:36px;padding:22px">
+      <div class="abs" style="inset:22px;border-radius:18px;background:#F1D9B5;overflow:hidden">
+        <div class="abs" style="left:168px;top:48px;width:260px;height:260px;border-radius:50%;background:#C98B52;filter:blur(3px)"><div class="abs" style="inset:40px;border-radius:50%;background:#E9C27E"></div></div>
+        <div class="abs" style="left:223px;top:103px;width:150px;height:150px;border-radius:50%;background:#fff;opacity:.92"></div>
+        <svg class="abs" style="left:223px;top:103px" width="150" height="150" viewBox="0 0 150 150"><path d="M60 45 L108 75 L60 105 Z" fill="#C9785A" stroke="#C9785A" stroke-width="8" stroke-linejoin="round"/></svg>
+        <div class="abs" style="left:30px;right:30px;bottom:22px;height:10px;border-radius:5px;background:rgba(255,255,255,.5)"><div class="abs" style="left:0;top:0;bottom:0;width:35%;border-radius:5px;background:var(--terra)"></div></div>
+      </div></div>`);
+  // ⑥ 책: 세워 둔 책 (표지 terra, 책등, 종이 결, 빈 띠, 바닥 그림자)
+  P.push(`<div class="abs" style="left:360px;top:1385px;width:360px;height:44px;border-radius:50%;background:rgba(74,52,40,.16);filter:blur(4px)"></div>
+    <div class="abs msh" style="left:350px;top:890px;width:380px;height:520px;background:var(--terra);border-radius:8px;overflow:hidden">
+      <div class="abs" style="left:0;top:0;bottom:0;width:30px;background:#B5654A"></div>
+      <div class="abs" style="right:0;top:6px;bottom:6px;width:14px;background:var(--cream2)"></div>
+      <div class="abs" style="left:${30+(336-200)/2}px;top:225px;width:200px;height:70px;border-radius:10px;background:var(--cream2)"></div></div>`);
+  $("mixStrip").innerHTML = P.map((h,i)=>`<div class="mp" style="left:${i*1080}px">${h}</div>`).join("");
 })();
 
 /* 장면 9: 천천히 떠오르는 작은 하트 (카드 뒤로 지나감) */
@@ -574,7 +632,10 @@ function calendar(w, marks, sw, anim){
 const scenes = [...document.querySelectorAll(".scene")];
 const clamp = (v) => Math.max(0, Math.min(1, v));
 const fOf = (sc) => (sc && sc.dataset.f != null) ? +sc.dataset.f : 0.4;
-window.seek = function(ms){
+// 9판: 첫 장면을 0.6초 늘림. 영상 2.0~2.6초 동안 코드 시간은 2.0초에 머묾 (그 뒤 코드 시각 = 영상 시각 - 0.6)
+const HOLD_AT = 2000, HOLD = 600;
+window.seek = function(msReal){
+  const ms = msReal < HOLD_AT ? msReal : Math.max(HOLD_AT, msReal - HOLD);
   const t = ms/1000;
   for (const a of document.getAnimations()) { a.pause(); a.currentTime = ms; }
   scenes.forEach((sc,i)=>{
