@@ -8,7 +8,7 @@
 <title>Maison Edel</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Cormorant+Garamond:ital,wght@1,500;1,600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Cormorant+Garamond:ital,wght@0,500;1,500;1,600&display=swap" rel="stylesheet">
 <style>
   /* 메종에델 확정 색 + 부드러운 바탕 두 단계 */
   :root {
@@ -46,6 +46,7 @@
   /* 이름 줄 */
   .head { display: flex; align-items: center; gap: 12px; padding: 18px 2px 14px; border-bottom: 1px solid var(--beige); }
   .mark { flex: none; width: 52px; height: 52px; border-radius: 50%; background: var(--white);
+          font-family: "Cormorant Garamond", Georgia, serif; font-style: normal; font-weight: 500; line-height: 1; letter-spacing: .02em; text-indent: .02em;
           border: 1.5px solid var(--olive); display: flex; align-items: center; justify-content: center;
           color: var(--olive); font-size: 22px; }
   .head .name { flex: 1; }
@@ -109,7 +110,7 @@
 
   <!-- 이름 줄 -->
   <header class="head">
-    <div class="mark en" aria-hidden="true">ME</div>
+    <div class="mark" aria-hidden="true">ME</div>
     <div class="name"><b>Maison Edel</b><span>메종 에델 · 에델의 식탁</span></div>
   </header>
 
