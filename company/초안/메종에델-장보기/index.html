@@ -86,8 +86,6 @@
   .dish .chev svg { width: 22px; height: 22px; }
   .dish[open] .chev { transform: rotate(180deg); background: var(--olive); border-color: var(--olive); color: var(--white); }
   .dish .body { padding: 0 16px 18px; border-top: 1px solid var(--beige); }
-  .dish .fee { margin: 12px 0 0; font-size: 14px; font-weight: 700; color: var(--olive); text-align: center;
-               background: var(--olive-soft); border-radius: 999px; padding: 4px 12px; }
   .dish .say { margin: 10px 0 12px; font-size: 16px; text-align: center; }
   .items { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .item { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
@@ -178,7 +176,6 @@
       var cv = el('span', 'chev'); cv.setAttribute('aria-hidden', 'true'); cv.innerHTML = chev;
       sum.appendChild(th); sum.appendChild(tt); sum.appendChild(cv); det.appendChild(sum);
       var body = el('div', 'body');
-      body.appendChild(el('p', 'fee', '쿠팡 파트너스 링크 · 수수료를 받아요'));
       if (d.소개) body.appendChild(el('p', 'say', d.소개));
       if (!shown.length) { body.appendChild(el('p', 'items-empty', '재료 링크를 준비하고 있어요.')); }
       else {
