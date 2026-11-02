@@ -1,56 +1,39 @@
-# 장면6 쪽파 — ChatGPT 그림 주문서 (메종에델팀, 2026-11-02, 크레딧 0)
+# 장면6 쪽파 — ChatGPT 그림 주문서 (메종에델팀, 2026-11-02, 2판: 품질관리팀 반려 반영, 크레딧 0)
 
 - 회장님 원문: "내가gpt한테 따로 말할테니 이미지 만들 글 써줘"
 - 회장님이 하실 일: 아래 사진 2장을 ChatGPT에 올리고, "붙여 넣을 글" 칸을 통째로 복사해 붙여 넣기
 - 함께 올릴 사진 2장
-  1. `company/초안/메종에델-마약계란/v3/장면6-새로-시작사진-6판-불합격-휴대폰크기.jpg` — 구도용 (좋은 점: 각도·빛·소매 / 틀린 점 3가지는 주문서에 적음)
-  2. `company/초안/메종에델-마약계란/v3/장면6-GPT-참고-2편-표고썰기.jpg` — 분위기용 (2편 6.3초 표고 썰기 화면, 글자 없는 부분만 자름)
-- 나온 그림은 회사가 받아 품질관리팀이 확인한 뒤 영상(계획 D)으로 넘어감. 영상은 크레딧이 들어 따로 여쭘.
+  1. `company/초안/메종에델-마약계란/v3/장면6-새로-시작사진-6판-불합격-휴대폰크기.jpg` — 빛·소매만 참고 (틀린 점 4가지는 영어 주문문에 적음)
+  2. `company/초안/메종에델-마약계란/v3/장면6-GPT-참고-2편-표고썰기.jpg` — 구도·색 참고 (2편 6.3초 표고 썰기, 오른쪽 앞 위에서 비스듬히 봐서 칼날 옆면이 보임)
+- 1판에서 고친 것 (품질관리팀 반려): 쪽파 방향을 뒤 왼쪽→앞 오른쪽 비스듬히로 (칼날 옆면이 보이게), 1번 사진 네 번째 실수(칼끝을 아래로 찍고 위에서 움켜쥠) 추가, 붙여 넣을 글 줄임
+- 나온 그림은 회사가 받아 품질관리팀이 확인한 뒤 영상(계획 D)으로 넘어감.
 
 ---
 
 ## 붙여 넣을 글 (여기부터 끝까지 복사)
 
-요리 영상의 시작 장면 사진을 1장 만들어 주세요. 이 사진에서 바로 칼질 영상을 만들 거라 손과 칼이 정확해야 해요.
+쪽파를 써는 요리 영상의 첫 장면 사진 1장을 만들어 주세요. 1번 사진은 빛과 소매만, 2번 사진은 구도와 색만 참고해 주세요.
+두 손(왼손 고양이 손, 오른손 칼), 손가락 각 5개, 크림 주름 소매와 흐린 린넨 앞치마가 살짝, 얼굴 없음, 왼쪽 뒤 창가 햇살, 세로 9:16, 글자·로고·김 없음.
+자세한 내용은 아래 영어를 그대로 따라 주세요.
 
-첨부 사진 설명
-- 1번 사진(쪽파 썰기): 구도·빛·소매 느낌은 좋아요. 이 각도를 따라 주세요. 하지만 아래 3가지가 틀렸어요. 꼭 고쳐 주세요.
-  ① 칼날이 투명하게 나와서 쪽파가 칼날을 뚫고 지나가요. → 칼날은 불투명한 쇠예요. 쪽파는 칼날 왼쪽에서 끝나요.
-  ② 왼손이 엄지·검지로 쪽파를 집고 있어요. → 고양이 손으로, 손가락 끝을 안으로 말아 넣고 손가락 마디가 칼 옆면에 닿아요.
-  ③ 쪽파가 빨대처럼 반듯한 관이고, 썬 조각이 두꺼운 고리예요. → 연필보다 가는 진짜 쪽파, 굵기가 조금씩 다르고 끝이 자연스러워요. 조각은 작고 얇아요.
-- 2번 사진(표고 썰기): 색·빛·분위기만 참고해 주세요. 손 위치·재료는 따라 하지 마세요.
+Create one photorealistic vertical photo, 9:16, of a home cook slicing thin green scallions. It will be the first frame of a video, so the hands and the knife must be physically correct.
 
-꼭 지킬 것
-- 두 손이에요. 왼손은 고양이 손으로 쪽파 다발을 누르고, 오른손은 손잡이를 손바닥으로 쥐어요. 손가락은 각 5개예요.
-- 칼날은 쪽파 다발 오른쪽 끝에 서 있어요. 칼날 오른쪽에는 막 썬 작은 쪽파 조각 몇 개만 있어요.
-- 비스듬히 앞 위에서 봐서 칼날 옆면이 넓게 보여요. 칼 위쪽에 칼이 오르내릴 빈 자리가 있어요.
-- 창가 햇살이 왼쪽 뒤에서 들어와요. 밝고 따뜻하지만 노랗지 않아요.
-- 크림색 주름 블라우스 소매가 양쪽 손목 위로 살짝 보여요. 얼굴은 나오지 않아요.
-- 배경은 흐린 주방, 참나무 도마, 짙은 원목 식탁이에요. 주인공은 쪽파 하나예요 (양파·파프리카 없음).
-- 그림 안에 로고·글자·각인·워터마크·김은 없어요. 세로 9:16, 사진처럼 사실적으로요.
+References: use image 1 only for the window light and the cream sleeves. Do NOT repeat its four mistakes: (1) the blade looks transparent and the scallions pass through it; (2) the left hand pinches the scallions instead of a claw grip; (3) the scallions look like straight drinking straws and the slices like thick rings; (4) the knife tip is stabbed down into the board so the knife stands almost vertical, gripped from above. Use image 2 for the camera angle and colour only (not its ingredients).
 
-English order (please follow this exactly):
+Camera: from the front right, slightly above, about 35 to 45 degrees above the board, close up, like image 2.
 
-Create one photorealistic vertical photo, 9:16, of a home cook slicing thin green scallions on a cutting board. This image will be the first frame of a video, so the hands and the knife must be physically correct.
+Scallions (the only main subject): a small bundle of four real, thin green scallions, thinner than a pencil, each slightly different in thickness, gently tapered and a little uneven, matte, running diagonally from back-left to front-right across an oak cutting board. Not straight uniform tubes.
 
-Reference images: Use image 1 only for the camera angle, the window light and the cream sleeves. Image 1 has three mistakes that you must NOT repeat: (1) the knife blade looks transparent and the scallions pass through it; (2) the left hand pinches the scallions between thumb and index finger instead of a claw grip; (3) the scallions look like straight, uniform drinking straws and the cut pieces look like thick rings. Use image 2 only for colour, light and mood; do not copy its hand position or ingredients.
+Knife: a plain santoku with a solid, opaque, brushed steel blade and a black handle, no logo or engraving. It crosses the scallions at a right angle at their front-right end, so the broad flat side of the blade is seen at an angle and clearly visible. Do not stab the tip down: the whole cutting edge rests along the board, and the handle sits at the front right, almost level with the board. The scallions end at the left side of the blade; nothing passes through it. To the right of the blade lie only a few small, thin, freshly cut scallion slices.
 
-Camera: high three-quarter view from the front and slightly above, about 35 to 45 degrees above the board, close up, angled so the broad flat side of the knife blade faces the camera and is clearly visible. Leave empty space above the knife so it can lift and come down in the video.
+Hands (exactly two, five fingers each, natural adult Korean woman's hands, no jewelry): the left hand holds the bundle down just left of the blade in a claw grip, fingertips curled under, middle knuckles touching the flat of the blade, thumb tucked behind. The right hand holds the handle in the palm, lower three fingers wrapped around it, thumb and bent index finger pinching the base of the blade; wrist straight and relaxed.
 
-Scallions (the only main subject): a small bundle of four real, thin green scallions, thinner than a pencil, each slightly different in thickness, gently tapered and a little uneven, with fine lengthwise lines and a soft matte surface, lying together across the board from left to right. They are NOT straight, uniform tubes or drinking straws.
+Person: cream blouse cuffs with gathered sleeves just above both wrists, a blurred glimpse of her blouse and linen apron behind; face not shown.
 
-Knife: a plain santoku with a solid, opaque, brushed steel blade and a black handle, no logo, no text, no engraving. The blade stands upright on the board, perpendicular to the scallions, with its edge touching the board, exactly at the right end of the scallion bundle. The scallions end at the left side of the blade; nothing passes through or shows through the blade. To the right of the blade there are only a few freshly cut, small, thin green scallion slices lying flat on the board.
+Light: soft natural window light from the left and slightly behind, like 10 a.m. sunlight, catching the blade and the scallion edges, with soft shadows of the hands and knife on the board; no flat front light.
 
-Hands (exactly two, each with exactly five fingers, natural adult Korean woman's hands, no jewelry):
-- Left hand: a claw grip holding the scallion bundle down just to the left of the blade. The fingertips are curled under toward the palm, the middle knuckles touch the flat side of the blade, and the thumb is tucked behind the fingers. No fingertip is stretched out in front of the knuckles.
-- Right hand: holds the knife handle firmly in the palm, the lower three fingers wrapped around the handle, the thumb and the bent index finger pinching the base of the blade just in front of the handle. The wrist is straight and relaxed.
+Colour: warm, natural morning home-kitchen colour: honey-brown wood, ivory and oatmeal tones, gentle warmth without any yellow cast, soft muted saturation, deep but never crushed shadows.
 
-Person: The cook is partly visible: her hands and forearms with the soft cuffs of a cream blouse with gathered sleeves showing just above both wrists, and a blurred glimpse of her blouse and linen apron behind; her face is not shown.
+Setting: oak cutting board on a dark wooden table, softly blurred sunlit home kitchen behind. No onion, no pepper, no other ingredients in focus.
 
-Light: Soft natural window light coming from the left and slightly behind, like 10 a.m. sunlight, catching the edge and flat of the blade and the edges of the scallions, and casting soft shadows of the hands and the knife on the board; no flat front light, no studio light.
-
-Colour: Warm, natural colour like a softly lit home kitchen in the morning: honey-brown wood, ivory and oatmeal tones, gentle warmth without any yellow cast, soft muted saturation, deep but never crushed shadows with visible detail in the dark areas.
-
-Setting: an oak cutting board on a dark wooden table, with a softly blurred, sunlit home kitchen in the background. No onion, no red pepper, no other ingredients in focus.
-
-Do not include: any text, letters, logos, brand marks, engravings, watermark, steam, a third hand, extra or missing fingers, or a transparent knife.
+No text, logos, engravings, watermark, steam, third hand, extra or missing fingers, or transparent knife.
