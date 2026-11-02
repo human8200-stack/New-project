@@ -97,6 +97,14 @@
   .items-empty { margin: 0; text-align: center; font-size: 15px; color: var(--taupe); }
   .item .slot { font-size: 12px; font-weight: 400; color: var(--taupe); }
 
+  .search { margin-top: 14px; }
+  .search input { width: 100%; min-height: 48px; padding: 0 18px; border-radius: 999px; border: 1px solid var(--beige);
+                  background: var(--white); color: var(--charcoal); font: inherit; font-size: 16px; outline: none; }
+  .search input:focus { border-color: var(--olive); }
+  .more { display: block; margin: 14px auto 0; min-height: 48px; padding: 0 26px; border-radius: 999px;
+          border: 1px solid var(--olive); background: transparent; color: var(--olive); font: inherit; font-size: 16px; font-weight: 700; cursor: pointer; }
+  .none { text-align: center; color: var(--taupe); font-size: 15px; margin: 16px 0 0; }
+  [hidden] { display: none !important; }
   .preview { margin-top: 22px; font-size: 13px; color: var(--taupe); text-align: center; border-top: 1px dashed var(--beige); padding-top: 12px; }
   @media (max-width: 340px) { .items { grid-template-columns: 1fr; } }
 </style>
@@ -120,42 +128,18 @@
   </div>
 
   <!-- 요리별 장보기 (페이지의 중심, 쿠팡 파트너스 링크가 있는 칸)
-       새 편이 나오면 아래 목록 맨 위에 <details> 블록을 하나 추가한다 (최신 요리가 맨 위) -->
+       요리 블록은 장보기-재료.js 의 요리 목록에서 저절로 만들어진다 (최신 요리가 맨 위) -->
   <section aria-labelledby="shop-title">
     <div class="shop-head">
       <h2 id="shop-title">🌿 요리별 장보기</h2>
       <p class="en">From my kitchen to your table</p>
     </div>
-
-    <div class="stack">
-      <!-- 블록 1: 마약계란 (EP.03) -->
-      <details class="card dish">
-        <summary>
-          <span class="thumb"><img src="사진/작은-마약계란.jpg" alt="마약계란"></span>
-          <span class="tt"><b>마약계란 장보기</b><span class="sub"><span class="ep">EP.03</span> <span class="en">Soy Marinated Eggs</span></span></span>
-          <span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
-        </summary>
-        <div class="body">
-          <p class="fee">쿠팡 파트너스 링크 · 수수료를 받아요</p>
-          <p class="say">달걀 10개와 간장·물·물엿 70ml씩이면 시작할 수 있어요.</p>
-          <ul class="items" data-dish="마약계란"></ul>
-        </div>
-      </details>
-
-      <!-- 블록 2: 보리 버섯 리조또 (EP.02) -->
-      <details class="card dish">
-        <summary>
-          <span class="thumb"><img src="사진/작은-리조또.jpg" alt="보리 버섯 리조또"></span>
-          <span class="tt"><b>보리 버섯 리조또 장보기</b><span class="sub"><span class="ep">EP.02</span> <span class="en">Barley Mushroom Risotto</span></span></span>
-          <span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
-        </summary>
-        <div class="body">
-          <p class="fee">쿠팡 파트너스 링크 · 수수료를 받아요</p>
-          <p class="say">쌀 대신 보리로, 표고버섯 향이 깊은 리조또예요.</p>
-          <ul class="items" data-dish="보리 버섯 리조또"></ul>
-        </div>
-      </details>
+    <div class="search" id="search" hidden>
+      <input type="search" id="q" placeholder="요리 이름이나 재료로 찾기" aria-label="요리 이름이나 재료로 찾기" autocomplete="off">
     </div>
+    <div class="stack" id="dishes"></div>
+    <p class="none" id="none" hidden>찾는 요리가 없어요.</p>
+    <button type="button" class="more" id="more" hidden>더 보기</button>
   </section>
 
 
@@ -163,34 +147,72 @@
 </main>
 <script src="장보기-재료.js"></script>
 <script>
-  // 재료 버튼은 장보기-재료.js 한 곳에서 읽는다.
+  // 요리 블록과 재료 버튼은 장보기-재료.js 한 곳에서 읽어 만든다.
   // 쿠팡 링크가 비었거나 보이기가 꺼진 재료는 보이지 않는다.
   // 주소 끝에 ?preview 를 붙이면(회사 확인용) 링크가 빈 재료도 "링크 자리"로 보여 준다.
   (function () {
-    var data = window.MAISON_EDEL_SHOP || [];
+    var FIRST = 8; // 처음에 보이는 요리 수, 이보다 많으면 검색 칸과 "더 보기"
+    var dishes = (window.MAISON_EDEL_DISHES || []).slice().sort(function (x, y) { return (y.순서 || 0) - (x.순서 || 0); });
+    var items = window.MAISON_EDEL_SHOP || [];
     var preview = /[?&]preview/.test(location.search);
-    document.querySelectorAll('ul.items[data-dish]').forEach(function (ul) {
-      var dish = ul.getAttribute('data-dish');
-      var list = data.filter(function (d) {
-        return d.요리 === dish && d.보이기 !== false && (preview || /^https:\/\//.test(d.링크 || ''));
-      }).sort(function (x, y) { return (x.순서 || 0) - (y.순서 || 0); });
-      if (!list.length) {
-        var p = document.createElement('p'); p.className = 'items-empty';
-        p.textContent = '재료 링크를 준비하고 있어요.';
-        ul.replaceWith(p); return;
+    var isLink = function (u) { return /^https:\/\//.test(u || ''); };
+    var box = document.getElementById('dishes'), more = document.getElementById('more');
+    var search = document.getElementById('search'), q = document.getElementById('q'), none = document.getElementById('none');
+    var showAll = false, cards = [];
+    var el = function (tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+    var chev = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+
+    dishes.forEach(function (d) {
+      var mine = items.filter(function (i) { return i.요리 === d.요리 && i.보이기 !== false; })
+                      .sort(function (x, y) { return (x.순서 || 0) - (y.순서 || 0); });
+      var shown = mine.filter(function (i) { return preview || isLink(i.링크); });
+      var det = el('details', 'card dish'), sum = el('summary');
+      var th = el('span', 'thumb');
+      if (d.사진) { var img = el('img'); img.src = d.사진; img.alt = d.요리; img.loading = 'lazy'; th.appendChild(img); }
+      var tt = el('span', 'tt'); tt.appendChild(el('b', null, d.요리 + ' 장보기'));
+      var sub = el('span', 'sub'); if (d.EP) sub.appendChild(el('span', 'ep', d.EP)); if (d.영어) { sub.appendChild(document.createTextNode(' ')); sub.appendChild(el('span', 'en', d.영어)); }
+      tt.appendChild(sub);
+      var cv = el('span', 'chev'); cv.setAttribute('aria-hidden', 'true'); cv.innerHTML = chev;
+      sum.appendChild(th); sum.appendChild(tt); sum.appendChild(cv); det.appendChild(sum);
+      var body = el('div', 'body');
+      body.appendChild(el('p', 'fee', '쿠팡 파트너스 링크 · 수수료를 받아요'));
+      if (d.소개) body.appendChild(el('p', 'say', d.소개));
+      if (!shown.length) { body.appendChild(el('p', 'items-empty', '재료 링크를 준비하고 있어요.')); }
+      else {
+        var ul = el('ul', 'items');
+        shown.forEach(function (i) {
+          var li = el('li'), a = el('a', 'item', i.이름);
+          if (isLink(i.링크)) { a.href = i.링크; a.target = '_blank'; a.rel = 'sponsored noopener'; }
+          else { a.href = '#'; a.addEventListener('click', function (e) { e.preventDefault(); }); a.appendChild(el('span', 'slot', '링크 자리')); }
+          li.appendChild(a); ul.appendChild(li);
+        });
+        body.appendChild(ul);
       }
-      list.forEach(function (d) {
-        var li = document.createElement('li'); var a = document.createElement('a');
-        a.className = 'item'; a.textContent = d.이름;
-        if (/^https:\/\//.test(d.링크 || '')) {
-          a.href = d.링크; a.target = '_blank'; a.rel = 'sponsored noopener';
-        } else {
-          a.href = '#'; a.addEventListener('click', function (e) { e.preventDefault(); });
-          var s = document.createElement('span'); s.className = 'slot'; s.textContent = '링크 자리'; a.appendChild(s);
-        }
-        li.appendChild(a); ul.appendChild(li);
-      });
+      det.appendChild(body);
+      // 하나를 펼치면 다른 것은 접힌다
+      det.addEventListener('toggle', function () { if (det.open) cards.forEach(function (c) { if (c.el !== det) c.el.open = false; }); });
+      box.appendChild(det);
+      cards.push({ el: det, text: (d.요리 + ' ' + (d.영어 || '') + ' ' + mine.map(function (i) { return i.이름; }).join(' ')).toLowerCase() });
     });
+
+    function draw() {
+      var word = (q.value || '').trim().toLowerCase(), n = 0, hits = 0;
+      cards.forEach(function (c) {
+        var hit = !word || c.text.indexOf(word) !== -1;
+        if (hit) hits++;
+        var show = hit && (word || showAll || n < FIRST);
+        if (hit && !word) n++;
+        c.el.hidden = !show;
+        if (!show) c.el.open = false;
+      });
+      none.hidden = !(word && hits === 0);
+      more.hidden = !!word || showAll || cards.length <= FIRST;
+      if (!more.hidden) more.textContent = '더 보기 (' + (cards.length - FIRST) + '개)';
+    }
+    search.hidden = cards.length <= FIRST;
+    q.addEventListener('input', draw);
+    more.addEventListener('click', function () { showAll = true; draw(); });
+    draw();
   })();
 </script>
 </body>
