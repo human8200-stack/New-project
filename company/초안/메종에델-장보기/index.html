@@ -92,6 +92,9 @@
           min-height: 46px; padding: 6px 10px; border-radius: 999px;
           background: var(--ivory); border: 1px solid var(--beige);
           text-decoration: none; font-size: 15px; font-weight: 700; line-height: 1.25; }
+  .items .or-row { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; }
+  .items .or-row .item { flex: 1; }
+  .items .or { flex: none; font-size: 12px; color: var(--taupe); }
   .items-empty { margin: 0; text-align: center; font-size: 14px; color: var(--taupe); }
 
   .dish .tt b .no { font-family: Arial, sans-serif; font-size: 12px; font-weight: 700; color: var(--olive);
@@ -179,11 +182,17 @@
       if (d.소개) body.appendChild(el('p', 'say', d.소개));
       if (!shown.length) { body.appendChild(el('p', 'items-empty', '재료 링크를 준비하고 있어요.')); }
       else {
-        var ul = el('ul', 'items');
+        var ul = el('ul', 'items'), done = {};
+        var mk = function (i) { var a = el('a', 'item', i.이름); a.href = i.링크; a.target = '_blank'; a.rel = 'sponsored noopener'; return a; };
+        // 같은 요리에서 "묶음" 숫자가 같은 재료는 "둘 중 하나": [물엿] 또는 [올리고당] 을 한 줄에. 링크 있는 것이 하나뿐이면 그 하나만
         shown.forEach(function (i) {
-          var li = el('li'), a = el('a', 'item', i.이름);
-          a.href = i.링크; a.target = '_blank'; a.rel = 'sponsored noopener';
-          li.appendChild(a); ul.appendChild(li);
+          var g = i.묶음;
+          if (g == null || g === '') { var li = el('li'); li.appendChild(mk(i)); ul.appendChild(li); return; }
+          if (done[g]) return; done[g] = true;
+          var grp = shown.filter(function (x) { return x.묶음 === g; });
+          var li2 = el('li', grp.length > 1 ? 'or-row' : null);
+          grp.forEach(function (x, k) { if (k) li2.appendChild(el('span', 'or', '또는')); li2.appendChild(mk(x)); });
+          ul.appendChild(li2);
         });
         body.appendChild(ul);
       }
