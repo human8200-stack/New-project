@@ -5,7 +5,7 @@
 //       쿠팡 링크가 비어 있거나 보이기가 꺼진 재료는 페이지에 보이지 않는다.
 //       재료의 "요리"는 요리 목록의 "요리" 이름과 똑같아야 한다.
 //       묶음: 같은 요리에서 숫자가 같은 재료끼리 "둘 중 하나"로 한 줄에 보인다 (재료 표 "또는 묶음" 칸). 없으면 따로.
-// 마지막 반영: 2026-11-02 (요리 3개, 재료 13개 중 보이기 11개, 쿠팡 링크 11개, 둘 중 하나 묶음 2개)
+// 마지막 반영: 2026-11-02 (요리 3개, 재료 14개 중 보이기 13개, 쿠팡 링크 13개, 둘 중 하나 묶음 3개)
 window.MAISON_EDEL_DISHES = [
   { 번호: 3, 요리: "마약계란",         EP: "EP.03", 영어: "Soy Marinated Eggs",      사진: "사진/작은-마약계란.jpg", 소개: "달걀 10개와 간장·물·물엿 70ml씩이면 시작할 수 있어요.", 순서: 3 },
   { 번호: 2, 요리: "보리 버섯 리조또", EP: "EP.02", 영어: "Barley Mushroom Risotto", 사진: "사진/작은-리조또.jpg",   소개: "쌀 대신 보리로, 표고버섯 향이 깊은 리조또예요.",         순서: 2 },
@@ -19,11 +19,12 @@ window.MAISON_EDEL_SHOP = [
   { 요리: "마약계란", 이름: "알룰로스", 링크: "https://link.coupang.com/a/il3Yuq8C9Q", 보이기: true, 순서: 3, 묶음: 2 },
   { 요리: "보리 버섯 리조또", 이름: "보리쌀", 링크: "https://link.coupang.com/a/il4bpUGMP6", 보이기: true, 순서: 1 },
   { 요리: "보리 버섯 리조또", 이름: "표고버섯", 링크: "https://link.coupang.com/a/il4iJkpoHc", 보이기: true, 순서: 2 },
-  { 요리: "보리 버섯 리조또", 이름: "생크림", 링크: "https://link.coupang.com/a/il4B2u4trw", 보이기: true, 순서: 3 },
-  { 요리: "보리 버섯 리조또", 이름: "파마산 치즈", 링크: "https://link.coupang.com/a/il4rg54zYY", 보이기: true, 순서: 4 },
+  { 요리: "보리 버섯 리조또", 이름: "생크림", 링크: "https://link.coupang.com/a/imxAD0C1AG", 보이기: true, 순서: 3 },
+  { 요리: "보리 버섯 리조또", 이름: "파마산 치즈", 링크: "https://link.coupang.com/a/imxgPRpYLQ", 보이기: true, 순서: 4 },
   { 요리: "카라멜 사과 케이크", 이름: "사과", 링크: "https://link.coupang.com/a/il3uyUeQLI", 보이기: true, 순서: 1 },
   { 요리: "카라멜 사과 케이크", 이름: "무염버터", 링크: "https://link.coupang.com/a/il3Muxy25Q", 보이기: true, 순서: 2 },
   { 요리: "카라멜 사과 케이크", 이름: "박력분", 링크: "https://link.coupang.com/a/il2Zk8W03E", 보이기: true, 순서: 3, 묶음: 1 },
   { 요리: "카라멜 사과 케이크", 이름: "박력 쌀가루", 링크: "https://link.coupang.com/a/il3k1Dn9YO", 보이기: true, 순서: 3, 묶음: 1 },
-  { 요리: "카라멜 사과 케이크", 이름: "설탕", 링크: "", 보이기: false, 순서: 4 }
+  { 요리: "카라멜 사과 케이크", 이름: "설탕", 링크: "https://link.coupang.com/a/imwa69tpKu", 보이기: true, 순서: 4, 묶음: 4 },
+  { 요리: "카라멜 사과 케이크", 이름: "알룰로스", 링크: "https://link.coupang.com/a/imwkMfIaXI", 보이기: true, 순서: 4, 묶음: 4 }
 ];
