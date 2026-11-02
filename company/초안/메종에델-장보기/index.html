@@ -97,6 +97,11 @@
   .items-empty { margin: 0; text-align: center; font-size: 15px; color: var(--taupe); }
   .item .slot { font-size: 12px; font-weight: 400; color: var(--taupe); }
 
+  .dish .tt b .no { font-family: Arial, sans-serif; font-size: 13px; font-weight: 700; color: var(--olive);
+                    background: var(--olive-soft); border-radius: 999px; padding: 1px 8px; margin-right: 6px; vertical-align: 2px; }
+  .dish { scroll-margin-top: 80px; }
+  .dish.flash { animation: flash 1.8s ease-out 1; }
+  @keyframes flash { 0%, 60% { box-shadow: 0 0 0 3px var(--olive), 0 6px 18px rgba(62,62,62,.07); } 100% { box-shadow: 0 6px 18px rgba(62,62,62,.07); } }
   .search { margin-top: 14px; }
   .search input { width: 100%; min-height: 48px; padding: 0 18px; border-radius: 999px; border: 1px solid var(--beige);
                   background: var(--white); color: var(--charcoal); font: inherit; font-size: 16px; outline: none; }
@@ -169,7 +174,10 @@
       var det = el('details', 'card dish'), sum = el('summary');
       var th = el('span', 'thumb');
       if (d.사진) { var img = el('img'); img.src = d.사진; img.alt = d.요리; img.loading = 'lazy'; th.appendChild(img); }
-      var tt = el('span', 'tt'); tt.appendChild(el('b', null, d.요리 + ' 장보기'));
+      var tt = el('span', 'tt'), tb = el('b');
+      if (d.번호) tb.appendChild(el('span', 'no', 'No.' + d.번호));
+      tb.appendChild(document.createTextNode(d.요리 + ' 장보기')); tt.appendChild(tb);
+      if (d.번호) det.id = 'no-' + d.번호;
       var sub = el('span', 'sub'); if (d.EP) sub.appendChild(el('span', 'ep', d.EP)); if (d.영어) { sub.appendChild(document.createTextNode(' ')); sub.appendChild(el('span', 'en', d.영어)); }
       tt.appendChild(sub);
       var cv = el('span', 'chev'); cv.setAttribute('aria-hidden', 'true'); cv.innerHTML = chev;
@@ -192,13 +200,14 @@
       // 하나를 펼치면 다른 것은 접힌다
       det.addEventListener('toggle', function () { if (det.open) cards.forEach(function (c) { if (c.el !== det) c.el.open = false; }); });
       box.appendChild(det);
-      cards.push({ el: det, text: (d.요리 + ' ' + (d.영어 || '') + ' ' + mine.map(function (i) { return i.이름; }).join(' ')).toLowerCase() });
+      cards.push({ el: det, no: String(d.번호 || ''), text: (d.요리 + ' ' + (d.영어 || '') + ' ' + mine.map(function (i) { return i.이름; }).join(' ')).toLowerCase() });
     });
 
     function draw() {
       var word = (q.value || '').trim().toLowerCase(), n = 0, hits = 0;
+      var num = (word.match(/^(?:no\.?\s*|#)?(\d+)(?:번)?$/) || [])[1]; // "2", "No.2", "#2", "2번" → 번호로 찾기
       cards.forEach(function (c) {
-        var hit = !word || c.text.indexOf(word) !== -1;
+        var hit = !word || (num ? c.no === num : c.text.indexOf(word) !== -1);
         if (hit) hits++;
         var show = hit && (word || showAll || n < FIRST);
         if (hit && !word) n++;
@@ -213,6 +222,20 @@
     q.addEventListener('input', draw);
     more.addEventListener('click', function () { showAll = true; draw(); });
     draw();
+
+    // 주소 끝 #번호 (예: …/#2) → 그 요리를 펼치고 그 자리로 내려가 잠깐 올리브색 테두리로 반짝임. 없는 번호면 첫 화면 그대로
+    function openFromHash() {
+      var m = (location.hash || '').match(/^#(?:no-?)?(\d+)$/i); if (!m) return;
+      var c = cards.filter(function (x) { return x.no === m[1]; })[0]; if (!c) return;
+      if (c.el.hidden) { q.value = ''; showAll = true; draw(); }
+      c.el.open = true;
+      setTimeout(function () {
+        c.el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        c.el.classList.remove('flash'); void c.el.offsetWidth; c.el.classList.add('flash');
+      }, 60);
+    }
+    window.addEventListener('hashchange', openFromHash);
+    openFromHash();
   })();
 </script>
 </body>
