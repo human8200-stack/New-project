@@ -1,6 +1,6 @@
 // 릴스-장면.html 을 1초 30장씩 찍어 mp4로 묶는다 (소리 없음).
 // 쓰는 법: node 녹화.js   (playwright, ffmpeg 필요)
-// 결과: 릴스-미리보기.mp4, 릴스-장면들.jpg (장면 11개 가운데 + 끝 화면, 12컷 모음)
+// 결과: 릴스-미리보기.mp4, 릴스-장면들.jpg (장면 10개 + 끝 장면 움직임, 12컷 모음)
 const { chromium } = require('playwright');
 const { spawn, execFileSync } = require('child_process');
 const path = require('path');
@@ -9,8 +9,8 @@ const fs = require('fs');
 const DIR = __dirname;
 const FPS = 30, SEC = 37.4, W = 1080, H = 1920;
 const CRF = process.env.CRF || '20';
-// 7판 장면 11개의 가운데 초 + 끝 화면(37.3초) = 12컷 (4칸 × 3줄)
-const SHOTS = [1.3, 4.3, 7.7, 11.0, 14.1, 17.8, 21.9, 25.6, 29.5, 33.0, 35.9, 37.3];
+// 8판: 장면 1~9 가운데 초 + 끝 장면(11번) 3컷 — 회장님 두 줄(33.4) · 한 모금(34.6) · 끝 화면(37.3) = 12컷 (4칸 × 3줄)
+const SHOTS = [1.3, 4.3, 7.7, 11.0, 14.1, 17.8, 21.9, 25.6, 29.5, 33.4, 34.6, 37.3];
 
 (async () => {
   const browser = await chromium.launch();

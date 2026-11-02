@@ -2,20 +2,21 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<title>회사 소개 릴스 — 장면 (코드 영상, 7판, 37.4초)</title>
+<title>회사 소개 릴스 — 장면 (코드 영상, 8판, 37.4초)</title>
 <!--
-  회사 소개 릴스 7판 (2026-11-02) — 설계: 콘티-7판.md (디자인팀)
+  회사 소개 릴스 8판 (2026-11-02) — 설계: 콘티-7판.md 6장 "끝 부분 고침안" (디자인팀)
   - 자막 문구는 아래 <script> 맨 위 CAPTIONS 한곳에만 있습니다. 바꾸면 node 녹화.js 로 다시 뽑습니다.
     (긴 줄은 화면 폭에 맞게 글씨가 저절로 줄어듭니다. 한 화면 2줄까지)
-  - 흐름 (캡션 문단 순서와 같음): 할 일 쌓임(1~4) → 마음(5) → AI 팀이 정리(6~8) → 핵심 문장(9) → 설거지(10) → 끝 식탁(11)
+  - 흐름 (캡션 문단 순서와 같음): 할 일 쌓임(1~4) → 마음(5) → AI 팀이 정리(6~8) → 핵심 문장(9) → 끝 장면(11: 그 사람이 창가에서 차 한 모금). 설거지(10)는 8판에서 뺌
   - 장면 1~5는 한 책상(#sPile) 안에서 이어짐. 물건이 사라지지 않고 계속 쌓이다가 5번에서 흐려짐.
   - 조직도: 나 → 사장(AI)(옆에 사장실·기획팀) → 본부 4개 → 본부별 팀 이름. 암웨이사업팀·객원멤버는 넣지 않음. 숫자·회사 이름 없음.
   - 사람은 뒷모습과 손만. 얼굴 없음. 사람 이름·날짜·제품 이름·로고 없음 (달력은 칸만, 숫자 없음).
-  - 장면 바꿈 길이: section 의 data-f(초, 다음 장면으로 넘어갈 때). 없으면 0.4. 9→10 바로 컷(0), 10→11 은 0.6.
-  - 화면이 멈추지 않게: 모든 장면이 천천히 다가가고(조금씩 커짐), 장면마다 계속 움직이는 것(깜빡임·거품·김)이 있음.
+  - 장면 바꿈 길이: section 의 data-f(초, 다음 장면으로 넘어갈 때). 없으면 0.4. 9→11 은 0.8 (천천히 겹쳐 바뀜).
+  - 화면이 멈추지 않게: 모든 장면이 천천히 다가가고(조금씩 커짐), 장면마다 계속 움직이는 것(깜빡임·하트·김·햇살)이 있음.
   - 글꼴: Pretendard (SIL Open Font License 1.1, 상업용 무료) — fonts/ 폴더
   - 1080×1920, 37.4초. 브라우저에서 열면 그대로 재생됨. 녹화는 녹화.js 가 seek(ms)로 한 장씩 찍음.
-  - 이전 판: 릴스-장면-6판.html / 릴스-미리보기-6판.mp4 / 릴스-게시용-6판.mp4 (35.7초)
+  - 이전 판: 릴스-장면-7판.html / 릴스-미리보기-7판.mp4 / 릴스-게시용-7판.mp4 (37.4초, 설거지 있음)
+           릴스-장면-6판.html / 릴스-미리보기-6판.mp4 / 릴스-게시용-6판.mp4 (35.7초)
 -->
 <style>
 @font-face { font-family: "Pretendard"; font-weight: 500; src: url("fonts/Pretendard-Medium.woff2") format("woff2"); }
@@ -180,19 +181,6 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
   75%{transform:translate(420px,205px)}80%{transform:translate(500px,300px)}100%{transform:translate(560px,300px)}}
 .fh{position:absolute;width:44px;height:44px;opacity:0;animation:floatUp 3.2s ease-in-out var(--d) infinite both}
 
-/* ---------- 장면 10: 설거지 ---------- */
-#sDish{background:linear-gradient(#F3EBDF 0,#F3EBDF 1200px,var(--wood) 1200px,#A97C59 1920px)}
-#sDish .edge{position:absolute;left:0;right:0;top:1200px;height:16px;background:#D3AA84}
-#sink{position:absolute;left:190px;top:1150px;width:700px;height:330px;border-radius:40px;background:#DCD3C8;border:14px solid #EDE4D8;
-  box-shadow:inset 0 18px 30px rgba(74,52,40,.12)}
-#dishIn{transform-box:view-box;animation:dishIn .4s cubic-bezier(.2,.8,.3,1) 31.8s both}
-@keyframes dishIn{from{opacity:0;transform:translateX(700px)}to{opacity:1;transform:none}}
-#scrubG{transform-box:view-box;animation:scrub .45s ease-in-out 32.2s infinite both}
-@keyframes scrub{0%,100%{transform:translateX(0)}50%{transform:translateX(-50px)}}
-.bub{position:absolute;border-radius:50%;background:rgba(255,255,255,.95);border:4px solid #D3E2EA;opacity:0;
-  animation:bubUp 2s ease-out var(--d) infinite both}
-@keyframes bubUp{0%{opacity:0;transform:translateY(0) scale(.6)}20%{opacity:.95;transform:translateY(-40px) scale(1)}100%{opacity:0;transform:translateY(-320px) scale(1.1)}}
-
 /* ---------- 장면 11: 끝 식탁 ---------- */
 #s5{background:radial-gradient(900px 700px at 180px 380px,#FFF6E6 0,rgba(255,246,230,0) 70%),linear-gradient(#F3E6D4 0,#EEDDC7 1120px,#C69A72 1120px,#B3845E 1920px)}
 #s5 .runner{position:absolute;left:150px;right:150px;top:1120px;bottom:0;background:#F6EEE2;box-shadow:inset 0 0 0 10px rgba(201,120,90,.15)}
@@ -201,9 +189,36 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
 .cup{position:absolute;animation:cupIn .6s cubic-bezier(.2,.8,.3,1) var(--d) both}
 .steam{animation:steam 2.4s ease-in-out var(--d) infinite both}
 @keyframes steam{0%{opacity:0;transform:translateY(20px)}35%{opacity:.75}100%{opacity:0;transform:translateY(-90px)}}
-#handleRow{position:absolute;left:0;right:0;top:690px;text-align:center;z-index:20}
+/* 창문 (벽 왼쪽 아래, 빛이 들어오는 곳) */
+#win{position:absolute;left:60px;top:870px;width:320px;height:250px;border-radius:12px;background:#FFF6E6;border:14px solid var(--cream2);
+  box-shadow:0 0 0 3px #E2D2BC,inset 0 0 0 3px #E2D2BC,0 6px 14px rgba(74,52,40,.10)}
+#win::before{content:"";position:absolute;left:0;right:0;top:50%;height:12px;margin-top:-6px;background:var(--cream2);box-shadow:0 0 0 2px #E2D2BC}
+#win::after{content:"";position:absolute;top:0;bottom:0;left:50%;width:12px;margin-left:-6px;background:var(--cream2);box-shadow:0 0 0 2px #E2D2BC}
+/* 햇살 2줄 (창문에서 사람 쪽으로 비스듬히) */
+.sun{position:absolute;inset:0;background:rgba(255,246,230,.45);mix-blend-mode:screen;
+  animation:fadeIn 1.2s ease-in-out 31.6s both, sunBreath 4s ease-in-out 32.8s infinite}
+@keyframes sunBreath{0%,100%{opacity:1}50%{opacity:.7}}
+#saucer{position:absolute;left:565px;top:1690px;width:170px;height:44px}
+/* 차 마시는 사람 (뒷모습, 얼굴 없음). svg 좌표 기준 */
+#sipper{position:absolute;left:120px;top:1232px;width:608px;height:688px;overflow:visible}
+#sipBody{transform-box:view-box;transform-origin:300px 860px;animation:exhale 1s ease-out 31.8s both}
+@keyframes exhale{from{transform:translateY(-16px) scaleY(1.03)}to{transform:none}}
+#sipHead{transform-box:view-box;transform-origin:300px 420px;animation:headSip 1.3s ease-in-out 34.3s both}
+@keyframes headSip{0%{transform:none}53.85%{transform:rotate(4deg)}100%{transform:none}}
+/* 팔: 위팔(어깨 435,540 기준) → 아래팔(팔꿈치 468.8,686.1 기준) → 손·찻잔(손 625,578 기준, 찻잔은 늘 바로 서게)
+   33.4 들어 올림(0.9) → 34.3 한 모금(0.7, 찻잔 -12°) → 35.0 내려놓기(0.8) → 35.8 받침에 톡 */
+#armUp{transform-box:view-box;transform-origin:435px 540px;animation:armLift 2.4s 33.4s both}
+@keyframes armLift{0%{transform:none;animation-timing-function:ease-in-out}37.5%,66.667%{transform:rotate(-103.5deg);animation-timing-function:ease-in-out}100%{transform:none}}
+#armFore{transform-box:view-box;transform-origin:468.8px 686.1px;animation:foreLift 2.4s 33.4s both}
+@keyframes foreLift{0%{transform:none;animation-timing-function:ease-in-out}37.5%,66.667%{transform:rotate(-6deg);animation-timing-function:ease-in-out}100%{transform:none}}
+#cupKeep{transform-box:view-box;transform-origin:625px 578px;animation:cupKeep 2.4s 33.4s both}
+@keyframes cupKeep{0%{transform:none;animation-timing-function:ease-in-out}37.5%{transform:rotate(109.6deg);animation-timing-function:ease-in-out}
+  66.667%{transform:rotate(97.6deg);animation-timing-function:ease-in-out}100%{transform:none}}
+#cupSettle{transform-box:view-box;animation:settle .25s ease-out 35.8s both}
+@keyframes settle{0%{transform:translateY(-6px)}60%{transform:translateY(2px)}100%{transform:none}}
+#handleRow{position:absolute;left:0;right:0;top:740px;text-align:center;z-index:20}
 #handle{display:inline-block;height:96px;line-height:88px;padding:0 44px;border-radius:48px;background:#FFFBF4;border:4px solid var(--terra);
-  font-weight:800;font-size:56px;letter-spacing:-0.01em;color:var(--brown);animation:handleIn .5s ease-out 35.8s both}
+  font-weight:800;font-size:56px;letter-spacing:-0.01em;color:var(--brown);animation:handleIn .5s ease-out 35.3s both}
 @keyframes handleIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
 </style>
 </head>
@@ -231,12 +246,20 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
           </div>
         </div>
       </div>
-      <!-- 2번: A4 3장 (1장째에 손으로 옮겨 적고, 2·3장째가 툭툭 얹힘) -->
+      <!-- 2번: A4 3장 (1장째에 손으로 옮겨 적고, 2·3장째가 툭툭 얹힘). 펜 든 손은 종이 3장보다 위 층 (손이 비켜나는 동안 새 종이 밑에 비쳐 떠 보이지 않게) -->
       <div class="a4w" style="left:660px;top:1300px;--r:-4deg">
         <div class="a4" style="animation:cupIn .5s cubic-bezier(.2,.8,.3,1) 3.6s both">
           <svg class="abs" style="left:0;top:0;overflow:visible" width="300" height="424" viewBox="0 0 545 770">
             <path class="ink" pathLength="900" style="--d:3.9s;--t:.5s" d="M60 200 c35 -30 70 30 105 0 s70 -30 105 0 s70 30 105 0 s70 -30 100 0"/>
             <path class="ink" pathLength="900" style="--d:4.5s;--t:.5s" d="M60 290 c35 -30 70 30 105 0 s70 -30 105 0 s70 30 130 0"/>
+          </svg>
+        </div>
+      </div>
+      <div class="a4w" style="left:680px;top:1280px;--r:3deg"><div class="a4" id="a4b" style="animation:paperDrop .35s ease-out 5.0s both"></div></div>
+      <div class="a4w" style="left:650px;top:1265px;--r:-2deg"><div class="a4" id="a4c" style="animation:paperDrop .35s ease-out 5.4s both"></div></div>
+      <div class="a4w" style="left:660px;top:1300px;--r:-4deg">
+        <div class="abs" style="inset:0;animation:cupIn .5s cubic-bezier(.2,.8,.3,1) 3.6s both">
+          <svg class="abs" style="left:0;top:0;overflow:visible" width="300" height="424" viewBox="0 0 545 770">
             <g id="a4Away"><g id="a4Pen">
               <g transform="rotate(35)"><rect x="-7" y="-170" width="14" height="154" rx="6" fill="#7A5440"/><path d="M-7 -16 L7 -16 L0 0 Z" fill="#4A3428"/></g>
               <ellipse cx="62" cy="-78" rx="58" ry="46" fill="#E5C09D"/>
@@ -245,8 +268,6 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
           </svg>
         </div>
       </div>
-      <div class="a4w" style="left:680px;top:1280px;--r:3deg"><div class="a4" id="a4b" style="animation:paperDrop .35s ease-out 5.0s both"></div></div>
-      <div class="a4w" style="left:650px;top:1265px;--r:-2deg"><div class="a4" id="a4c" style="animation:paperDrop .35s ease-out 5.4s both"></div></div>
       <div id="notes2"></div>
       <!-- 4번: 뒷모습 사람 (얼굴 없음) -->
       <svg id="figure" viewBox="0 0 600 760">
@@ -306,8 +327,8 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
     <div id="pops"></div>
   </section>
 
-  <!-- 장면 9 (27.4~31.6초): 손글씨 카드 + 핵심 문장. 다음 장면으로 바로 컷 -->
-  <section class="scene" id="sCore" data-s="27.4" data-e="31.6" data-f="0">
+  <!-- 장면 9 (27.4~31.6초): 손글씨 카드 + 핵심 문장. 다음 장면으로 0.8초 천천히 겹쳐 바뀜 (31.2~32.0) -->
+  <section class="scene" id="sCore" data-s="27.4" data-e="31.6" data-f="0.8">
     <div id="floaters"></div>
     <div id="cardWrap">
       <svg width="680" height="420" viewBox="0 0 680 420" style="overflow:visible">
@@ -325,64 +346,64 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
     </div>
   </section>
 
-  <!-- 장면 10 (31.6~34.4초): 설거지 — 손과 수세미, 거품 -->
-  <section class="scene" id="sDish" data-s="31.6" data-e="34.4" data-f="0.6">
-    <svg class="abs" style="left:0;top:0" width="1080" height="1920" viewBox="0 0 1080 1920">
-      <path d="M470 1160 V930 H610 V985" fill="none" stroke="#BFB3A5" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
-      <rect x="440" y="1150" width="60" height="24" rx="8" fill="#BFB3A5"/>
-    </svg>
-    <div class="edge"></div>
-    <div id="sink"></div>
-    <svg class="abs" style="left:0;top:0;overflow:visible" width="1080" height="1920" viewBox="0 0 1080 1920">
-      <g id="plates"></g>
-      <g id="dishIn"><g id="scrubG">
-        <rect x="415" y="1288" width="110" height="70" rx="18" fill="#D9A64E"/>
-        <rect x="415" y="1288" width="110" height="16" rx="8" fill="#E9BF6E"/>
-        <rect x="488" y="1276" width="140" height="96" rx="46" fill="#E8C3A0"/>
-        <ellipse cx="500" cy="1286" rx="40" ry="17" fill="#E8C3A0"/>
-        <g transform="rotate(-8 610 1324)"><rect x="606" y="1270" width="900" height="108" rx="30" fill="#8FA58A"/>
-          <rect x="606" y="1270" width="34" height="108" rx="14" fill="#7E9479"/></g>
-      </g></g>
-    </svg>
-    <div id="bubbles"></div>
-  </section>
-
-  <!-- 장면 11 (34.4~37.4초): 끝 식탁 — 마지막 문장 + 본계정 이름. 그대로 멈춘 채 김만 움직임 -->
-  <section class="scene" id="s5" data-s="34.4" data-e="37.4">
+  <!-- 장면 11 (31.6~37.4초): 끝 장면 — 장면 4의 그 사람(뒷모습)이 창가 빛 아래 차 한 모금. 회장님 두 줄 → 다음 편 약속 → 본계정 이름 -->
+  <section class="scene" id="s5" data-s="31.6" data-e="37.4">
     <div id="table">
       <div class="edge"></div>
       <div class="runner"></div>
-      <svg class="abs" style="left:110px;top:900px" width="160" height="260" viewBox="0 0 160 260">
+      <div id="win"></div>
+      <svg class="abs" style="left:840px;top:900px" width="160" height="260" viewBox="0 0 160 260">
         <path d="M80 150 C70 100 60 70 40 40" stroke="#7E9A78" stroke-width="7" fill="none"/>
         <path d="M80 150 C85 95 100 60 120 30" stroke="#7E9A78" stroke-width="7" fill="none"/>
         <circle cx="40" cy="38" r="22" fill="#F2C7A5"/><circle cx="120" cy="28" r="20" fill="#F7DDB0"/>
         <ellipse cx="62" cy="96" rx="16" ry="8" fill="#8FA58A" transform="rotate(-30 62 96)"/>
         <path d="M50 150 h60 l-8 100 h-44 z" fill="#E3EBDD" stroke="#B7C7B0" stroke-width="4"/>
       </svg>
-      <svg class="cup" style="--d:34.4s;left:180px;top:1030px" width="340" height="330" viewBox="0 0 340 330">
-        <path class="steam" style="--d:34.8s" d="M140 120 c-24 -30 24 -50 0 -80" stroke="#FFFFFF" stroke-width="10" fill="none" stroke-linecap="round" opacity=".7"/>
-        <path class="steam" style="--d:35.6s" d="M190 120 c-24 -30 24 -50 0 -80" stroke="#FFFFFF" stroke-width="10" fill="none" stroke-linecap="round" opacity=".7"/>
-        <ellipse cx="170" cy="285" rx="150" ry="36" fill="#EDE3D6" stroke="#D5C4B0" stroke-width="5"/>
-        <path d="M270 175 c55 0 55 70 0 70" stroke="#FBF7F1" stroke-width="20" fill="none"/>
-        <path d="M60 150 h220 c0 80 -40 130 -110 130 c-70 0 -110 -50 -110 -130 z" fill="#FBF7F1"/>
-        <path d="M66 195 h208 c-3 12 -7 22 -11 30 h-186 c-5 -8 -8 -18 -11 -30 z" fill="#8FA58A"/>
-        <ellipse cx="170" cy="150" rx="110" ry="26" fill="#FBF7F1"/>
-        <ellipse cx="170" cy="152" rx="94" ry="18" fill="#B8733F"/>
-      </svg>
-      <svg class="cup" style="--d:34.55s;left:570px;top:1080px" width="340" height="330" viewBox="0 0 340 330">
-        <path class="steam" style="--d:35.2s" d="M145 120 c-24 -30 24 -50 0 -80" stroke="#FFFFFF" stroke-width="10" fill="none" stroke-linecap="round" opacity=".7"/>
-        <path class="steam" style="--d:36.0s" d="M195 120 c-24 -30 24 -50 0 -80" stroke="#FFFFFF" stroke-width="10" fill="none" stroke-linecap="round" opacity=".7"/>
-        <ellipse cx="170" cy="285" rx="150" ry="36" fill="#EDE3D6" stroke="#D5C4B0" stroke-width="5"/>
-        <path d="M70 175 c-55 0 -55 70 0 70" stroke="#FBF7F1" stroke-width="20" fill="none"/>
-        <path d="M60 150 h220 c0 80 -40 130 -110 130 c-70 0 -110 -50 -110 -130 z" fill="#FBF7F1"/>
-        <path d="M66 195 h208 c-3 12 -7 22 -11 30 h-186 c-5 -8 -8 -18 -11 -30 z" fill="#D9A64E"/>
-        <ellipse cx="170" cy="150" rx="110" ry="26" fill="#FBF7F1"/>
-        <ellipse cx="170" cy="152" rx="94" ry="18" fill="#B8733F"/>
-      </svg>
-      <svg class="cup" style="--d:34.7s;left:400px;top:1400px" width="280" height="120" viewBox="0 0 280 120">
+      <svg class="cup" style="--d:31.8s;left:760px;top:1400px" width="280" height="120" viewBox="0 0 280 120">
         <ellipse cx="140" cy="70" rx="130" ry="40" fill="#FFFFFF" stroke="#E2D4C2" stroke-width="5"/>
         <ellipse cx="110" cy="60" rx="42" ry="20" fill="#D9A15F"/><ellipse cx="170" cy="70" rx="42" ry="20" fill="#C98B4E"/>
         <circle cx="100" cy="56" r="4" fill="#7A5440"/><circle cx="122" cy="62" r="4" fill="#7A5440"/><circle cx="178" cy="66" r="4" fill="#7A5440"/>
+      </svg>
+      <div class="sun" style="clip-path:polygon(80px 1110px,400px 1110px,760px 1920px,300px 1920px)"></div>
+      <div class="sun" style="clip-path:polygon(430px 1110px,590px 1110px,1000px 1920px,790px 1920px)"></div>
+      <svg id="saucer" viewBox="0 0 170 44"><ellipse cx="85" cy="22" rx="80" ry="19" fill="#EDE3D6" stroke="#D5C4B0" stroke-width="4"/></svg>
+      <!-- 사람: 층 순서 (아래→위) 팔·찻잔 → 몸 → 머리. 찻잔이 입에 오면 머리 오른쪽에 반쯤 가려짐 -->
+      <svg id="sipper" viewBox="0 0 760 860">
+        <defs>
+          <!-- 창가 빛 테두리: 모양에서 오른쪽 아래로 민 같은 모양을 빼서, 왼쪽 위만 얇게 남김 (끝이 가늘어짐) -->
+          <mask id="headRim" maskUnits="userSpaceOnUse" x="0" y="0" width="760" height="860"><circle cx="300" cy="290" r="125" fill="#fff"/><circle cx="310" cy="300" r="125" fill="#000"/></mask>
+          <mask id="bodyRim" maskUnits="userSpaceOnUse" x="0" y="0" width="760" height="860">
+            <path d="M40 860 L40 700 C40 530 150 450 300 450 C450 450 560 530 560 700 L560 860 Z" fill="#fff"/>
+            <path d="M40 860 L40 700 C40 530 150 450 300 450 C450 450 560 530 560 700 L560 860 Z" fill="#000" transform="translate(11 9)"/>
+            <rect x="290" y="0" width="470" height="860" fill="#000"/></mask>
+        </defs>
+        <g id="armUp">
+          <path d="M435 540 L468.8 686.1" stroke="#8C6B57" stroke-width="64" stroke-linecap="round"/>
+          <g id="armFore">
+            <path d="M468.8 686.1 L625 578" stroke="#8C6B57" stroke-width="58" stroke-linecap="round"/>
+            <g id="cupKeep"><g id="cupSettle">
+              <g transform="translate(592.6 485.9) scale(.42)">
+                <path class="steam" style="--d:32.0s" d="M140 120 c-24 -30 24 -50 0 -80" stroke="#FFFFFF" stroke-width="10" fill="none" stroke-linecap="round" opacity=".7"/>
+                <path class="steam" style="--d:32.6s" d="M190 120 c-24 -30 24 -50 0 -80" stroke="#FFFFFF" stroke-width="10" fill="none" stroke-linecap="round" opacity=".7"/>
+                <path d="M270 175 c55 0 55 70 0 70" stroke="#FBF7F1" stroke-width="20" fill="none"/>
+                <path d="M60 150 h220 c0 80 -40 130 -110 130 c-70 0 -110 -50 -110 -130 z" fill="#FBF7F1"/>
+                <path d="M66 195 h208 c-3 12 -7 22 -11 30 h-186 c-5 -8 -8 -18 -11 -30 z" fill="#8FA58A"/>
+                <ellipse cx="170" cy="150" rx="110" ry="26" fill="#FBF7F1"/>
+                <ellipse cx="170" cy="152" rx="94" ry="18" fill="#B8733F"/>
+              </g>
+              <ellipse cx="628" cy="574" rx="30" ry="24" fill="#D8B597" transform="rotate(-20 628 574)"/>
+            </g></g>
+          </g>
+        </g>
+        <g id="sipBody">
+          <path d="M40 860 L40 700 C40 530 150 450 300 450 C450 450 560 530 560 700 L560 860 Z" fill="#8C6B57"/>
+          <rect x="0" y="400" width="400" height="460" fill="#F2C7A5" fill-opacity=".55" mask="url(#bodyRim)"/>
+          <g id="sipHead">
+            <rect x="262" y="370" width="76" height="100" rx="20" fill="#7B5D4B"/>
+            <circle cx="300" cy="290" r="125" fill="#5E4537"/>
+            <rect x="170" y="160" width="260" height="260" fill="#F2C7A5" fill-opacity=".55" mask="url(#headRim)"/>
+          </g>
+        </g>
       </svg>
     </div>
     <div id="handleRow"><span id="handle">@ssoll0820</span></div>
@@ -391,9 +412,9 @@ body{font-family:"Pretendard",sans-serif;color:var(--brown);overflow:hidden}
 </div>
 <script>
 /* ================================================================
-   자막 — 문구는 여기 한곳에만 있습니다 (7판)
+   자막 — 문구는 여기 한곳에만 있습니다 (8판)
    lines: 한 화면 2줄까지 / in·out: 나타나는·사라지는 초 / stagger: 줄마다 늦게 나오기(초)
-   top: 자막 높이(px) / size: 글씨 크기 고정(px) / color2: 둘째 줄 색
+   top: 자막 높이(px) / size: 글씨 크기 고정(px) / color: 묶음 전체 글자 색 / color2: 둘째 줄 색
    ================================================================ */
 const CAPTIONS = [
   { scene: "sPile", lines: ["할 일이 많아서였어요"],                                          in: 0.3,  out: 2.4, size: 96 },
@@ -405,8 +426,8 @@ const CAPTIONS = [
   { scene: "s2",    lines: ["레시피를 골라", "A4 한 장으로 뽑는 일"],                            in: 20.2, out: 23.5 },
   { scene: "s3",    lines: ["관리해 드릴 때와 특별한 날", "먼저 짚어 주는 일"],                   in: 24.0, stagger: 0.8, out: 27.1 },
   { scene: "sCore", lines: ["나머지는 우리가 할게요", "당신은 마음만 전해 주세요"],              in: 27.6, stagger: 0.9, top: 600 },
-  { scene: "sDish", lines: ["제일 많이 헤매는 건 아직 저예요", "설거지는 AI도 아직 못 해요"],     in: 31.7, stagger: 0.5, out: 34.1, color2: "var(--terra)" },
-  { scene: "s5",    lines: ["어떻게 만들었는지", "하나씩 보여 드릴게요"],                        in: 34.6, stagger: 0.4, top: 400 },
+  { scene: "s5",    lines: ["AI가 할 일은 AI가", "사람이 할 일은 사람이"],                       in: 32.1, stagger: 0.5, top: 280, color2: "var(--terra)" },
+  { scene: "s5",    lines: ["어떻게 만들었는지", "하나씩 보여 드릴게요"],                        in: 34.6, stagger: 0.35, top: 540, size: 64, color: "var(--brown2)" },
 ];
 const TOTAL = 37400;
 const MAX_W = 980;
@@ -418,6 +439,7 @@ CAPTIONS.forEach(c => {
   el.className = "cap";
   if (c.top) el.style.top = c.top + "px";
   if (c.size) el.dataset.size = c.size;
+  if (c.color) el.style.color = c.color;
   const st = c.stagger || 0, dur = st ? 0.7 : 0.5;
   el.innerHTML = c.lines.map((l,i)=>{
     const col = (i===1 && c.color2) ? `color:${c.color2};` : "";
@@ -546,15 +568,6 @@ function calendar(w, marks, sw, anim){
 (function(){
   const xs = [[150,1500,22.0],[880,1550,22.6],[300,1650,23.3],[760,1720,23.9],[520,1700,24.5],[200,1750,25.1],[900,1600,25.7]];
   $("floaters").innerHTML = xs.map(([x,y,d])=>`<svg class="fh" style="left:${x}px;top:${y}px;--d:${(d+5.8).toFixed(1)}s" viewBox="0 0 120 120">${ICON.heart("#E3A58A")}</svg>`).join("");
-})();
-
-/* 장면 10: 비뚤게 쌓인 접시 4장 + 거품 */
-(function(){
-  const rot = [-8,4,-5,7];
-  $("plates").innerHTML = rot.map((r,i)=>{ const cy = 1420 - i*26;
-    return `<ellipse cx="330" cy="${cy}" rx="120" ry="30" fill="#FFFFFF" stroke="#E2D4C2" stroke-width="5" transform="rotate(${r} 330 ${cy})"/>`; }).join("");
-  const b = [[300,1290,44],[420,1260,30],[560,1300,56],[380,1330,36],[650,1270,40],[250,1350,32],[500,1240,60],[720,1320,34]];
-  $("bubbles").innerHTML = b.map(([x,y,s],i)=>`<div class="bub" style="left:${x}px;top:${y}px;width:${s}px;height:${s}px;--d:${(31.9+i*0.25).toFixed(2)}s"></div>`).join("");
 })();
 
 /* 시간 맞추기: 장면마다 천천히 다가가서(커짐) 멈춘 화면이 없게. 바꿈 길이는 data-f (없으면 0.4) */
