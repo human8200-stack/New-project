@@ -63,7 +63,7 @@
   .card { background: var(--white); border-radius: 28px; box-shadow: 0 6px 18px rgba(62,62,62,.07); }
   .stack { display: grid; gap: 14px; margin-top: 16px; }
 
-  /* 요리별 장보기 */
+  /* 요리별 재료 */
   .shop-head { text-align: center; margin-top: 14px; }
   .shop-head h2 { font-size: 20px; margin: 0; }
   .shop-head .en { color: var(--taupe); font-size: 15px; margin: 0; }
@@ -128,11 +128,11 @@
     <p class="ai">영상은 AI, 레시피는 진짜</p>
   </div>
 
-  <!-- 요리별 장보기 (페이지의 중심, 쿠팡 파트너스 링크가 있는 칸)
+  <!-- 요리별 재료 (페이지의 중심, 쿠팡 파트너스 링크가 있는 칸)
        요리 블록은 장보기-재료.js 의 요리 목록에서 저절로 만들어진다 (최신 요리가 맨 위) -->
   <section aria-labelledby="shop-title">
     <div class="shop-head">
-      <h2 id="shop-title">🌿 요리별 장보기</h2>
+      <h2 id="shop-title">🌿 요리별 재료</h2>
       <p class="en">From my kitchen to your table</p>
     </div>
     <div class="search" id="search" hidden>
@@ -169,7 +169,7 @@
       if (d.사진) { var img = el('img'); img.src = d.사진; img.alt = d.요리; img.loading = 'lazy'; th.appendChild(img); }
       var tt = el('span', 'tt'), tb = el('b');
       if (d.번호) tb.appendChild(el('span', 'no', 'No.' + d.번호));
-      tb.appendChild(document.createTextNode(d.요리 + ' 장보기')); tt.appendChild(tb);
+      tb.appendChild(document.createTextNode(d.요리 + ' 재료')); tt.appendChild(tb);
       if (d.번호) det.id = 'no-' + d.번호;
       var sub = el('span', 'sub'); if (d.EP) sub.appendChild(el('span', 'ep', d.EP)); if (d.영어) { sub.appendChild(document.createTextNode(' ')); sub.appendChild(el('span', 'en', d.영어)); }
       tt.appendChild(sub);
