@@ -1,15 +1,16 @@
 // 릴스-장면.html 을 1초 30장씩 찍어 mp4로 묶는다 (소리 없음).
 // 쓰는 법: node 녹화.js   (playwright, ffmpeg 필요)
-// 결과: 릴스-미리보기.mp4, 릴스-장면들.jpg (6컷 모음)
+// 결과: 릴스-미리보기.mp4, 릴스-장면들.jpg (장면 11개 가운데 + 끝 화면, 12컷 모음)
 const { chromium } = require('playwright');
 const { spawn, execFileSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
 const DIR = __dirname;
-const FPS = 30, SEC = 35.7, W = 1080, H = 1920;
+const FPS = 30, SEC = 37.4, W = 1080, H = 1920;
 const CRF = process.env.CRF || '20';
-const SHOTS = [2.8, 0, 8.6, 14.2, 20.4, 29.8, 34.5]; // 대표 컷 6장: 쪽지·조직도·레시피(A4)·고객 관리·예고·식탁 (두 번째 값은 안 씀)
+// 7판 장면 11개의 가운데 초 + 끝 화면(37.3초) = 12컷 (4칸 × 3줄)
+const SHOTS = [1.3, 4.3, 7.7, 11.0, 14.1, 17.8, 21.9, 25.6, 29.5, 33.0, 35.9, 37.3];
 
 (async () => {
   const browser = await chromium.launch();
@@ -36,9 +37,9 @@ const SHOTS = [2.8, 0, 8.6, 14.2, 20.4, 29.8, 34.5]; // 대표 컷 6장: 쪽지�
   ff.stdin.end();
   await new Promise((r) => ff.on('close', r));
 
-  // 6컷 모음
+  // 12컷 모음
   const tmp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'reel-'));
-  const picks = [SHOTS[0], ...SHOTS.slice(2)];
+  const picks = SHOTS;
   const files = [];
   for (let i = 0; i < picks.length; i++) {
     await page.evaluate((ms) => window.seek(ms), picks[i] * 1000);
@@ -50,7 +51,8 @@ const SHOTS = [2.8, 0, 8.6, 14.2, 20.4, 29.8, 34.5]; // 대표 컷 6장: 쪽지�
   const args = ['-y', '-loglevel', 'error'];
   files.forEach((f) => args.push('-i', f));
   const fc = files.map((_, i) => `[${i}:v]scale=360:640[v${i}]`).join(';') + ';' +
-    files.map((_, i) => `[v${i}]`).join('') + `xstack=inputs=6:layout=0_0|w0_0|w0+w1_0|0_h0|w0_h0|w0+w1_h0[o]`;
+    files.map((_, i) => `[v${i}]`).join('') + `xstack=inputs=${files.length}:layout=` +
+    files.map((_, i) => `${(i % 4) * 360}_${Math.floor(i / 4) * 640}`).join('|') + '[o]';
   args.push('-filter_complex', fc, '-map', '[o]', '-q:v', '3', path.join(DIR, '릴스-장면들.jpg'));
   execFileSync('ffmpeg', args);
   console.log('끝:', out, (fs.statSync(out).size / 1e6).toFixed(1) + 'MB');
