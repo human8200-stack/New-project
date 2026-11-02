@@ -51,9 +51,6 @@
   .head .name { flex: 1; }
   .head .name b { display: block; font-size: 21px; line-height: 1.25; }
   .head .name span { font-size: 14px; color: var(--taupe); }
-  .ig { flex: none; width: 48px; height: 48px; border-radius: 50%; background: var(--white);
-        border: 1px solid var(--beige); display: flex; align-items: center; justify-content: center; color: var(--charcoal); }
-  .ig svg { width: 22px; height: 22px; }
 
   .intro { text-align: center; padding: 18px 0 6px; }
   .intro p { margin: 0; }
@@ -65,14 +62,12 @@
   .card { background: var(--white); border-radius: 28px; box-shadow: 0 6px 18px rgba(62,62,62,.07); }
   .stack { display: grid; gap: 14px; margin-top: 16px; }
 
-
-  /* 4. 요리별 장보기 */
+  /* 요리별 장보기 */
   .shop-head { text-align: center; margin-top: 14px; }
   .shop-head h2 { font-size: 24px; margin: 0; }
   .shop-head .en { color: var(--taupe); font-size: 18px; margin: 0; }
 
-  /* 사진이 큰 카드: 사진 위, 글 아래 */
-  /* 요리 블록: 위 버튼과 같은 알약 모양 (왼쪽 동그란 작은 사진 + 가운데 요리 이름 + 오른쪽 ⌄), 누르면 아래로 재료 버튼이 펼쳐짐 */
+  /* 요리 블록: 알약 모양 (왼쪽 동그란 작은 사진 + 가운데 요리 이름 + 오른쪽 ⌄), 누르면 아래로 재료 버튼이 펼쳐짐 */
   .dish { overflow: hidden; border-radius: 38px; }
   .dish[open] { border-radius: 28px; }
   .dish summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px;
@@ -101,14 +96,8 @@
   .items-empty { margin: 0; text-align: center; font-size: 15px; color: var(--taupe); }
   .item .slot { font-size: 12px; font-weight: 400; color: var(--taupe); }
 
-  .foot { text-align: center; margin-top: 28px; font-size: 15px; color: var(--taupe); }
-  .foot p { margin: 0; }
-  .foot .yt { margin-top: 10px; }
-  .foot .yt a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border: 1px solid var(--beige);
-                border-radius: 999px; background: var(--white); color: var(--taupe); font-size: 14px; text-decoration: none; }
-  .foot .en { font-size: 20px; color: var(--charcoal); margin-top: 6px; }
   .preview { margin-top: 22px; font-size: 13px; color: var(--taupe); text-align: center; border-top: 1px dashed var(--beige); padding-top: 12px; }
-  @media (max-width: 340px) { .items { grid-template-columns: 1fr; } .pill .tx { padding-right: 8px; } }
+  @media (max-width: 340px) { .items { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -122,9 +111,6 @@
   <header class="head">
     <div class="mark en" aria-hidden="true">ME</div>
     <div class="name"><b>Maison Edel</b><span>메종 에델 · 에델의 식탁</span></div>
-    <a class="ig" href="https://www.instagram.com/maison_edel_" target="_blank" rel="noopener" aria-label="인스타그램">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1" fill="currentColor"/></svg>
-    </a>
   </header>
 
   <div class="intro">
@@ -171,12 +157,6 @@
     </div>
   </section>
 
-  <footer class="foot">
-    <p>레시피는 인스타 @maison_edel_ 게시글에 있어요.</p>
-    <!-- 유튜브 링크: 회장님이 빼라고 하시면 아래 한 줄만 지운다 -->
-    <p class="yt"><a href="https://youtube.com/@maison_edel" target="_blank" rel="noopener">유튜브 @maison_edel</a></p>
-    <p class="en">From my kitchen to your table, with love.</p>
-  </footer>
 
   <p class="preview">미리보기 · 아직 공개 전이에요</p>
 </main>
