@@ -1,4 +1,6 @@
-# 휴대폰 결재함 (세컨드윈드 결재함)
+# 휴대폰 결재함 (세컨드웨이브 결재함)
+
+> 2026-11-05 회사 이름 변경으로 `index.html` 글자를 고침. **지금 열리는 주소의 페이지는 아직 옛 이름** — 다시 publish(배포)는 결재 후.
 
 - 주소: https://claude.ai/artifact/G476MWhv9YByXAoxgkjExj
 - 페이지 파일: `company/결재함-앱/index.html` (고칠 때 같은 파일로 다시 publish → 주소 그대로)

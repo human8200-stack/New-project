@@ -1,6 +1,6 @@
-# 세컨드윈드 SECOND WIND 🏃‍♀️💨
+# 세컨드웨이브 SECOND WAVE 🌊
 
-> 숨이 턱까지 찬 뒤에 찾아오는 두 번째 바람.
+> 지쳐 멈춘 듯할 때 다시 밀려오는 두 번째 파도.
 
 📊 그림으로 보기 (가계도·조직도·가치): https://claude.ai/artifact/My4ZoUb3aY4os3AMrjkRMv
 
