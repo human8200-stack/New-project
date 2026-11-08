@@ -12,7 +12,8 @@
 1. chatgpt.com 새 대화(그림마다 새 대화, 단 C-끝·D-끝은 각각 C-시작·D-시작 대화에서 이어서).
 2. '첨부'의 기준 사진을 순서대로 올리고(첫 번째가 image 1), 주문서 영어를 그대로 붙여 넣는다.
 3. 웍 그림(A~D)에는 주문서 끝에 'No wire rack or frying basket inside the wok.' 한 줄을 붙여 넣는다 (회장님: 가운데 철사는 튀김할 때만 씀).
-4. 주문서와 다르면(얼굴 보임, 로고·글자, 웍이 너무 큼, 상표) 한 번만 '고쳐 줘', 그래도 다르면 그대로 두고 메모.
+3-1. **모든 그림(A~E) 주문서 끝에 이 문장도 붙인다 (회장님 11/8: '음식사진들이 비가 오는데 해가 난 것처럼 보여'):** 'It is a rainy day: soft grey diffused daylight from the window, no direct sunlight, no sun rays, no bright sunny patches or hard shadows; raindrops on the window glass if the window is visible; calm, slightly dim, cozy mood, not yellow.'
+4. 주문서와 다르면(얼굴 보임, 로고·글자, 웍이 너무 큼, 상표, 햇살이 비침) 한 번만 '고쳐 줘', 그래도 다르면 그대로 두고 메모.
 5. 내려받아 이름을 No05-A.png 처럼 바꾼다.
 6. 노션 'Maison Edel 작업실' 맨 아래에 '## No.05 크림 카레 당면 그림 (크롬 Claude 11/8)' 제목을 만들고 7장을 순서대로 올린다. 메모는 그림 아래 한 줄.
 7. 끝나면 회장님께 '그림 7장 노션에 올렸어요'라고 알린다.
