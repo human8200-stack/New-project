@@ -3,6 +3,14 @@
 너는 회장님 크롬에서 일하는 Claude야. 회장님 ChatGPT(로그인돼 있음)로 그림만 만든다. 돈 드는 버튼은 누르지 않는다. 게시·영상 만들기 하지 않는다.
 이미 그린 크림 카레 당면 그림이 있으면 버리고 이 지시문으로 처음부터 다시 그린다(비 오는 날 빛으로 바뀜).
 
+
+## ★ 지금 할 일 (11/8 밤 — 회장님: "당면 불리는거 양파 썰고 소세지 빗살내는거 왜 안그리나")
+이미 노션에 올린 A·C·D는 통과. 아래만 그려서 같은 노션 칸 맨 아래에 올린다.
+1. **P0, P1, P2, P3** — 아래 '그림 P0~P3' 주문서 그대로 (새 대화씩).
+2. **B 다시** — B를 그렸던 대화에서 이어서: "Same photo, same angle. Replace the glass noodles in her hand with a bundle of soaked WIDE flat glass noodles (about 1 cm wide ribbons, translucent), like the noodles in the later wok photos. It is still a rainy day with soft grey light."
+3. **E 다시** — E를 그렸던 대화에서 이어서: "Same photo. In the bowl, use whole small Vienna sausages with diagonal score cuts (not sliced rounds) and wide flat glass noodles, same as the wok photos."
+4. 파일 이름 No05-P0.png … No05-B2.png, No05-E2.png. 끝나면 회장님께 "6장 올렸어요".
+
 ## 기준 사진 (먼저 내려받기)
 - 집: https://raw.githubusercontent.com/human8200-stack/New-project/claude/focus-90days/company/%EC%B4%88%EC%95%88/%EB%A9%94%EC%A2%85%EC%97%90%EB%8D%B8-%EC%A7%91-%EC%B0%B8%EA%B3%A0%ED%8C%90-1.jpg
 - 손: https://raw.githubusercontent.com/human8200-stack/New-project/claude/focus-90days/company/%EC%B4%88%EC%95%88/%EB%A9%94%EC%A2%85%EC%97%90%EB%8D%B8-%EA%B8%B0%EC%A4%80%EC%9E%A5%EB%A9%B4/%EB%9F%B0%EC%9B%A8%EC%9D%B4%EC%9A%A9/%EA%B3%A0%EC%A0%95-%EC%86%90%EA%B3%BC%EB%B9%9B_EP01%EC%82%AC%EA%B3%BC%EC%98%AC%EB%A6%AC%EA%B8%B0.jpg
