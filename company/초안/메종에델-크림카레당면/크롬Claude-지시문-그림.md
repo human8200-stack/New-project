@@ -5,16 +5,17 @@
 ## 기준 사진 (먼저 내려받기)
 - image 1: https://raw.githubusercontent.com/human8200-stack/New-project/claude/focus-90days/company/%EC%B4%88%EC%95%88/%EB%A9%94%EC%A2%85%EC%97%90%EB%8D%B8-%EC%A7%91-%EC%B0%B8%EA%B3%A0%ED%8C%90-1.jpg
 - image 2: https://raw.githubusercontent.com/human8200-stack/New-project/claude/focus-90days/company/%EC%B4%88%EC%95%88/%EB%A9%94%EC%A2%85%EC%97%90%EB%8D%B8-%EA%B8%B0%EC%A4%80%EC%9E%A5%EB%A9%B4/%EB%9F%B0%EC%9B%A8%EC%9D%B4%EC%9A%A9/%EA%B3%A0%EC%A0%95-%EC%86%90%EA%B3%BC%EB%B9%9B_EP01%EC%82%AC%EA%B3%BC%EC%98%AC%EB%A6%AC%EA%B8%B0.jpg
-- image 3: https://raw.githubusercontent.com/human8200-stack/New-project/claude/focus-90days/company/%EC%B4%88%EC%95%88/%EB%A9%94%EC%A2%85%EC%97%90%EB%8D%B8-%EA%B8%B0%EC%A4%80%EC%9E%A5%EB%A9%B4/%EB%A0%88%EC%8B%9C%ED%94%BC%ED%95%A8/%EB%83%84%EB%B9%84-%EC%9B%8D.png
+- image 3: https://raw.githubusercontent.com/human8200-stack/New-project/claude/focus-90days/company/%EC%B4%88%EC%95%88/%EB%A9%94%EC%A2%85%EC%97%90%EB%8D%B8-%EA%B8%B0%EC%A4%80%EC%9E%A5%EB%A9%B4/%EB%A0%88%EC%8B%9C%ED%94%BC%ED%95%A8/%EB%83%84%EB%B9%84-%EC%9B%8D-%EC%8B%A4%EB%AC%BC2-%EB%B9%84%EC%8A%A4%EB%93%AC%ED%9E%88.jpg
 - image 4: https://raw.githubusercontent.com/human8200-stack/New-project/claude/focus-90days/company/%EC%B4%88%EC%95%88/%EB%A9%94%EC%A2%85%EC%97%90%EB%8D%B8-%EA%B8%B0%EC%A4%80%EC%9E%A5%EB%A9%B4/%EB%9F%B0%EC%9B%A8%EC%9D%B4%EC%9A%A9/%EA%B7%B8%EB%A6%87-%EC%8B%9C%EB%9D%BC%EC%BF%A0%EC%8A%A4.jpg
 
 ## 하는 법
 1. chatgpt.com 새 대화(그림마다 새 대화, 단 C-끝·D-끝은 각각 C-시작·D-시작 대화에서 이어서).
 2. '첨부'의 기준 사진을 순서대로 올리고(첫 번째가 image 1), 주문서 영어를 그대로 붙여 넣는다.
-3. 주문서와 다르면(얼굴 보임, 로고·글자, 웍이 너무 큼, 상표) 한 번만 '고쳐 줘', 그래도 다르면 그대로 두고 메모.
-4. 내려받아 이름을 No05-A.png 처럼 바꾼다.
-5. 노션 'Maison Edel 작업실' 맨 아래에 '## No.05 크림 카레 당면 그림 (크롬 Claude 11/8)' 제목을 만들고 7장을 순서대로 올린다. 메모는 그림 아래 한 줄.
-6. 끝나면 회장님께 '그림 7장 노션에 올렸어요'라고 알린다.
+3. 웍 그림(A~D)에는 주문서 끝에 'No wire rack or frying basket inside the wok.' 한 줄을 붙여 넣는다 (회장님: 가운데 철사는 튀김할 때만 씀).
+4. 주문서와 다르면(얼굴 보임, 로고·글자, 웍이 너무 큼, 상표) 한 번만 '고쳐 줘', 그래도 다르면 그대로 두고 메모.
+5. 내려받아 이름을 No05-A.png 처럼 바꾼다.
+6. 노션 'Maison Edel 작업실' 맨 아래에 '## No.05 크림 카레 당면 그림 (크롬 Claude 11/8)' 제목을 만들고 7장을 순서대로 올린다. 메모는 그림 아래 한 줄.
+7. 끝나면 회장님께 '그림 7장 노션에 올렸어요'라고 알린다.
 
 ## 그림 A — 볶기 + 양념
 첨부: image 1, image 2, image 3
