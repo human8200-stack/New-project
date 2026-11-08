@@ -4,10 +4,14 @@
 이미 그린 크림 카레 당면 그림이 있으면 버리고 이 지시문으로 처음부터 다시 그린다(비 오는 날 빛으로 바뀜).
 
 
-## ★ 지금 할 일 (11/8 밤 2차 — 이것 하나만)
+## ★ 지금 할 일 (11/8 밤 2차 — 2장)
 **B 한 번 더 다시 (B3)** — B2를 그렸던 대화에서 이어서, 기준 사진 '웍'(아래 목록)을 다시 올리고:
 "Same photo, same angle and light. The pan must be the wide round WOK from the attached photo — a wide shallow rounded bowl shape with two black D-shaped loop handles, not a deep straight-sided pot. Keep the soaked wide flat glass noodles in her hand and the milk being poured. No wire rack inside. It is still a rainy day with soft grey light. No text, no logos."
-파일 이름 No05-B3.png → 노션 같은 칸 맨 아래. 끝나면 회장님께 "B 다시 올렸어요".
+파일 이름 No05-B3.png → 노션 같은 칸 맨 아래.
+
+**P3 소시지 다시 (P3b)** — P3를 그렸던 대화에서 이어서, 기준 사진 '칼'을 다시 올리고:
+"Same photo, same light. The knife is held across the sausage, blade edge pointing down onto it, at a slight diagonal to the sausage; the left fingertips hold the far end of the same sausage, well away from the blade. The first two sausages already have neat shallow diagonal cuts, like the sausages in the finished dish. No engraving on the blade. No text, no logos."
+파일 이름 No05-P3b.png → 같은 칸. 두 장 끝나면 회장님께 "2장 다시 올렸어요".
 
 (이전 할 일: P0~P3·B2·E2 — 11/8 완료)
 
