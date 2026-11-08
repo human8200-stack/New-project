@@ -5,7 +5,7 @@
 ## 기준 사진 4장 (먼저 내려받기)
 - image 1: https://raw.githubusercontent.com/human8200-stack/New-project/claude/focus-90days/company/%EC%B4%88%EC%95%88/%EB%A9%94%EC%A2%85%EC%97%90%EB%8D%B8-%EC%A7%91-%EC%B0%B8%EA%B3%A0%ED%8C%90-1.jpg
 - image 2: https://raw.githubusercontent.com/human8200-stack/New-project/claude/focus-90days/company/%EC%B4%88%EC%95%88/%EB%A9%94%EC%A2%85%EC%97%90%EB%8D%B8-%EA%B8%B0%EC%A4%80%EC%9E%A5%EB%A9%B4/%EB%9F%B0%EC%9B%A8%EC%9D%B4%EC%9A%A9/%EA%B3%A0%EC%A0%95-%EC%86%90%EA%B3%BC%EB%B9%9B_EP01%EC%82%AC%EA%B3%BC%EC%98%AC%EB%A6%AC%EA%B8%B0.jpg
-- image 3: https://raw.githubusercontent.com/human8200-stack/New-project/claude/focus-90days/company/%EC%B4%88%EC%95%88/%EB%A9%94%EC%A2%85%EC%97%90%EB%8D%B8-%EA%B8%B0%EC%A4%80%EC%9E%A5%EB%A9%B4/%EB%A0%88%EC%8B%9C%ED%94%BC%ED%95%A8/%EB%83%84%EB%B9%84-%EC%A4%91%ED%98%95%EC%86%8C%EC%8A%A4%ED%8C%AC.png
+- image 3: https://raw.githubusercontent.com/human8200-stack/New-project/claude/focus-90days/company/%EC%B4%88%EC%95%88/%EB%A9%94%EC%A2%85%EC%97%90%EB%8D%B8-%EA%B8%B0%EC%A4%80%EC%9E%A5%EB%A9%B4/%EB%A0%88%EC%8B%9C%ED%94%BC%ED%95%A8/%EB%83%84%EB%B9%84-%EC%A4%91%ED%98%95%EC%86%8C%EC%8A%A4%ED%8C%AC-%EC%8B%A4%EB%AC%BC1-%EC%98%86.jpg
 - image 4: https://raw.githubusercontent.com/human8200-stack/New-project/claude/focus-90days/company/%EC%B4%88%EC%95%88/%EB%A9%94%EC%A2%85%EC%97%90%EB%8D%B8-%EA%B8%B0%EC%A4%80%EC%9E%A5%EB%A9%B4/%EB%9F%B0%EC%9B%A8%EC%9D%B4%EC%9A%A9/%EA%B7%B8%EB%A6%87-%EC%BD%94%EC%8A%A4%ED%83%80%EB%85%B8%EB%B0%94.jpg
 
 ## 하는 법
