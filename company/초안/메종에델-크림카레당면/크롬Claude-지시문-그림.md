@@ -4,12 +4,12 @@
 이미 그린 크림 카레 당면 그림이 있으면 버리고 이 지시문으로 처음부터 다시 그린다(비 오는 날 빛으로 바뀜).
 
 
-## ★ 지금 할 일 (11/8 밤 — 회장님: "당면 불리는거 양파 썰고 소세지 빗살내는거 왜 안그리나")
-이미 노션에 올린 A·C·D는 통과. 아래만 그려서 같은 노션 칸 맨 아래에 올린다.
-1. **P0, P1, P2, P3** — 아래 '그림 P0~P3' 주문서 그대로 (새 대화씩).
-2. **B 다시** — B를 그렸던 대화에서 이어서: "Same photo, same angle. Replace the glass noodles in her hand with a bundle of soaked WIDE flat glass noodles (about 1 cm wide ribbons, translucent), like the noodles in the later wok photos. It is still a rainy day with soft grey light."
-3. **E 다시** — E를 그렸던 대화에서 이어서: "Same photo. In the bowl, use whole small Vienna sausages with diagonal score cuts (not sliced rounds) and wide flat glass noodles, same as the wok photos."
-4. 파일 이름 No05-P0.png … No05-B2.png, No05-E2.png. 끝나면 회장님께 "6장 올렸어요".
+## ★ 지금 할 일 (11/8 밤 2차 — 이것 하나만)
+**B 한 번 더 다시 (B3)** — B2를 그렸던 대화에서 이어서, 기준 사진 '웍'(아래 목록)을 다시 올리고:
+"Same photo, same angle and light. The pan must be the wide round WOK from the attached photo — a wide shallow rounded bowl shape with two black D-shaped loop handles, not a deep straight-sided pot. Keep the soaked wide flat glass noodles in her hand and the milk being poured. No wire rack inside. It is still a rainy day with soft grey light. No text, no logos."
+파일 이름 No05-B3.png → 노션 같은 칸 맨 아래. 끝나면 회장님께 "B 다시 올렸어요".
+
+(이전 할 일: P0~P3·B2·E2 — 11/8 완료)
 
 ## 기준 사진 (먼저 내려받기)
 - 집: https://raw.githubusercontent.com/human8200-stack/New-project/claude/focus-90days/company/%EC%B4%88%EC%95%88/%EB%A9%94%EC%A2%85%EC%97%90%EB%8D%B8-%EC%A7%91-%EC%B0%B8%EA%B3%A0%ED%8C%90-1.jpg

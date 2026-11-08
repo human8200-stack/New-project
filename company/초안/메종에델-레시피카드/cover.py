@@ -2,7 +2,7 @@
 
 틀은 매 편 같고, 사진만 그날 이야기 장면으로 바꾼다.
   위: "○○한 날" (작고 차분하게, 고운바탕)   아래: 고정 한 줄 "에델의 부엌 일기 · No.○○"
-  A안 = 아래 아이보리 띠 안에 고정 한 줄 / B안 = 사진 위 은은한 그림자 띠만
+  A안(기본, 회장님 11/8 확정 결재 92) = 아래 아이보리 띠 안에 고정 한 줄, 제목은 왼쪽 정렬 / B안 = 사진 위 은은한 그림자 띠만
 크기 1080x1920 (인스타 릴스 표지·유튜브 쇼츠 썸네일). 글자는 프로필 격자(가운데 3:4 = 위 240~1680) 안에만.
 
 쓰는 법:
@@ -46,25 +46,30 @@ def text_c(d, y, t, f, fill, shadow=None):
     d.text((x, y), t, font=f, fill=fill)
 
 
-def soft_text(img, y, t, f, fill):
-    """흰 글자 + 아주 엷은 번진 그림자 (노션 화면 글자 스타일)"""
+def soft_text(img, y, t, f, fill, x=None):
+    """흰 글자 + 아주 엷은 번진 그림자 (노션 화면 글자 스타일). x가 없으면 가운데"""
+    if x is None:
+        x = (W - ImageDraw.Draw(img).textlength(t, font=f)) / 2
     sh = Image.new('RGBA', img.size, (0, 0, 0, 0))
-    ImageDraw.Draw(sh).text(((W - ImageDraw.Draw(sh).textlength(t, font=f)) / 2, y + 2), t, font=f, fill=(0, 0, 0, 120))
+    ImageDraw.Draw(sh).text((x, y + 2), t, font=f, fill=(0, 0, 0, 120))
     img = Image.alpha_composite(img, sh.filter(ImageFilter.GaussianBlur(4)))
-    ImageDraw.Draw(img).text(((W - ImageDraw.Draw(img).textlength(t, font=f)) / 2, y), t, font=f, fill=fill)
+    ImageDraw.Draw(img).text((x, y), t, font=f, fill=fill)
     return img
 
 
-def make(src, title, no, style, out):
+def make(src, title, no, style='A', out='표지.jpg', title_x=60, title_max=700):
+    """style 기본 = A(회장님 11/8 확정, 결재 92). title_x=None이면 가운데, 숫자면 왼쪽 정렬 시작점
+    (사진 속 손·젓가락과 겹치지 않게 왼쪽으로 — 매 편 사진을 보고 title_max로 폭을 조절)"""
     img = fit_cover(src).convert('RGBA')
     ft = F('GowunBatang-Regular.ttf', 54)
-    while ImageDraw.Draw(img).textlength(title, font=ft) > W - 140:
+    limit = (W - 140) if title_x is None else title_max
+    while ImageDraw.Draw(img).textlength(title, font=ft) > limit:
         ft = F('GowunBatang-Regular.ttf', ft.size - 2)
     fixed_ko, fixed_no = '에델의 부엌 일기', 'No.' + no
-    # 위: 제목 (격자 안, 위에서 약 300px)
+    # 위: 제목 (격자 안, 위에서 약 270px)
     img = shade(img, 0, 560, 150, 0)
-    img = soft_text(img, 272, title, ft, (255, 255, 255, 255))
-    img = soft_text(img, 352, 'M A I S O N   E D E L', F('CormorantGaramond-Medium.ttf', 24), (245, 240, 232, 230))
+    img = soft_text(img, 272, title, ft, (255, 255, 255, 255), title_x)
+    img = soft_text(img, 352, 'M A I S O N   E D E L', F('CormorantGaramond-Medium.ttf', 24), (245, 240, 232, 230), None if title_x is None else title_x + 4)
     fk = F('GowunBatang-Bold.ttf', 40); fn = F('CormorantGaramond-Italic.ttf', 46); fd = F('GowunBatang-Regular.ttf', 40)
     if style == 'A':
         # 아래 아이보리 띠 (격자 안 1500~1680 + 그 아래까지)
@@ -101,4 +106,5 @@ if __name__ == '__main__':
     a = sys.argv[1:]
     if '--fonts' in a:
         i = a.index('--fonts'); FONT_DIR = a[i + 1]; del a[i:i + 2]
-    print(make(a[0], a[1], a[2], a[3], a[4]))
+    # 쓰는 법: cover.py <사진> "<○○한 날>" <번호> [A|B] [저장.jpg]   (기본 A, 제목 왼쪽 정렬)
+    print(make(a[0], a[1], a[2], a[3] if len(a) > 3 else 'A', a[4] if len(a) > 4 else '표지.jpg'))
