@@ -19,7 +19,7 @@ EMO = '/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf'
 # 토마토 솥밥: 회장님 11/8 — 물에 곰국 블록을 녹여 붓기(레시피함 원문과 같음), 꼭지 딴 토마토
 RECIPES = {
     'tomato_sotbap': dict(
-        no='05', ko='토마토 솥밥', en='Tomato Sotbap', meta='4인분  ·  약 40분', main='tomato',
+        no='06', ko='토마토 솥밥', en='Tomato Sotbap', meta='4인분  ·  약 40분', main='tomato',
         ing=['쌀 2.5컵 · 다진 소고기 100g · 토마토 1개',
              '쪽파 약간 · 포도씨유 1T · 곰국 블록 1개 · 물 2컵'],
         steps=['쌀은 30분 이상 불려 물기를 빼요',
@@ -27,6 +27,17 @@ RECIPES = {
                '물에 곰국 블록을 녹여 붓고, 토마토를 가운데에',
                '뚜껑 덮고 9단 2분 → 3단 12분',
                '쪽파 넣고 1분 뜸, 토마토를 으깨 섞어요']),
+    'cream_curry_noodles': dict(
+        # 회장님이 11/8 보낸 레시피 카드(웍 레시피의 1/2 분량) 그대로, 상표 없이 "비엔나 소시지"
+        no='05', ko='크림 카레 당면', en='Creamy Curry Noodles', meta='2~3인분', main='noodles',
+        ing=['넓은 당면 1봉지 · 비엔나 소시지 7개 · 새우 50g · 양파 ½개',
+             '우유 600ml · 고추장 1T · 고춧가루 ½T · 다진 마늘 1T',
+             '설탕 ½T · 고형 카레 2조각 · 소금 ¼t · 파슬리가루 ½t'],
+        steps=['넓은 당면은 30분 이상 불려 두어요',
+               '양파·새우·소시지를 볶다가 양념과 카레를 넣어요',
+               '우유 600ml와 불린 당면을 넣어요',
+               '뚜껑 덮고 8단 1분 → 5단 15분',
+               '2~3분 뒤적이고 파슬리가루를 뿌려요']),
     'egg_kabocha': dict(
         no='04', ko='에그 단호박 스타터', en='Egg Kabocha Starter', meta='약 30분', main='kabocha',
         # 노션: 기준 4인분인데 단호박·달걀은 3개라 화면에 '인분'은 쓰지 않음
@@ -152,20 +163,58 @@ def draw_kabocha(layer, cx, cy, r):
     layer.alpha_composite(t, (int(k(cx) - sz / 2), int(k(cy) - sz / 2)))
 
 
-MAINS = {'tomato': draw_tomato, 'kabocha': draw_kabocha}
+def draw_noodles(layer, cx, cy, r):
+    """넓은 당면 한 다발: 반투명 납작한 면 여러 가닥 + 가운데 끈"""
+    rng = np.random.default_rng(12)
+    sh = Image.new('RGBA', layer.size, (0, 0, 0, 0))
+    ImageDraw.Draw(sh).ellipse((k(cx - r * 1.5), k(cy + r * 0.25), k(cx + r * 1.5), k(cy + r * 0.75)), fill=(90, 70, 55, 60))
+    layer.alpha_composite(sh.filter(ImageFilter.GaussianBlur(k(r * 0.14))))
+    t = Image.new('RGBA', layer.size, (0, 0, 0, 0))
+    ang = math.radians(-14)
+    ux, uy = math.cos(ang), math.sin(ang); nx, ny = -uy, ux
+    for i in range(22):
+        off = (i - 10.5) * r * 0.045 + rng.normal(0, r * 0.01)
+        L = r * (1.45 + 0.12 * rng.random())
+        w = r * (0.055 + 0.02 * rng.random())
+        wave = rng.random() * 6.28
+        def P(tt, side):
+            bend = math.sin(tt * 3.0 + wave) * r * 0.03 + (abs(tt) ** 2) * off * 0.35
+            x = cx + ux * L * tt + nx * (off + bend + side * w / 2)
+            y = cy + uy * L * tt + ny * (off + bend + side * w / 2)
+            return (k(x), k(y))
+        ts = np.linspace(-1, 1, 40)
+        poly = [P(tt, 1) for tt in ts] + [P(tt, -1) for tt in ts[::-1]]
+        shade = int(226 + rng.normal(0, 6))
+        ImageDraw.Draw(t).polygon(poly, fill=(shade, shade - 8, shade - 22, 120), outline=(196, 182, 160, 150))
+    t = t.filter(ImageFilter.GaussianBlur(0.6))
+    layer.alpha_composite(t)
+    d = ImageDraw.Draw(layer)
+    # 끈 (가운데를 세 번 감아 묶음 — 다발 두께만큼만)
+    tw = (168, 140, 100, 255)
+    for dx in (-0.05, 0.0, 0.05):
+        bx, by = cx + ux * dx * r, cy + uy * dx * r
+        d.line([(k(bx - nx * r * 0.52), k(by - ny * r * 0.52)), (k(bx + nx * r * 0.52), k(by + ny * r * 0.52))], fill=tw, width=k(r * 0.028))
+    kx, ky = cx + nx * r * 0.54, cy + ny * r * 0.54
+    d.ellipse((k(kx - r * 0.045), k(ky - r * 0.04), k(kx + r * 0.045), k(ky + r * 0.04)), fill=tw)
+    d.line([(k(kx), k(ky)), (k(kx - r * 0.08), k(ky + r * 0.14))], fill=tw, width=k(r * 0.022))
+    d.line([(k(kx), k(ky)), (k(kx + r * 0.1), k(ky + r * 0.12))], fill=tw, width=k(r * 0.022))
+
+
+MAINS = {'tomato': draw_tomato, 'kabocha': draw_kabocha, 'noodles': draw_noodles}
 
 
 def make_card(key, out, tall=False):
     rcp = RECIPES[key]
-    Hh, P0, oy, s = (1920, 860, 150, 1.15) if tall else (1350, 600, 0, 1.0)
+    extra = (len(rcp['ing']) - 2) * 46
+    Hh, P0, oy, s = (1920, 860 - extra, 150, 1.15) if tall else (1350, 600 - extra, 0, 1.0)
     img = linen_bg(Hh)
-    size = 150 if rcp['main'] == 'tomato' else 140
-    MAINS[rcp['main']](img, 540 + (520 - 540) * s, oy + 320 * s, size * s)
+    size = {'tomato': 150, 'kabocha': 140, 'noodles': 170}[rcp['main']]
+    MAINS[rcp['main']](img, 540 + (520 - 540) * s, oy + (320 - extra * 0.4) * s, size * s)
     d = ImageDraw.Draw(img)
     d.text((k(64), k(58)), 'M A I S O N   E D E L', font=F('CormorantGaramond-Medium.ttf', 24), fill=(120, 105, 92))
     rt = 'Recipe No.' + rcp['no']; f = F('CormorantGaramond-Italic.ttf', 32)
     d.text((k(W - 64) - d.textlength(rt, font=f), k(52)), rt, font=f, fill=(120, 105, 92))
-    P1 = P0 + 702
+    P1 = P0 + 702 + extra
     panel = Image.new('RGBA', img.size, (0, 0, 0, 0))
     ImageDraw.Draw(panel).rounded_rectangle((k(48), k(P0), k(W - 48), k(P1)), radius=k(30), fill=IV + (238,))
     sh = Image.new('RGBA', img.size, (0, 0, 0, 0))
@@ -185,8 +234,8 @@ def make_card(key, out, tall=False):
     for tline in rcp['ing']:
         assert d.textlength(tline, font=fi) / K < W - 196 - 70, '재료 줄이 너무 길어요: ' + tline
         ltext(d, 196, y, tline, fi, CH); y += 46
-    d.line((k(120), k(916 + o), k(W - 120), k(916 + o)), fill=BE, width=k(2))
-    fs, fn = F(GR, 31), F(CI, 38); y = 938 + o
+    d.line((k(120), k(916 + o + extra), k(W - 120), k(916 + o + extra)), fill=BE, width=k(2))
+    fs, fn = F(GR, 31), F(CI, 38); y = 938 + o + extra
     for i, tline in enumerate(rcp['steps']):
         assert d.textlength(tline, font=fs) / K < W - 150 - 70, '단계가 너무 길어요: ' + tline
         ltext(d, 112, y - 8, str(i + 1), fn, TOM_D); ltext(d, 150, y, tline, fs, CH); y += 48
