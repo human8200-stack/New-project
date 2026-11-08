@@ -1,4 +1,4 @@
-# 크롬 Claude 지시문 — 메종 에델 EP.05 토마토 솥밥 그림 (회장님 11/8 '크롬 클로드에게 시켜')
+# 크롬 Claude 지시문 — 메종 에델 No.06 토마토 솥밥 (맑게 갠 날로 바뀜, ①~④-끝은 11/8에 그림 완료 — ⑤만 다시) 그림 (회장님 11/8 '크롬 클로드에게 시켜')
 
 너는 회장님 크롬에서 일하는 Claude야. 회장님 ChatGPT(로그인돼 있음)로 그림만 만든다. 돈 드는 버튼(요금제 업그레이드, 런웨이 등)은 절대 누르지 않는다. 게시도 하지 않는다.
 
@@ -49,7 +49,7 @@ Same photo, same angle, framing and light. Now the lid is gone. Inside the pot: 
 ## 그림 ⑤ — 비 오는 창가 옆뒷모습
 첨부: image 1, image 2, image 4
 ```
-Vertical 9:16 photo. The kitchen window from image 1 on a rainy morning (same dark wood frame, raindrops and thin streams running down the glass, softly blurred green garden outside, pale grey sky, soft diffused light, not yellow). The window fills the upper part of the frame. A small wooden table by the window. A woman sits at the table facing the window, seen from behind and slightly to the side (back three-quarter view): her shoulder, back and arm in a cream ruffled blouse with a beige linen apron strap, her face turned toward the window and hidden — no face, no profile, no lips visible (crop her head at the top of the frame or keep it turned away). On the table in front of her: a sage-green matte speckled stoneware plate like image 4 with tomato rice — cooked rice with small bits of beef and a few sliced scallions, and one soft peeled whole tomato on top, light steam. Her hand (like image 2, no jewelry) holds a spoon just above the plate, not touching yet. One folded linen napkin. No text, no logos.
+Vertical 9:16 photo. The kitchen window from image 1 on a clear autumn morning (same dark wood frame, clean glass, soft sunlight coming in from the side, softly blurred green garden and vegetable patch outside under a clear pale blue sky, gentle shadows, not yellow). The window fills the upper part of the frame. A small wooden table by the window. A woman sits at the table facing the window, seen from behind and slightly to the side (back three-quarter view): her shoulder, back and arm in a cream ruffled blouse with a beige linen apron strap, her face turned toward the window and hidden — no face, no profile, no lips visible (crop her head at the top of the frame or keep it turned away). On the table in front of her: a sage-green matte speckled stoneware plate like image 4 with tomato rice — cooked rice with small bits of beef and a few sliced scallions, and one soft peeled whole tomato on top, light steam. Her hand (like image 2, no jewelry) holds a spoon just above the plate, not touching yet. One folded linen napkin. No text, no logos.
 ```
 
 ## 덤: 레시피 카드 그림 2장 (각각 새 대화, 첨부 없음)
