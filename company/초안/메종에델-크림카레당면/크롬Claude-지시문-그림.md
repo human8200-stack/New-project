@@ -4,16 +4,12 @@
 이미 그린 크림 카레 당면 그림이 있으면 버리고 이 지시문으로 처음부터 다시 그린다(비 오는 날 빛으로 바뀜).
 
 
-## ★ 지금 할 일 (11/8 밤 2차 — 2장)
-**B 한 번 더 다시 (B3)** — B2를 그렸던 대화에서 이어서, 기준 사진 '웍'(아래 목록)을 다시 올리고:
-"Same photo, same angle and light. The pan must be the wide round WOK from the attached photo — a wide shallow rounded bowl shape with two black D-shaped loop handles, not a deep straight-sided pot. Keep the soaked wide flat glass noodles in her hand and the milk being poured. No wire rack inside. It is still a rainy day with soft grey light. No text, no logos."
-파일 이름 No05-B3.png → 노션 같은 칸 맨 아래.
+## ★ 지금 할 일 (11/9 — 1장: 먹는 장면 E3)
+E2를 그렸던 대화에서 이어서(기준 사진 '집'·'손'·'그릇'을 다시 올려도 됨):
+"Same rainy window, same table, same bowl of creamy curry glass noodles, same woman and clothes, same soft grey rainy-day light. Now she is eating: seen from behind and slightly to the side (back three-quarter view), her head is turned toward the window and slightly bowed; her right hand holds wooden chopsticks lifting a small bite of wide glass noodles in orange cream sauce up to her mouth, which is hidden behind her cheek and hair — no face, no profile, no lips visible, only the back of her head and hair. The other hand rests near the bowl. A little steam rises from the bowl. Both arms and hands complete and natural (five fingers each). No text, no logos."
+파일 이름 No05-E3.png → 노션 같은 칸 맨 아래. 끝나면 회장님께 "먹는 장면 올렸어요".
 
-**P3 소시지 다시 (P3b)** — P3를 그렸던 대화에서 이어서, 기준 사진 '칼'을 다시 올리고:
-"Same photo, same light. The knife is held across the sausage, blade edge pointing down onto it, at a slight diagonal to the sausage; the left fingertips hold the far end of the same sausage, well away from the blade. The first two sausages already have neat shallow diagonal cuts, like the sausages in the finished dish. No engraving on the blade. No text, no logos."
-파일 이름 No05-P3b.png → 같은 칸. 두 장 끝나면 회장님께 "2장 다시 올렸어요".
-
-(이전 할 일: P0~P3·B2·E2 — 11/8 완료)
+(이전 할 일: B3·P3b — 11/8 완료)
 
 ## 기준 사진 (먼저 내려받기)
 - 집: https://raw.githubusercontent.com/human8200-stack/New-project/claude/focus-90days/company/%EC%B4%88%EC%95%88/%EB%A9%94%EC%A2%85%EC%97%90%EB%8D%B8-%EC%A7%91-%EC%B0%B8%EA%B3%A0%ED%8C%90-1.jpg
