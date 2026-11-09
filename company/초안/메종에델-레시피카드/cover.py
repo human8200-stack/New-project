@@ -8,6 +8,7 @@
 쓰는 법:
   python3 -I cover.py <사진> "<○○한 날>" <번호> <A|B> <저장.jpg> [--fonts 글꼴폴더]
   예) python3 -I cover.py 12.png "비 오는 날, 크림 카레 당면 끓인 날" 05 A 표지-A.jpg
+  C안) python3 -I cover.py C 12.png "비 오는 날엔" "크림카레 당면" 05 표지-C.jpg 150 250 620
 """
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import sys, os
@@ -102,9 +103,39 @@ def make(src, title, no, style='A', out='표지.jpg', title_x=60, title_max=700)
     return out
 
 
+# ---- C안 (11/9, kr_cookman·봉순이 참고): 음식이 화면 가득 + 가운데 아래 굵은 두 줄 + 맨 아래 작은 고정 한 줄 ----
+C_L1_Y, C_L2_Y, C_FIX_Y = 1235, 1350, 1600     # 매 편 같은 자리 (격자 3:4 = 위 240~1680 안)
+C_L1_SIZE, C_L2_SIZE = 96, 138                  # 고운바탕 Bold. 둘째 줄 글자 높이 약 120px
+
+
+def crop_cover(src, box):
+    """box = (x, y, w): 원본에서 9:16으로 더 가까이 잘라 1080x1920으로"""
+    im = Image.open(src).convert('RGB'); x, y, w = box; h = round(w * 16 / 9)
+    return im.crop((x, y, x + w, y + h)).resize((W, H), Image.LANCZOS)
+
+
+def make_c(src, line1, line2, no, out='표지-C.jpg', box=None):
+    img = (crop_cover(src, box) if box else fit_cover(src)).convert('RGBA')
+    img = shade(img, 1000, H, 0, 175)
+    d = ImageDraw.Draw(img)
+    f1 = F('GowunBatang-Bold.ttf', C_L1_SIZE); f2 = F('GowunBatang-Bold.ttf', C_L2_SIZE)
+    while d.textlength(line2, font=f2) > W - 90:
+        f2 = F('GowunBatang-Bold.ttf', f2.size - 4)
+    img = soft_text(img, C_L1_Y, line1, f1, (255, 255, 255, 255))
+    img = soft_text(img, C_L2_Y, line2, f2, (255, 255, 255, 255))
+    img = soft_text(img, C_FIX_Y, '에델의 부엌 일기  ·  No.' + no, F('GowunBatang-Regular.ttf', 38), (245, 240, 232, 235))
+    img.convert('RGB').save(out, quality=93)
+    return out
+
+
 if __name__ == '__main__':
     a = sys.argv[1:]
     if '--fonts' in a:
         i = a.index('--fonts'); FONT_DIR = a[i + 1]; del a[i:i + 2]
     # 쓰는 법: cover.py <사진> "<○○한 날>" <번호> [A|B] [저장.jpg]   (기본 A, 제목 왼쪽 정렬)
-    print(make(a[0], a[1], a[2], a[3] if len(a) > 3 else 'A', a[4] if len(a) > 4 else '표지.jpg'))
+    # C안: cover.py C <사진> "<첫 줄>" "<둘째 줄>" <번호> <저장.jpg> [x y w]
+    if a[0] == 'C':
+        box = tuple(int(v) for v in a[6:9]) if len(a) >= 9 else None
+        print(make_c(a[1], a[2], a[3], a[4], a[5], box))
+    else:
+        print(make(a[0], a[1], a[2], a[3] if len(a) > 3 else 'A', a[4] if len(a) > 4 else '표지.jpg'))
