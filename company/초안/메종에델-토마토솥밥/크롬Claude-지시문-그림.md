@@ -2,7 +2,7 @@
 
 너는 회장님 크롬에서 일하는 Claude야. 회장님 ChatGPT(로그인돼 있음)로 그림만 만든다. 돈 드는 버튼(요금제 업그레이드, 런웨이 등)은 절대 누르지 않는다. 게시도 하지 않는다.
 
-## ★ 지금 할 일 (11/9 — 2장: ⑤ 마당 테이블 + 고양이 미엘 / ⑥ 마당에서 토마토 따기)
+## ★ 지금 할 일 (11/9 — 3장: ⑤ 마당 테이블 + 고양이 미엘 / ⑥ 마당에서 토마토 따기 / ⑦ 미엘 야옹)
 새 대화. 첨부 순서: image 1 = 집 https://raw.githubusercontent.com/human8200-stack/New-project/claude/focus-90days/company/%EC%B4%88%EC%95%88/%EB%A9%94%EC%A2%85%EC%97%90%EB%8D%B8-%EC%A7%91-%EC%B0%B8%EA%B3%A0%ED%8C%90-1.jpg · image 2 = 손 https://raw.githubusercontent.com/human8200-stack/New-project/claude/focus-90days/company/%EC%B4%88%EC%95%88/%EB%A9%94%EC%A2%85%EC%97%90%EB%8D%B8-%EA%B8%B0%EC%A4%80%EC%9E%A5%EB%A9%B4/%EB%9F%B0%EC%9B%A8%EC%9D%B4%EC%9A%A9/%EA%B3%A0%EC%A0%95-%EC%86%90%EA%B3%BC%EB%B9%9B_EP01%EC%82%AC%EA%B3%BC%EC%98%AC%EB%A6%AC%EA%B8%B0.jpg · image 3 = 미엘(마당) https://raw.githubusercontent.com/human8200-stack/New-project/claude/focus-90days/company/%EC%B4%88%EC%95%88/%EB%A9%94%EC%A2%85%EC%97%90%EB%8D%B8-%EB%AF%B8%EC%97%98/%EB%AF%B8%EC%97%98-%EA%B8%B0%EC%A4%803.jpg · image 4 = 접시 https://raw.githubusercontent.com/human8200-stack/New-project/claude/focus-90days/company/%EC%B4%88%EC%95%88/%EB%A9%94%EC%A2%85%EC%97%90%EB%8D%B8-%EA%B8%B0%EC%A4%80%EC%9E%A5%EB%A9%B4/%EB%9F%B0%EC%9B%A8%EC%9D%B4%EC%9A%A9/%EA%B7%B8%EB%A6%87-%EC%BD%94%EC%8A%A4%ED%83%80%EB%85%B8%EB%B0%94.jpg
 주문서(그대로 붙여 넣고, 끝에 아래 미엘 문장을 덧붙인다):
 ```
@@ -14,7 +14,13 @@ Also in the picture: the same cream-colored cat from image 3 (Miel — soft crea
 ```
 Vertical 9:16 photo. A clear sunny autumn morning in the small vegetable garden beside Edel's country house from image 1 (cream plaster wall and dark wood window softly blurred in the background). Tall staked tomato plants with green leaves and a few ripe red tomatoes on the vine. Close view: an adult woman's hand like image 2 (cream ruffled blouse sleeve, no jewelry, no nail polish) gently holds one plump ripe red tomato on the vine, about to twist it off; her other hand holds a small woven basket at the bottom edge of the frame with two picked tomatoes inside. Soft natural side sunlight, gentle shadows, morning dew on the leaves, calm and fresh, not yellow. No face. No text, no logos.
 ```
-파일 이름 No06-⑥-토마토따기.png → 같은 노션 칸. 두 장 끝나면 회장님께 "2장 올렸어요".
+파일 이름 No06-⑥-토마토따기.png → 같은 노션 칸.
+**세 번째 그림 (회장님 11/9 "고양이가 야옹하는 장면")** — 새 대화. 첨부: image 1 = 미엘(마당) https://raw.githubusercontent.com/human8200-stack/New-project/claude/focus-90days/company/%EC%B4%88%EC%95%88/%EB%A9%94%EC%A2%85%EC%97%90%EB%8D%B8-%EB%AF%B8%EC%97%98/%EB%AF%B8%EC%97%98-%EA%B8%B0%EC%A4%803.jpg · image 2 = 미엘(창가) https://raw.githubusercontent.com/human8200-stack/New-project/claude/focus-90days/company/%EC%B4%88%EC%95%88/%EB%A9%94%EC%A2%85%EC%97%90%EB%8D%B8-%EB%AF%B8%EC%97%98/%EB%AF%B8%EC%97%98-%EA%B8%B0%EC%A4%801.jpg
+```
+Vertical 9:16 photo. The same cat from image 1 and image 2 (Miel — soft cream fur with faint pale-apricot tabby stripes on the tail and forehead, white chest and paws, amber eyes) sits on the same low stone step in the sunny autumn yard beside the green vegetable patch. Close view of the cat from the chest up, looking slightly up toward the camera with its mouth just beginning to open in a soft meow. Soft natural side sunlight, calm, not yellow. Exactly one cat, correct anatomy. No people, no text, no logos.
+```
+파일 이름 No06-⑦-미엘야옹.png → 같은 노션 칸. 세 장 끝나면 회장님께 "3장 올렸어요".
+
 
 
 ## 기준 사진 4장 (먼저 내려받기)
