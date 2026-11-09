@@ -3,7 +3,7 @@
 // 실패하면 {"error":"...","message":"..."} 한 줄.
 import { checkCode, take, giveBack } from "../lib/guard.mjs";
 import { json, clientIp, hasKey, NO_KEY, callStream, MODEL, WRITE_EFFORT } from "../lib/claude.mjs";
-import { SYSTEM_PROMPT, buildInput } from "../lib/prompt.mjs";
+import { systemFor, buildInput } from "../lib/prompt.mjs";
 
 const TIME_CAP = 55e3; // Netlify 함수 60초 제한보다 조금 먼저 끊는다
 
@@ -17,6 +17,7 @@ export default async (req, context) => {
   if (raw.length > 60e3) return json(413, { error: "too_big", message: "보낸 내용이 너무 길어요." });
   let body; try { body = JSON.parse(raw); } catch (_) { return json(400, { error: "bad_input", message: "보낸 내용을 읽지 못했어요. 다시 해 주세요." }); }
   const f = (body && body.fields) || {};
+  if (f.type !== "home" && f.type !== "shop") return json(400, { error: "bad_input", message: "집인지 상점인지 골라 주세요." });
   if (!Array.isArray(f.spaces) || !f.spaces.length) return json(400, { error: "bad_input", message: "공간을 하나 골라 주세요." });
   if (f.consent === "none") return json(400, { error: "no_consent", message: "고객 게시 동의가 없어 글을 만들지 않았어요. 동의를 받은 뒤 다시 눌러 주세요." });
   const photos = Array.isArray(body.photos) ? body.photos.slice(0, 15) : [];
@@ -38,7 +39,7 @@ export default async (req, context) => {
           model: MODEL,
           max_tokens: 12000,
           output_config: { effort: WRITE_EFFORT },
-          system: SYSTEM_PROMPT,
+          system: systemFor(f.type),
           messages: [{ role: "user", content: buildInput(f, photos) }]
         }, txt => { if (txt) { got += txt.length; send({ t: txt }); } }, ctrl.signal);
         console.log("[write]", c.shop, Math.round((Date.now() - started) / 1000) + "초", JSON.stringify(r.usage || {}));

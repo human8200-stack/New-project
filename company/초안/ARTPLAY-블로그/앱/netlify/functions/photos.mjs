@@ -1,4 +1,4 @@
-// 사진 읽기: POST /api/photos  { photos: [{ side: "전"|"공사 중"|"후", data: base64 JPEG }] }
+// 사진 읽기: POST /api/photos  { type: "home"|"shop", photos: [{ side: "전"|"공사 중"|"후", data: base64 JPEG }] }
 // 사진마다 짧은 설명과 가려야 할 것을 돌려준다. 사진은 저장하지 않는다 (메모리에서만 쓰고 버림).
 import { checkCode, take, giveBack } from "../lib/guard.mjs";
 import { json, clientIp, hasKey, NO_KEY, callOnce, MODEL } from "../lib/claude.mjs";
@@ -34,7 +34,7 @@ export default async (req, context) => {
     content.push({ type: "text", text: "이미지 " + (i + 1) + " (" + p.side + " 사진)" });
     content.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: p.data } });
   });
-  content.push({ type: "text", text: photoPrompt(photos) });
+  content.push({ type: "text", text: photoPrompt(photos, body.type === "shop" ? "shop" : "home") });
 
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 50e3);

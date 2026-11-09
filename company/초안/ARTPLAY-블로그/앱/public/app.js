@@ -3,7 +3,7 @@
    글 규칙은 서버의 netlify/lib/prompt.mjs 한 곳에 있어요. 여기에는 화면과 마지막 안전 점검만 있어요. */
 (function () {
 "use strict";
-const APP_VERSION = "1.0.0 (2026-11-09)";
+const APP_VERSION = "1.1.0 (2026-11-09, 집·상점)";
 const $ = s => document.querySelector(s);
 const K = { code: "artplay-code", mode: "artplay-mode", hist: "artplay-history-v1", set: "artplay-settings-v1" };
 const SIDES = [
@@ -15,16 +15,37 @@ const MAX_EDGE = 1280, JPEG_Q = 0.82, BODY_BUDGET = 4.2e6; // 한 번에 보내�
 
 // 고르기 버튼 (값 v는 서버로 가는 값, t는 화면 글자)
 const GROUPS = {
-  space: { multi: true, items: ["현관", "거실", "주방", "침실", "욕실", "전체", "상가", "기타"] },
-  size: { multi: false, items: ["10평 이하", "10평대", "20평대", "30평대", "40평 이상", "모름"] },
+  type: { multi: false, keep: true, items: [{ v: "home", t: "집" }, { v: "shop", t: "상점" }] },
+  space: { multi: true, items: [] },
+  size: { multi: false, items: [] },
   consent: { multi: false, keep: true, items: [{ v: "photo", t: "사진만" }, { v: "region", t: "지역까지" }, { v: "none", t: "동의 안 받음" }] },
   period: { multi: false, items: ["1주 안", "2~3주", "4~6주", "그 이상"] },
   perk: { multi: false, keep: true, items: [{ v: "none", t: "없음" }, { v: "sponsor", t: "자재 협찬" }, { v: "discount", t: "할인·무료 시공" }] },
   kind: { multi: false, keep: true, items: [{ v: "review", t: "시공 후기" }, { v: "compare", t: "전후 비교" }, { v: "tip", t: "공간 팁" }] },
-  work: { multi: true, items: ["전체 리모델링", "부분 공사", "가구 제작", "조명", "도배·도장", "타일", "욕실 공사"] },
-  live: { multi: false, items: [{ v: "yes", t: "예" }, { v: "no", t: "아니오" }] }
+  work: { multi: true, items: [] },
+  live: { multi: false, items: [] },
+  nameok: { multi: false, keep: true, items: [{ v: "no", t: "동의 안 받음" }, { v: "yes", t: "사장님이 동의함" }] }
 };
-const DEFAULTS = { consent: "photo", perk: "none", kind: "review" };
+// 집/상점에 따라 바뀌는 버튼
+const SETS = {
+  home: {
+    space: ["현관", "거실", "주방", "침실", "욕실", "전체", "기타"],
+    size: ["10평 이하", "10평대", "20평대", "30평대", "40평 이상", "모름"],
+    work: ["전체 리모델링", "부분 공사", "가구 제작", "조명", "도배·도장", "타일", "욕실 공사"],
+    live: [{ v: "yes", t: "예" }, { v: "no", t: "아니오" }]
+  },
+  shop: {
+    space: ["카페", "음식점", "매장(옷·소품)", "사무실", "병원·의원", "미용실·네일", "학원", "기타"],
+    size: ["10평 이하", "10~20평", "20~40평", "40평 이상", "모름"],
+    work: ["전체 시공", "부분 공사", "간판", "조명·전기", "주방 설비", "가구 제작", "도장·벽면"],
+    live: [{ v: "yes", t: "영업하면서" }, { v: "no", t: "문 닫고" }, { v: "night", t: "야간 공사" }]
+  }
+};
+const TYPE_TEXT = {
+  home: { space: "공간", live: "살면서 공사했나요?", quote: "고객이 실제로 한 말 한 줄", memo: "예: 상부장 답답하다고 하심. 화이트오크 하부장, 세라믹 상판. 방수 두 번 함", etc: "예: 다용도실, 드레스룸" },
+  shop: { space: "업종", live: "영업하면서 공사했나요?", quote: "사장님이 실제로 한 말 한 줄", memo: "예: 우드·라탄 동네 카페 콘셉트. 좌석 24석. 야간 공사로 오픈 날짜 맞춤. 전기 증설", etc: "예: 꽃집, 공방" }
+};
+const DEFAULTS = { consent: "photo", perk: "none", kind: "review", nameok: "no" };
 const CONSENT_HELP = {
   photo: "사진만: 지역 이름 없이 써요.",
   region: "지역까지: 구·동 이름까지 써요. 동·호수와 단지명은 어떤 경우에도 안 써요.",
@@ -34,6 +55,7 @@ const CONSENT_HELP = {
 const BANNED = ["최고", "최상", "최초", "1위", "No.1", "넘버원", "유일", "독보적", "업계 최다", "최저가", "가장 싼", "최소가", "무조건", "100%", "완벽", "절대", "평생", "하자 제로", "선착순", "이번 달만", "마감 임박", "퀄리티", "소정의", "체험단"];
 
 const sel = {}; Object.keys(GROUPS).forEach(g => { sel[g] = new Set(DEFAULTS[g] ? [DEFAULTS[g]] : []); });
+const one = g => [...sel[g]][0] || "";
 const photos = { before: [], during: [], after: [] };
 let mode = null, code = "", current = null, busy = false, shrinking = 0, pid = 0, descCache = null, left = null, wake = null;
 
@@ -48,9 +70,12 @@ function settings() { try { return JSON.parse(ls.get(K.set, "{}")) || {}; } catc
 /* ---------- 고르기 버튼 ---------- */
 const val = it => typeof it === "string" ? it : it.v;
 const txt = it => typeof it === "string" ? it : it.t;
-document.querySelectorAll(".chips").forEach(box => {
+function buildChips(box) {
   const g = box.dataset.g, G = GROUPS[g];
-  G.items.forEach(it => {
+  const T = one("type");
+  const items = (SETS[T] && SETS[T][g]) || G.items;
+  box.textContent = "";
+  items.forEach(it => {
     const b = document.createElement("button");
     b.type = "button"; b.className = "chip"; b.textContent = txt(it); b.dataset.v = val(it);
     b.addEventListener("click", () => {
@@ -58,21 +83,35 @@ document.querySelectorAll(".chips").forEach(box => {
       if (G.multi) { sel[g].has(v) ? sel[g].delete(v) : sel[g].add(v); }
       else if (sel[g].has(v) && !G.keep) sel[g].clear();
       else { sel[g].clear(); sel[g].add(v); }
+      if (g === "type") setType();
       paintChips(); onChoice();
     });
     box.appendChild(b);
   });
-});
+}
+// 집/상점을 바꾸면 공간·평수·공사·영업 버튼을 새로 만든다
+function setType() {
+  const T = one("type");
+  ["space", "size", "work", "live"].forEach(g => { sel[g].clear(); const box = document.querySelector('.chips[data-g="' + g + '"]'); if (box) buildChips(box); });
+  const X = TYPE_TEXT[T] || TYPE_TEXT.home;
+  $("#typeDeps").hidden = !T; $("#typeHint").hidden = !!T;
+  $("#spaceLbl").textContent = X.space; $("#spaceWarn").textContent = X.space + "을 하나 골라 주세요.";
+  $("#liveLbl").textContent = X.live; $("#quoteLbl").textContent = X.quote;
+  $("#memo").placeholder = X.memo; $("#spaceEtc").placeholder = X.etc;
+  $("#shopOnly").hidden = T !== "shop";
+  $("#region").placeholder = T === "shop" ? "지역 (예: 수원 영통) — 번지·건물·층은 빼고" : "지역 (예: 수원 영통) — 동·호수, 단지명은 빼고";
+  if (T) { $("#gType").classList.remove("warn"); $("#typeWarn").hidden = true; }
+}
 function paintChips() {
   document.querySelectorAll(".chips").forEach(box => {
     const g = box.dataset.g;
     box.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", sel[g].has(c.dataset.v) ? "true" : "false"));
   });
 }
-const one = g => [...sel[g]][0] || "";
 function onChoice() {
   $("#spaceEtc").hidden = !sel.space.has("기타");
   $("#region").hidden = one("consent") !== "region";
+  $("#shopName").hidden = one("nameok") !== "yes";
   $("#consentHelp").textContent = CONSENT_HELP[one("consent")] || "";
   if (sel.space.size) { $("#gSpace").classList.remove("warn"); $("#spaceWarn").hidden = true; }
   if (sel.size.size) { $("#gSize").classList.remove("warn"); $("#sizeWarn").hidden = true; }
@@ -216,7 +255,7 @@ function fields() {
   const st = settings();
   const spaces = [...sel.space].map(v => v === "기타" ? ($("#spaceEtc").value.trim() || "기타 공간") : v);
   return {
-    spaces, size: one("size"), consent: one("consent") || "photo", region: $("#region").value.trim(),
+    type: one("type"), spaces, size: one("size"), nameOk: one("nameok"), shopName: $("#shopName").value.trim(), seats: $("#seats").value.trim(), consent: one("consent") || "photo", region: $("#region").value.trim(),
     period: one("period"), memo: $("#memo").value.trim(), kind: one("kind") || "review", perk: one("perk") || "none",
     works: [...sel.work], liveIn: one("live"), cost: $("#cost").value.trim(), quote: $("#quote").value.trim(),
     shop: { area: st.area || "", direct: st.direct || "", warranty: st.warranty || "", license: st.license || "", prep: st.prep || "", tags: st.tags || "" }
@@ -335,6 +374,10 @@ async function keepAwake(on) {
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 function validate() {
+  if (!sel.type.size) {
+    $("#gType").classList.add("warn"); $("#typeWarn").hidden = false;
+    $("#gType").scrollIntoView({ behavior: "smooth", block: "center" }); return false;
+  }
   if (!sel.space.size) {
     $("#gSpace").classList.add("warn"); $("#spaceWarn").hidden = false;
     $("#gSpace").scrollIntoView({ behavior: "smooth", block: "center" }); return false;
@@ -360,7 +403,8 @@ async function generate() {
 async function runDemo() {
   const list = allPhotos(); const f = fields();
   if (list.length) { progress("사진 읽는 중… (체험)", 15); await sleep(700); }
-  const sample = (window.ARTPLAY_DEMO || {})[f.kind === "compare" ? "compare" : "review"] || "";
+  const which = f.type === "shop" ? "shop" : (f.kind === "compare" ? "compare" : "review");
+  const sample = (window.ARTPLAY_DEMO || {})[which] || "";
   const info = shopInfoBlock();
   const full = sample.replace("{안내}\n\n", info ? info + "\n\n" : "");
   let shown = 0; const step = Math.ceil(full.length / 30);
@@ -369,8 +413,9 @@ async function runDemo() {
   const order = (p.body.match(/^📷 사진 \d+: .+$/gm) || []).map(l => l.replace("📷 ", "").replace(":", " —"))
     .sort((a, b) => parseInt(a.replace(/\D+/, ""), 10) - parseInt(b.replace(/\D+/, ""), 10));
   const alerts = ["체험 모드 예시 글이에요. 내 사진·메모는 들어가지 않았어요. 그대로 올리면 안 돼요."];
-  if (f.kind === "tip") alerts.push("공간 팁 글은 체험 예시가 없어 시공 후기 예시를 보여 드려요.");
-  const r = { id: Date.now(), date: new Date().toISOString(), space: f.spaces.join(", "), sel: 0, demo: true,
+  if (f.type === "shop") { if (f.kind !== "review") alerts.push("상점 체험 예시는 시공 후기 한 편만 있어요. 실제로는 고른 글 종류대로 써요."); }
+  else if (f.kind === "tip") alerts.push("공간 팁 글은 체험 예시가 없어 시공 후기 예시를 보여 드려요.");
+  const r = { id: Date.now(), date: new Date().toISOString(), space: (f.type === "shop" ? "상점 · " : "집 · ") + f.spaces.join(", "), sel: 0, demo: true,
     titles: p.titles, summary: p.summary, body: p.body, tags: p.tags, checks: p.checks, alerts: alerts.concat(safety(p, f)), order };
   renderResult(r); addHistory(r);
   $("#result").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -397,7 +442,7 @@ async function runLive() {
       if (cur.length) packs.push(cur);
       if (packs.length > 2) throw { error: "too_big", message: "사진이 너무 커요. 사진 몇 장을 빼고 다시 해 주세요." };
       const results = await Promise.all(packs.map(async pk => {
-        const res = await api("/api/photos", { photos: pk.map(x => x.d) });
+        const res = await api("/api/photos", { type: f.type, photos: pk.map(x => x.d) });
         if (!res.ok) return { pk, err: await readErr(res) };
         return { pk, d: await res.json() };
       }));
@@ -444,7 +489,7 @@ async function runLive() {
     if (!p.ok) throw { error: "bad_format", message: "글 모양이 이상하게 왔어요. [다시 시도]를 눌러 주세요." };
     if (!p.titles.length && !p.body) throw { error: "no_consent", message: p.checks.join(" ") || "글을 못 만들었어요." };
     const order = list.map((ph, i) => "사진 " + (i + 1) + " — " + ph.side + ": " + descs[i].desc);
-    const r = { id: Date.now(), date: new Date().toISOString(), space: f.spaces.join(", "), sel: 0,
+    const r = { id: Date.now(), date: new Date().toISOString(), space: (f.type === "shop" ? "상점 · " : "집 · ") + f.spaces.join(", "), sel: 0,
       titles: p.titles.length ? p.titles : ["(제목 없음)"], summary: p.summary, body: p.body, tags: p.tags, checks: p.checks,
       alerts: alerts.concat(safety(p, f)), order };
     renderResult(r); addHistory(r);
@@ -462,7 +507,8 @@ $("#failCode").addEventListener("click", () => { ls.del(K.code); code = ""; show
 $("#newBtn").addEventListener("click", () => {
   SIDES.forEach(S => { photos[S.key].forEach(p => URL.revokeObjectURL(p.url)); photos[S.key] = []; });
   Object.keys(GROUPS).forEach(g => { sel[g] = new Set(DEFAULTS[g] ? [DEFAULTS[g]] : []); });
-  ["#spaceEtc", "#region", "#memo", "#cost", "#quote"].forEach(id => { $(id).value = ""; });
+  ["#spaceEtc", "#region", "#memo", "#cost", "#quote", "#shopName", "#seats"].forEach(id => { $(id).value = ""; });
+  setType();
   descCache = null; current = null; $("#result").hidden = true; $("#failBox").hidden = true; $("#more").open = false;
   paintChips(); renderPhotos(); msg(""); window.scrollTo({ top: 0, behavior: "smooth" });
 });
@@ -548,6 +594,7 @@ $("#codeReset").addEventListener("click", () => { closeSheets(); ls.del(K.code);
 $("#verInfo").textContent = "앱 버전 " + APP_VERSION;
 
 /* ---------- 시작 ---------- */
+document.querySelectorAll(".chips").forEach(buildChips); setType();
 paintChips(); renderPhotos(); refreshGen();
 (function start() {
   const m = ls.get(K.mode, ""), c = ls.get(K.code, "");
