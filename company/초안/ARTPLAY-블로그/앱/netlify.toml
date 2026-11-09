@@ -1,0 +1,24 @@
+# ARTPLAY 블로그 글쓰기 앱 (독립판) — Netlify 설정
+# Netlify에서 새 사이트를 만들 때 "Base directory"를 이 폴더로 지정한다:
+#   company/초안/ARTPLAY-블로그/앱
+# 화면은 public/, 서버 함수는 netlify/functions/ (글 지시문은 netlify/lib/prompt.mjs)
+[build]
+  publish = "public"
+  command = "echo ARTPLAY 블로그 앱"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
+    X-Frame-Options = "DENY"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
