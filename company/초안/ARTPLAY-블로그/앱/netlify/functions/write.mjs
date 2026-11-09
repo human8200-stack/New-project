@@ -19,7 +19,7 @@ export default async (req, context) => {
   const f = (body && body.fields) || {};
   if (!Array.isArray(f.spaces) || !f.spaces.length) return json(400, { error: "bad_input", message: "공간을 하나 골라 주세요." });
   if (f.consent === "none") return json(400, { error: "no_consent", message: "고객 게시 동의가 없어 글을 만들지 않았어요. 동의를 받은 뒤 다시 눌러 주세요." });
-  const photos = Array.isArray(body.photos) ? body.photos.slice(0, 12) : [];
+  const photos = Array.isArray(body.photos) ? body.photos.slice(0, 15) : [];
 
   const t = await take(c.shop, "posts");
   if (!t.ok) return json(t.status, { error: t.error, message: t.message });

@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ARTPLAY 블로그 글쓰기</title>
+<meta name="description" content="시공 사진과 한 줄 메모로 네이버 블로그 글 초안을 만들어요.">
+<meta name="theme-color" content="#e9e7e3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1c1c1b" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ART.PLAY 글쓰기">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="format-detection" content="telephone=no">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat+Brush&family=IBM+Plex+Sans+KR:wght@400;600;700&family=Nanum+Pen+Script&display=swap">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="top"><div class="top-in">
+  <div><div class="logo">ART. PLAY</div><div class="logo-sub">블로그 글 만들기</div></div>
+  <div class="top-btns" id="topBtns" hidden>
+    <button class="ghost" id="histBtn" type="button">지난 글</button>
+    <button class="ghost" id="setBtn" type="button" aria-label="설정">설정</button>
+  </div>
+</div></header>
+
+<!-- 시작 화면: 접속 코드 -->
+<main class="wrap" id="gate" hidden>
+  <section class="box gate">
+    <p class="hero" aria-hidden="true">Hello.</p>
+    <p class="lead">시공 사진 넣고 버튼 몇 개만 누르면, 네이버 블로그 글 초안이 나와요.</p>
+    <div class="field">
+      <label class="lbl" for="codeIn">접속 코드</label>
+      <input type="password" id="codeIn" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" placeholder="회사에서 받은 코드">
+      <p class="small">한 번 넣으면 이 휴대폰이 기억해요.</p>
+    </div>
+    <p class="err" id="gateErr" role="alert" hidden></p>
+    <button class="big" id="codeGo" type="button">시작하기</button>
+    <div class="or">또는</div>
+    <button class="mid" id="demoGo" type="button">코드 없이 체험해 보기</button>
+    <p class="small">체험은 미리 써 둔 예시 글을 보여 줘요. 돈이 들지 않아요.</p>
+  </section>
+  <section class="box" id="a2hs" hidden>
+    <p class="lbl">홈 화면에 앱처럼 두기</p>
+    <p>사파리 아래 가운데 <b>공유 버튼(네모에 위 화살표)</b> → <b>홈 화면에 추가</b>를 누르세요.</p>
+  </section>
+</main>
+
+<!-- 글 만들기 화면 -->
+<main class="wrap" id="app" hidden>
+  <div class="modebar" id="modeBar" aria-live="polite"></div>
+
+  <section class="box" id="secPhoto">
+    <h2 class="hand">① 사진 넣기</h2>
+    <p class="note">⚠ 고객 집 주소·얼굴·차량 번호가 보이는 사진은 빼 주세요.</p>
+    <div class="prow"><div class="tag">전</div><div class="strip" id="stripBefore"></div></div>
+    <div class="prow"><div class="tag">후</div><div class="strip" id="stripAfter"></div></div>
+    <p class="small" id="photoMsg" role="status" hidden></p>
+    <p class="small">전·후 각 6장까지. 사진은 휴대폰에서 줄여서 글 만들 때만 보내고, 어디에도 저장하지 않아요.</p>
+  </section>
+
+  <section class="box">
+    <h2 class="hand">② 고르기</h2>
+    <div class="group" id="gSpace"><p class="lbl">공간 <span class="small">(여러 개 가능)</span></p><div class="chips" data-g="space"></div>
+      <input type="text" id="spaceEtc" placeholder="예: 사무실, 카페" maxlength="30" hidden aria-label="기타 공간">
+      <p class="warnmsg" id="spaceWarn" hidden>공간을 하나 골라 주세요.</p></div>
+    <div class="group"><p class="lbl">글 종류</p><div class="chips" data-g="kind"></div></div>
+    <div class="group"><p class="lbl">고객 게시 동의</p><div class="chips" data-g="consent"></div>
+      <input type="text" id="region" maxlength="30" placeholder="지역 (예: 수원 영통)" hidden aria-label="지역">
+      <p class="small" id="consentHelp"></p></div>
+    <div class="group"><p class="lbl">협찬·할인</p><div class="chips" data-g="perk"></div>
+      <p class="small">있으면 법에 따라 제목과 첫 줄에 표시돼요.</p></div>
+  </section>
+
+  <section class="box">
+    <h2 class="hand">③ 한 줄 메모 <span class="opt">(안 써도 돼요)</span></h2>
+    <textarea id="memo" maxlength="300" rows="2" placeholder="예: 30년 된 주방, 상부장 없애고 화이트 타일로 밝게"></textarea>
+    <p class="small">키보드의 마이크를 누르고 말로 해도 돼요. 고객 이름·전화번호·동호수는 빼 주세요.</p>
+  </section>
+
+  <details class="more" id="more">
+    <summary><span class="hand">④ 더 넣으면 더 좋은 글</span><span class="small">(선택)</span></summary>
+    <div class="in">
+      <div class="field"><label class="lbl" for="worry">고객의 처음 고민 한 줄</label>
+        <input type="text" id="worry" maxlength="160" placeholder="예: 상부장 때문에 답답하고 조리대가 좁아요"></div>
+      <div class="group"><p class="lbl">평수</p><div class="chips" data-g="size"></div></div>
+      <div class="group"><p class="lbl">공사 <span class="small">(여러 개 가능)</span></p><div class="chips" data-g="work"></div></div>
+      <div class="field"><label class="lbl" for="period">공사 기간</label>
+        <input type="text" id="period" maxlength="30" placeholder="예: 3주"></div>
+      <div class="field"><label class="lbl" for="mat">자재·색 이름</label>
+        <input type="text" id="mat" maxlength="200" placeholder="예: 화이트오크 무늬 하부장, 무광 화이트 도어"></div>
+      <div class="field"><label class="lbl" for="art">그림·오브제</label>
+        <input type="text" id="art" maxlength="120" placeholder="예: 거실 벽 베이지 추상화 한 점"></div>
+      <div class="field"><label class="lbl" for="cost">비용 <span class="small">(고객이 공개에 동의한 경우만)</span></label>
+        <input type="text" id="cost" maxlength="40" placeholder="예: 1,000만 원대"></div>
+    </div>
+  </details>
+
+  <div class="field">
+    <p class="small" id="beforeWarn" hidden>전후 비교 글은 전 사진을 1장 이상 넣어 주세요.</p>
+    <button class="big" id="genBtn" type="button">글 만들기</button>
+    <div class="progress" id="prog" hidden aria-live="polite"><p id="progText">준비 중…</p><div class="bar"><i id="progBar"></i></div><p class="small">30초~1분 걸려요. 화면을 켠 채로 기다려 주세요.</p></div>
+  </div>
+
+  <div class="fail" id="failBox" role="alert" hidden>
+    <p id="failMsg">글을 못 만들었어요.</p>
+    <button class="mid" id="retryBtn" type="button">다시 시도</button>
+    <button class="mid" id="failDemo" type="button" hidden>체험 모드로 둘러보기</button>
+    <button class="mid" id="failCode" type="button" hidden>접속 코드 다시 넣기</button>
+  </div>
+
+  <section class="box" id="result" hidden>
+    <h2 class="hand">⑤ 결과</h2>
+    <div id="rAlerts" class="field"></div>
+    <div class="field"><p class="lbl">제목 고르기 <span class="small">(눌러서 고르세요)</span></p><div class="titles" id="rTitles" role="radiogroup" aria-label="제목 후보"></div></div>
+    <div class="field" id="rOrderBox"><p class="lbl">📷 사진 넣는 순서</p><ul class="olist" id="rOrder"></ul></div>
+    <div class="field"><label class="lbl" for="rSummary">맨 위 요약 칸</label><textarea class="paper" id="rSummary" rows="4"></textarea></div>
+    <div class="field"><label class="lbl" for="rBody">본문 <span class="small">(바로 고칠 수 있어요)</span></label><textarea class="paper" id="rBody"></textarea><p class="stat" id="rStat"></p></div>
+    <div class="field"><label class="lbl" for="rTags">해시태그</label><textarea class="paper" id="rTags" rows="3"></textarea></div>
+    <div class="field"><p class="lbl">올리기 전에 확인할 점</p><ul class="checks" id="rChecks"></ul></div>
+    <button class="big" id="cpAll" type="button">전체 복사</button>
+    <div class="copy3">
+      <button class="mid" id="cpTitle" type="button">제목만</button>
+      <button class="mid" id="cpBody" type="button">본문만</button>
+      <button class="mid" id="cpTags" type="button">해시태그</button>
+    </div>
+    <div class="field" id="fbBox" hidden><p class="small">복사가 안 됐어요. 아래 글을 길게 눌러 복사해 주세요.</p><textarea class="paper" id="fbText" rows="6" readonly></textarea></div>
+    <p class="small">네이버 블로그 앱 → 글쓰기 → 본문을 길게 눌러 붙여넣기 → "📷 사진 1" 자리에 같은 번호 사진 넣기</p>
+    <button class="mid" id="regenBtn" type="button">다시 만들기</button>
+    <button class="mid" id="newBtn" type="button">새 글 쓰기 (입력 지우기)</button>
+  </section>
+</main>
+
+<div class="shade" id="shade" hidden></div>
+<div class="sheet" id="histSheet" hidden role="dialog" aria-modal="true" aria-label="지난 글">
+  <div class="sheet-in">
+    <div class="sheet-head"><h2 class="hand">지난 글</h2><button class="ghost" data-close type="button">닫기</button></div>
+    <div id="hList" class="field"></div>
+    <p class="small">이 휴대폰에만 저장돼요. 최근 10개까지. 사진은 저장하지 않아요.</p>
+  </div>
+</div>
+<div class="sheet" id="setSheet" hidden role="dialog" aria-modal="true" aria-label="설정">
+  <div class="sheet-in">
+    <div class="sheet-head"><h2 class="hand">설정</h2><button class="ghost" data-close type="button">닫기</button></div>
+    <div class="field"><label class="lbl" for="contactIn">상담 연락처 <span class="small">(글 끝 {연락처} 자리에 들어가요)</span></label>
+      <input type="text" id="contactIn" maxlength="60" placeholder="예: 010-0000-0000 / 네이버 톡톡"></div>
+    <button class="mid" id="contactSave" type="button">연락처 저장</button>
+    <p class="small" id="setInfo"></p>
+    <button class="mid" id="modeSwitch" type="button">체험 모드 끝내기</button>
+    <button class="mid" id="codeReset" type="button">접속 코드 바꾸기</button>
+    <p class="small" id="verInfo"></p>
+  </div>
+</div>
+
+<script src="demo.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

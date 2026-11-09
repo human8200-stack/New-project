@@ -1,10 +1,10 @@
-// 사진 읽기: POST /api/photos  { photos: [{ side: "전"|"후", data: base64 JPEG }] }
+// 사진 읽기: POST /api/photos  { photos: [{ side: "전"|"공사 중"|"후", data: base64 JPEG }] }
 // 사진마다 짧은 설명과 가려야 할 것을 돌려준다. 사진은 저장하지 않는다 (메모리에서만 쓰고 버림).
 import { checkCode, take, giveBack } from "../lib/guard.mjs";
 import { json, clientIp, hasKey, NO_KEY, callOnce, MODEL } from "../lib/claude.mjs";
 import { photoPrompt } from "../lib/prompt.mjs";
 
-const MAX_PHOTOS = 12;
+const MAX_PHOTOS = 15; // 전 6 + 후 6 + 공사 중 3
 const MAX_ONE = 1.6e6;   // 사진 한 장 base64 글자 수 상한 (약 1.2MB)
 const MAX_BODY = 5.5e6;  // Netlify 요청 6MB 제한 안쪽
 
@@ -18,13 +18,13 @@ export default async (req, context) => {
   if (raw.length > MAX_BODY) return json(413, { error: "too_big", message: "사진이 너무 커요. 사진 수를 줄여 다시 해 주세요." });
   let body; try { body = JSON.parse(raw); } catch (_) { return json(400, { error: "bad_input", message: "보낸 내용을 읽지 못했어요. 다시 해 주세요." }); }
   const list = Array.isArray(body && body.photos) ? body.photos : [];
-  if (!list.length || list.length > MAX_PHOTOS) return json(400, { error: "bad_input", message: "사진은 1장에서 12장까지 보낼 수 있어요." });
+  if (!list.length || list.length > MAX_PHOTOS) return json(400, { error: "bad_input", message: "사진은 1장에서 15장까지 보낼 수 있어요." });
   for (const p of list) {
     if (!p || typeof p.data !== "string" || p.data.length > MAX_ONE || !/^[A-Za-z0-9+/=]+$/.test(p.data.slice(0, 200))) {
       return json(400, { error: "bad_input", message: "사진 하나를 읽지 못했어요. 그 사진을 빼고 다시 해 주세요." });
     }
   }
-  const photos = list.map(p => ({ side: p.side === "후" ? "후" : "전", data: p.data }));
+  const photos = list.map(p => ({ side: p.side === "후" ? "후" : p.side === "공사 중" ? "공사 중" : "전", data: p.data }));
 
   const t = await take(c.shop, "photos");
   if (!t.ok) return json(t.status, { error: t.error, message: t.message });
