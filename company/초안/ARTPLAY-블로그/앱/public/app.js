@@ -414,7 +414,7 @@ async function runLive() {
       else if (!readAll) alerts.push("사진 일부는 내용을 읽지 못해 순서만 넣었어요.");
       if (anyOk) descCache = { key, descs };
     }
-    descs.forEach((d, i) => { if (d.privacy && d.privacy.length) alerts.unshift("사진 " + (i + 1) + "에 " + d.privacy.join("·") + "이(가) 보여요. 블로그에 올리기 전에 가려 주세요."); });
+    descs.forEach((d, i) => { if (d.privacy && d.privacy.length) alerts.unshift("사진 " + (i + 1) + "에서 보이는 것: " + d.privacy.join("·") + ". 블로그에 올리기 전에 가려 주세요."); });
 
     // ② 글쓰기 (흘려 받기)
     progress("글 쓰는 중… (30초~1분)", 25);
