@@ -1,6 +1,6 @@
 // ARTPLAY 블로그 글쓰기 — 오프라인용 화면 저장 (글 만들기 /api/ 는 저장하지 않음)
 // 화면 파일을 고치면 CACHE 버전을 하나 올린다.
-const CACHE = "artplay-blog-v2";
+const CACHE = "artplay-blog-v3";
 const SHELL = ["./", "index.html", "app.css", "app.js", "demo.js", "manifest.webmanifest", "icons/icon-192.png", "icons/apple-touch-icon.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => {

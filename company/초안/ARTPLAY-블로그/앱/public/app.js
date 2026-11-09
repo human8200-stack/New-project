@@ -3,9 +3,12 @@
    글 규칙은 서버의 netlify/lib/prompt.mjs 한 곳에 있어요. 여기에는 화면과 마지막 안전 점검만 있어요. */
 (function () {
 "use strict";
-const APP_VERSION = "1.1.0 (2026-11-09, 집·상점)";
+const APP_VERSION = "1.2.0 (2026-11-09, 체험 값 채우기·사진 순서 저장)";
 const $ = s => document.querySelector(s);
-const K = { code: "artplay-code", mode: "artplay-mode", hist: "artplay-history-v1", set: "artplay-settings-v1" };
+const K = { code: "artplay-code", mode: "artplay-mode", hist: "artplay-history-v1", set: "artplay-settings-v1", paste: "artplay-paste" };
+// 붙여 넣는 방식 기본값: "marks" = (나) 📷 사진 자리 표시 넣기, "bundle" = (가) 사진 한 묶음 + 글
+// 회장님 최종 답("사진 쉽게")이 오면 여기 한 줄만 바꾼다.
+const DEFAULT_PASTE = "marks";
 const SIDES = [
   { key: "before", label: "전", max: 6 },
   { key: "during", label: "공사 중", max: 3 },
@@ -153,7 +156,7 @@ async function addFiles(side, max, files, addBtn) {
         let blob = await shrink(f, MAX_EDGE, JPEG_Q);
         if (blob.size > 420e3) blob = await shrink(f, MAX_EDGE, 0.7);
         if (blob.size > 420e3) blob = await shrink(f, 1024, 0.7);
-        list.push({ id: ++pid, blob, url: URL.createObjectURL(blob) });
+        list.push({ id: ++pid, blob, file: f, url: URL.createObjectURL(blob) });
       } catch (_) { failed++; }
     }
   } finally { shrinking--; }
@@ -205,7 +208,7 @@ function show(which) {
 function paintMode() {
   const bar = $("#modeBar"); bar.textContent = ""; bar.className = "modebar" + (mode === "demo" ? " demo" : "");
   const s = document.createElement("span");
-  if (mode === "demo") { s.innerHTML = "<b>체험 모드</b> · 미리 써 둔 예시 글이 나와요"; }
+  if (mode === "demo") { s.innerHTML = "<b>체험 모드</b> · 예시 문장에 고른 값만 넣었어요 (실제는 AI가 사진을 보고 새로 써요)"; }
   else { s.textContent = left == null ? "접속됨" : "오늘 남은 글 " + left + "편"; }
   bar.appendChild(s);
   const st = settings();
@@ -323,19 +326,12 @@ function renderResult(r) {
     b.addEventListener("click", () => { r.sel = i; tw.querySelectorAll(".tcard").forEach((c, k) => c.setAttribute("aria-checked", k === i ? "true" : "false")); saveCurrent(); });
     tw.appendChild(b);
   });
-  const ol = $("#rOrder"); ol.textContent = "";
-  (r.order || []).forEach(o => { const li = document.createElement("li"); li.textContent = o; ol.appendChild(li); });
-  $("#rOrderBox").hidden = !(r.order && r.order.length);
-  let body = r.body || "";
-  if (contact && body.includes("{연락처}")) { body = body.split("{연락처}").join(contact); r.body = body; }
-  $("#rSummary").value = r.summary || ""; $("#rBody").value = body; $("#rTags").value = r.tags || "";
-  const checks = (r.checks || []).slice();
-  if (body.includes("{연락처}")) checks.push("글 끝 {연락처}를 실제 연락처로 바꿔 주세요. (설정에 넣어 두면 자동으로 바뀌어요)");
-  checks.push("사진 번호(📷 사진 1…) 자리에 같은 번호 사진을 넣고, 그 줄은 지워 주세요.");
-  const ck = $("#rChecks"); ck.textContent = "";
-  checks.forEach(c => { const li = document.createElement("li"); li.textContent = c; ck.appendChild(li); });
-  stat();
-  $("#fbBox").hidden = true; $("#result").hidden = false;
+  if (contact && r.body && r.body.includes("{연락처}")) r.body = r.body.split("{연락처}").join(contact);
+  if (contact && r.bodyBundle && r.bodyBundle.includes("{연락처}")) r.bodyBundle = r.bodyBundle.split("{연락처}").join(contact);
+  $("#rSummary").value = r.summary || ""; $("#rTags").value = r.tags || "";
+  paintPaste();
+  $("#fbBox").hidden = true;
+  $("#result").hidden = false;
   requestAnimationFrame(() => { fit($("#rBody")); fit($("#rSummary")); fit($("#rTags")); });
 }
 function stat() {
@@ -344,8 +340,118 @@ function stat() {
 }
 ["#rBody", "#rSummary", "#rTags"].forEach(id => $(id).addEventListener("input", e => {
   fit(e.target); stat();
-  if (current) { current.summary = $("#rSummary").value; current.body = $("#rBody").value; current.tags = $("#rTags").value; saveCurrentSoon(); }
+  if (current) {
+    current.summary = $("#rSummary").value; current.tags = $("#rTags").value;
+    if (pasteMode() === "bundle") current.bodyBundle = $("#rBody").value;
+    else { current.body = $("#rBody").value; current.bodyBundle = null; }
+    saveCurrentSoon();
+  }
 }));
+
+/* ---------- 붙여 넣는 방식 · 사진 순서 저장 ---------- */
+function pasteMode() { const v = ls.get(K.paste, DEFAULT_PASTE); return v === "bundle" ? "bundle" : "marks"; }
+// (가) 방식: "📷 사진 n" 줄과 바로 아래 사진 설명 한 줄을 뺀다
+function stripMarks(body) {
+  const L = String(body || "").split("\n"), out = [];
+  for (let i = 0; i < L.length; i++) {
+    if (/^\s*📷\s*사진\s*\d+/.test(L[i])) {
+      const nx = L[i + 1];
+      if (nx != null && nx.trim() && !/^\s*(【|Q\.|A\.|📷)/.test(nx)) i++;
+      continue;
+    }
+    out.push(L[i]);
+  }
+  return out.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+// 글에 나온 순서대로 사진 번호 (빠진 사진은 뒤에 붙임)
+function saveOrder(r, count) {
+  const seen = [];
+  (String(r.body || "").match(/📷\s*사진\s*(\d+)/g) || []).forEach(m => { const n = parseInt(m.replace(/\D+/g, ""), 10); if (n >= 1 && n <= count && !seen.includes(n)) seen.push(n); });
+  for (let n = 1; n <= count; n++) if (!seen.includes(n)) seen.push(n);
+  return seen;
+}
+function photoKey() { return allPhotos().map(p => p.id).join(","); }
+const pad2 = n => (n < 10 ? "0" : "") + n;
+const HOWTO = {
+  bundle: ["사진 버튼 → 01부터 순서대로 모두 선택", "사진 아래에 길게 눌러 붙여 넣기", "올리기"],
+  marks: ["글쓰기 화면에서 길게 눌러 붙여 넣기", "\"📷 사진 1\" 자리마다 같은 번호 사진을 넣고 그 줄은 지우기", "올리기"]
+};
+function paintPaste() {
+  const r = current; if (!r) return;
+  const m = pasteMode();
+  document.querySelectorAll("#pasteMode .chip").forEach(c => c.setAttribute("aria-pressed", c.dataset.v === m ? "true" : "false"));
+  $("#pasteHelp").textContent = m === "bundle"
+    ? "사진을 글 맨 위에 한 번에 넣고, 글은 아래에 붙여요. 가장 쉬워요."
+    : "글 사이사이에 사진 자리를 표시해요. 손은 더 가지만 검색에 조금 유리해요.";
+  const body = m === "bundle" ? (r.bodyBundle != null ? r.bodyBundle : stripMarks(r.body)) : (r.body || "");
+  $("#rBody").value = body;
+  // 사진 순서: 글에 나온 순서 = 저장되는 순서
+  const live = allPhotos();
+  const hasPhotos = r.photoKey && r.photoKey === photoKey() && live.length > 0;
+  const desc = {}; (r.order || []).forEach(o => { const n = parseInt((o.match(/사진\s*(\d+)/) || [])[1], 10); if (n) desc[n] = o.replace(/^사진\s*\d+\s*—\s*/, ""); });
+  const count = hasPhotos ? live.length : Math.max(0, ...Object.keys(desc).map(Number));
+  const ord = saveOrder(r, count);
+  const ol = $("#rOrder"); ol.textContent = "";
+  ord.forEach((n, i) => { const li = document.createElement("li"); li.textContent = pad2(i + 1) + " — 사진 " + n + (desc[n] ? " (" + desc[n] + ")" : ""); ol.appendChild(li); });
+  $("#rOrderBox").hidden = !ord.length;
+  const sb = $("#saveBtn");
+  sb.hidden = !hasPhotos;
+  $("#saveNote").textContent = hasPhotos
+    ? "글에 나오는 순서대로 01, 02… 번호를 붙여 사진 앱에 한 번에 저장해요. 공유 창이 뜨면 [이미지 " + live.length + "개 저장]을 누르세요."
+    : (ord.length ? "사진 저장은 방금 만든 글에서만 할 수 있어요. (사진은 휴대폰에 따로 보관하지 않아요)" : "");
+  if (hasPhotos) prepareSave(r, ord);
+  const how = $("#howTo"); how.textContent = "";
+  HOWTO[m].forEach(s => { const li = document.createElement("li"); li.textContent = s; how.appendChild(li); });
+  const checks = (r.checks || []).slice();
+  if (body.includes("{연락처}")) checks.push("글 끝 {연락처}를 실제 연락처로 바꿔 주세요. (설정에 넣어 두면 자동으로 바뀌어요)");
+  checks.push(m === "bundle" ? "사진은 글 맨 위에 01부터 순서대로 한 번에 넣어요." : "사진 번호(📷 사진 1…) 자리에 같은 번호 사진을 넣고, 그 줄은 지워 주세요.");
+  const ck = $("#rChecks"); ck.textContent = "";
+  checks.forEach(c => { const li = document.createElement("li"); li.textContent = c; ck.appendChild(li); });
+  stat(); requestAnimationFrame(() => fit($("#rBody")));
+}
+document.querySelectorAll("#pasteMode .chip").forEach(c => c.addEventListener("click", () => { ls.set(K.paste, c.dataset.v); paintPaste(); }));
+
+// 저장할 사진: 원본에서 긴 변 2048px JPEG로 다시 만든다 (위치 정보 같은 숨은 정보가 빠짐)
+let saveJob = null;
+function prepareSave(r, ord) {
+  const key = r.photoKey + "|" + ord.join(",");
+  if (saveJob && saveJob.key === key) { paintSaveBtn(); return; }
+  const live = allPhotos();
+  saveJob = { key, files: null };
+  const job = saveJob; paintSaveBtn();
+  (async () => {
+    const files = [];
+    for (let i = 0; i < ord.length; i++) {
+      const p = live[ord[i] - 1]; if (!p) continue;
+      let blob; try { blob = await shrink(p.file || p.blob, 2048, 0.9); } catch (_) { blob = p.blob; }
+      const side = p.side === "전" ? "before" : p.side === "후" ? "after" : "during"; // 파일 이름은 영문 (한글 이름이 깨지는 기기가 있음)
+      files.push(new File([blob], pad2(i + 1) + "_" + side + ".jpg", { type: "image/jpeg", lastModified: Date.now() + i }));
+    }
+    if (saveJob === job) { job.files = files; paintSaveBtn(); }
+  })();
+}
+function paintSaveBtn() {
+  const b = $("#saveBtn"); const ready = saveJob && saveJob.files;
+  b.disabled = !ready; b.textContent = ready ? "사진 순서대로 저장 (" + saveJob.files.length + "장)" : "사진 준비 중…";
+}
+$("#saveBtn").addEventListener("click", async () => {
+  if (!saveJob || !saveJob.files) return;
+  const files = saveJob.files, b = $("#saveBtn");
+  try {
+    if (navigator.canShare && navigator.canShare({ files })) {
+      await navigator.share({ files }); // 아이폰: [이미지 N개 저장]
+      b.textContent = "✓ 저장 창을 열었어요"; setTimeout(paintSaveBtn, 2000); return;
+    }
+  } catch (e) { if (e && e.name === "AbortError") return; }
+  // 공유가 안 되는 곳(컴퓨터 등): 파일로 내려받기
+  for (const f of files) {
+    const a = document.createElement("a"); a.href = URL.createObjectURL(f); a.download = f.name;
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { a.remove(); URL.revokeObjectURL(a.href); }, 4000);
+    await sleep(250);
+  }
+  b.textContent = "✓ 내려받기 시작"; setTimeout(paintSaveBtn, 2000);
+});
 
 /* ---------- 글 만들기 ---------- */
 function refreshGen() {
@@ -406,11 +512,35 @@ async function generate() {
   } finally { busy = false; progress(null); refreshGen(); renderPhotos(); keepAwake(false); }
 }
 
+// 체험 예시 글(틀)에 고른 값을 끼워 넣는다. 틀 표시는 demo.js 위쪽 설명 참고
+const PERIOD_TEXT = { "1주 안": "1주", "2~3주": "2~3주", "4~6주": "4~6주", "그 이상": "6주 이상" };
+function fillDemo(tpl, f) {
+  const region = f.consent === "region" ? f.region : "";
+  const size = f.size && f.size !== "모름" ? f.size : "";
+  const space = f.spaces.slice(0, 2).join("·") || "공간";
+  const first = (f.spaces[0] || "").split("·")[0].replace(/\(.*\)/, "").replace(/\s+/g, "");
+  const V = {
+    "{지역 }": region ? region + " " : "", "{평수 }": size ? size + " " : "", "{공간}": space,
+    "{기간}": PERIOD_TEXT[f.period] || null, "{메모}": f.memo ? f.memo.replace(/\s+/g, " ").slice(0, 120) : null,
+    "{사진만}": f.consent === "photo" ? "" : null, "{지역동의}": f.consent === "region" && region ? "" : null,
+    "{#지역}": region ? "#" + region.replace(/\s+/g, "") + "인테리어 " : "",
+    "{#평수}": size.replace(/\s+/g, "").replace(/~\d+평/, "평대"), "{#공간}": first
+  };
+  const keys = Object.keys(V);
+  const lines = [];
+  tpl.split("\n").forEach(line => {
+    const alt = line.split("||").find(a => keys.every(k => !a.includes(k) || V[k] !== null));
+    if (alt == null) return; // 값이 없으면 그 줄을 뺀다
+    lines.push(keys.reduce((s, k) => s.split(k).join(V[k] || ""), alt).replace(/ {2,}/g, " "));
+  });
+  return lines.join("\n").replace(/\n{3,}/g, "\n\n");
+}
+
 async function runDemo() {
   const list = allPhotos(); const f = fields();
   if (list.length) { progress("사진 읽는 중… (체험)", 15); await sleep(700); }
   const which = f.type === "shop" ? "shop" : (f.kind === "compare" ? "compare" : "review");
-  const sample = (window.ARTPLAY_DEMO || {})[which] || "";
+  const sample = fillDemo((window.ARTPLAY_DEMO || {})[which] || "", f);
   const info = shopInfoBlock();
   const full = sample.replace("{안내}\n\n", info ? info + "\n\n" : "");
   let shown = 0; const step = Math.ceil(full.length / 30);
@@ -418,11 +548,11 @@ async function runDemo() {
   const p = parse(full);
   const order = (p.body.match(/^📷 사진 \d+: .+$/gm) || []).map(l => l.replace("📷 ", "").replace(":", " —"))
     .sort((a, b) => parseInt(a.replace(/\D+/, ""), 10) - parseInt(b.replace(/\D+/, ""), 10));
-  const alerts = ["체험 모드 예시 글이에요. 내 사진·메모는 들어가지 않았어요. 그대로 올리면 안 돼요."];
+  const alerts = ["체험 모드 — 예시 문장에 고른 값만 넣었어요 (실제는 AI가 사진을 보고 새로 써요). 그대로 올리면 안 돼요."];
   if (f.type === "shop") { if (f.kind !== "review") alerts.push("상점 체험 예시는 시공 후기 한 편만 있어요. 실제로는 고른 글 종류대로 써요."); }
   else if (f.kind === "tip") alerts.push("공간 팁 글은 체험 예시가 없어 시공 후기 예시를 보여 드려요.");
   const r = { id: Date.now(), date: new Date().toISOString(), space: (f.type === "shop" ? "상점 · " : "집 · ") + f.spaces.join(", "), sel: 0, demo: true,
-    titles: p.titles, summary: p.summary, body: p.body, tags: p.tags, checks: p.checks, alerts: alerts.concat(safety(p, f)), order };
+    titles: p.titles, summary: p.summary, body: p.body, tags: p.tags, checks: p.checks, alerts: alerts.concat(safety(p, f)), order, photoKey: photoKey() };
   renderResult(r); addHistory(r);
   $("#result").scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -497,7 +627,7 @@ async function runLive() {
     const order = list.map((ph, i) => "사진 " + (i + 1) + " — " + ph.side + ": " + descs[i].desc);
     const r = { id: Date.now(), date: new Date().toISOString(), space: (f.type === "shop" ? "상점 · " : "집 · ") + f.spaces.join(", "), sel: 0,
       titles: p.titles.length ? p.titles : ["(제목 없음)"], summary: p.summary, body: p.body, tags: p.tags, checks: p.checks,
-      alerts: alerts.concat(safety(p, f)), order };
+      alerts: alerts.concat(safety(p, f)), order, photoKey: photoKey() };
     renderResult(r); addHistory(r);
     $("#result").scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (e) {
