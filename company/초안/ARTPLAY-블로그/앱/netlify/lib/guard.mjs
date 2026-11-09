@@ -12,7 +12,10 @@ const FAIL_MAX = 5;               // 이 횟수만큼 틀리면
 const FAIL_WINDOW = 15 * 60e3;    // 15분 안에
 const LOCK_MS = 15 * 60e3;        // 15분 잠금
 
-let memory = null; // 로컬 시험용 (Blobs를 못 쓸 때)
+let memory = null; // 내 컴퓨터 시험(dev-server.mjs)에서만 쓰는 임시 기록. 배포한 곳에서는 절대 쓰지 않는다.
+const LOCAL_DEV = process.env.ARTPLAY_LOCAL_DEV === "1";
+
+export const NO_STORE = { error: "no_store", message: "사용 기록 저장소에 연결하지 못해 잠시 쓸 수 없어요. 회사에 알려 주세요." };
 function memStore() {
   if (!memory) {
     const m = new Map();
@@ -28,6 +31,7 @@ let storePromise = null;
 export function getGuardStore() {
   if (globalThis.__ARTPLAY_TEST_STORE__) return Promise.resolve(globalThis.__ARTPLAY_TEST_STORE__);
   if (!storePromise) {
+    if (LOCAL_DEV) { storePromise = Promise.resolve(memStore()); return storePromise; }
     storePromise = (async () => {
       try {
         const { getStore } = await import("@netlify/blobs");
@@ -37,8 +41,10 @@ export function getGuardStore() {
           async setJSON(k, v) { await s.setJSON(k, v); }
         };
       } catch (e) {
-        console.warn("[guard] Netlify Blobs를 쓸 수 없어 임시 메모리를 씁니다:", e && e.message);
-        return memStore();
+        // 배포한 곳에서 기록 저장소를 못 쓰면 한도·잠금이 사라지므로 멈춘다 (메모리로 넘어가지 않음)
+        console.error("[guard] Netlify Blobs를 쓸 수 없어 멈춥니다:", e && e.message);
+        storePromise = null;
+        const err = new Error("no_store"); err.code = "no_store"; throw err;
       }
     })();
   }
@@ -82,7 +88,9 @@ export async function checkCode(code, ip) {
     const min = Math.ceil((f.until - now) / 60e3);
     return { ok: false, status: 423, error: "locked", message: "코드를 여러 번 틀려서 " + min + "분 동안 잠겼어요. 잠시 뒤 다시 해 주세요." };
   }
-  const given = String(code || "").trim();
+  let given = String(code || "").trim();
+  try { given = decodeURIComponent(given); } catch (_) { /* 이미 풀린 값 */ }
+  given = given.trim();
   const hit = given && codes.find(c => sameCode(c.code, given));
   if (hit) {
     if (f.n) await store.setJSON(key, { n: 0, first: now, until: 0 });
@@ -111,8 +119,11 @@ export async function take(shop, kind) {
   const capAll = kind === "photos" ? L.all * 4 : L.all;
   const store = await getGuardStore();
   const { day, u, all } = await usage(shop);
-  if ((u[kind] || 0) >= cap || (all[kind] || 0) >= capAll) {
+  if ((u[kind] || 0) >= cap) {
     return { ok: false, status: 429, error: "daily_limit", message: "오늘 만들 수 있는 글을 다 썼어요 (하루 " + L.daily + "편). 내일 다시 쓸 수 있어요." };
+  }
+  if ((all[kind] || 0) >= capAll) {
+    return { ok: false, status: 429, error: "all_limit", message: "오늘은 앱 전체 사용량이 많아 잠시 멈췄어요. 내일 다시 쓸 수 있어요. 급하면 회사에 알려 주세요." };
   }
   u[kind] = (u[kind] || 0) + 1; all[kind] = (all[kind] || 0) + 1;
   await store.setJSON("day:" + day + ":" + shop, u);

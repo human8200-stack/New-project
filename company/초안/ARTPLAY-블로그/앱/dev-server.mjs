@@ -8,6 +8,7 @@ import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 
+process.env.ARTPLAY_LOCAL_DEV = "1"; // 하루 한도·잠금 기록을 메모리에 (이 시험 서버에서만)
 const here = fileURLToPath(new URL(".", import.meta.url));
 const pub = join(here, "public");
 const PORT = Number(process.env.PORT || 8888);

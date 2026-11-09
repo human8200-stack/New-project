@@ -45,7 +45,7 @@ const TYPE_TEXT = {
   home: { space: "공간", live: "살면서 공사했나요?", quote: "고객이 실제로 한 말 한 줄", memo: "예: 상부장 답답하다고 하심. 화이트오크 하부장, 세라믹 상판. 방수 두 번 함", etc: "예: 다용도실, 드레스룸" },
   shop: { space: "업종", live: "영업하면서 공사했나요?", quote: "사장님이 실제로 한 말 한 줄", memo: "예: 우드·라탄 동네 카페 콘셉트. 좌석 24석. 야간 공사로 오픈 날짜 맞춤. 전기 증설", etc: "예: 꽃집, 공방" }
 };
-const DEFAULTS = { consent: "photo", perk: "none", kind: "review", nameok: "no" };
+const DEFAULTS = { perk: "none", kind: "review", nameok: "no" }; // 게시 동의는 기본값 없이 꼭 고르게
 const CONSENT_HELP = {
   photo: "사진만: 지역 이름 없이 써요.",
   region: "지역까지: 구·동 이름까지 써요. 동·호수와 단지명은 어떤 경우에도 안 써요.",
@@ -115,6 +115,7 @@ function onChoice() {
   $("#consentHelp").textContent = CONSENT_HELP[one("consent")] || "";
   if (sel.space.size) { $("#gSpace").classList.remove("warn"); $("#spaceWarn").hidden = true; }
   if (sel.size.size) { $("#gSize").classList.remove("warn"); $("#sizeWarn").hidden = true; }
+  if (sel.consent.size) { $("#gConsent").classList.remove("warn"); $("#consentWarn").hidden = true; }
   $("#beforeWarn").hidden = !(one("kind") === "compare" && photos.before.length === 0);
 }
 
@@ -219,7 +220,7 @@ function gateErr(t) { const e = $("#gateErr"); e.textContent = t || ""; e.hidden
 async function api(path, body) {
   const res = await fetch(path, {
     method: "POST",
-    headers: { "content-type": "application/json", "x-shop-code": code },
+    headers: { "content-type": "application/json", "x-shop-code": encodeURIComponent(code) }, // 머리글에는 한글이 못 들어가서 바꿔 보냄
     body: body ? JSON.stringify(body) : "{}"
   });
   return res;
@@ -255,7 +256,7 @@ function fields() {
   const st = settings();
   const spaces = [...sel.space].map(v => v === "기타" ? ($("#spaceEtc").value.trim() || "기타 공간") : v);
   return {
-    type: one("type"), spaces, size: one("size"), nameOk: one("nameok"), shopName: $("#shopName").value.trim(), seats: $("#seats").value.trim(), consent: one("consent") || "photo", region: $("#region").value.trim(),
+    type: one("type"), spaces, size: one("size"), nameOk: one("nameok"), shopName: $("#shopName").value.trim(), seats: $("#seats").value.trim(), consent: one("consent"), region: $("#region").value.trim(),
     period: one("period"), memo: $("#memo").value.trim(), kind: one("kind") || "review", perk: one("perk") || "none",
     works: [...sel.work], liveIn: one("live"), cost: $("#cost").value.trim(), quote: $("#quote").value.trim(),
     shop: { area: st.area || "", direct: st.direct || "", warranty: st.warranty || "", license: st.license || "", prep: st.prep || "", tags: st.tags || "" }
@@ -300,6 +301,7 @@ function safety(r, f) {
     const first = (r.summary.split("\n")[0] || "") + (r.titles[0] || "");
     if (!/협찬|할인/.test(first)) out.push("협찬·할인 표시가 제목 맨 앞과 본문 첫 줄에 있는지 꼭 확인해 주세요 (법으로 정해진 표시).");
   }
+  if (/고마워요/.test(all)) out.push("\"고마워요 ○○\"처럼 협찬을 흐리는 말이 있어요. 협찬이면 \"(협찬)\"으로 분명히 써 주세요.");
   const long = r.titles.filter(t => t.replace(/\s*\[art\.play\]\s*$/i, "").length > 30).length;
   if (long) out.push("30자가 넘는 제목이 " + long + "개 있어요. 휴대폰 검색에서 뒤가 잘릴 수 있어요.");
   return out;
@@ -361,7 +363,7 @@ function fail(e) {
   const err = e && e.error;
   $("#failDemo").hidden = !(err === "no_key" || err === "no_codes") || mode === "demo";
   $("#failCode").hidden = !(err === "bad_code");
-  $("#retryBtn").hidden = ["no_key", "no_codes", "bad_code", "locked", "daily_limit", "no_consent", "key_bad", "billing"].includes(err);
+  $("#retryBtn").hidden = ["no_key", "no_codes", "bad_code", "locked", "daily_limit", "all_limit", "no_store", "no_consent", "key_bad", "billing"].includes(err);
   $("#failBox").hidden = false;
   $("#failBox").scrollIntoView({ behavior: "smooth", block: "center" });
 }
@@ -385,6 +387,10 @@ function validate() {
   if (!sel.size.size) {
     $("#gSize").classList.add("warn"); $("#sizeWarn").hidden = false;
     $("#gSize").scrollIntoView({ behavior: "smooth", block: "center" }); return false;
+  }
+  if (!sel.consent.size) {
+    $("#gConsent").classList.add("warn"); $("#consentWarn").hidden = false;
+    $("#gConsent").scrollIntoView({ behavior: "smooth", block: "center" }); return false;
   }
   if (one("consent") === "none") { fail({ error: "no_consent", message: "고객 게시 동의가 없어 글을 만들지 않았어요. 동의를 받은 뒤 다시 눌러 주세요." }); return false; }
   return true;
@@ -449,7 +455,7 @@ async function runLive() {
       let readAll = true, anyOk = false;
       for (const r of results) {
         if (r.err) {
-          if (["no_key", "no_codes", "bad_code", "locked", "daily_limit", "key_bad", "billing"].includes(r.err.error)) throw r.err;
+          if (["no_key", "no_codes", "bad_code", "locked", "daily_limit", "all_limit", "no_store", "key_bad", "billing"].includes(r.err.error)) throw r.err;
           readAll = false; continue;
         }
         anyOk = true; if (!r.d.read) readAll = false;

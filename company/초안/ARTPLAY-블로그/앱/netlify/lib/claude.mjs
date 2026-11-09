@@ -45,14 +45,16 @@ function headers() {
 }
 
 // 한 번에 받기 (사진 읽기용)
+// 오류에 preStream=true가 붙으면 "AI가 처음부터 200이 아닌 응답을 줬다" = 돈이 나가지 않았다는 뜻 → 한도를 돌려준다
 export async function callOnce(body, signal) {
   const res = await fetch(API_URL, { method: "POST", headers: headers(), body: JSON.stringify(body), signal });
-  const data = await res.json().catch(() => null);
   if (!res.ok) {
+    const data = await res.json().catch(() => null);
     const type = data && data.error && data.error.type;
     console.warn("[claude] 오류", res.status, type, data && data.error && data.error.message);
-    const e = new Error("api"); e.friendly = friendlyApiError(res.status, type); throw e;
+    const e = new Error("api"); e.friendly = friendlyApiError(res.status, type); e.preStream = true; throw e;
   }
+  const data = await res.json().catch(() => ({}));
   const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
   return { text, usage: data.usage || null, stop: data.stop_reason };
 }
@@ -64,7 +66,7 @@ export async function callStream(body, onText, signal) {
     const data = await res.json().catch(() => null);
     const type = data && data.error && data.error.type;
     console.warn("[claude] 오류", res.status, type, data && data.error && data.error.message);
-    const e = new Error("api"); e.friendly = friendlyApiError(res.status, type); throw e;
+    const e = new Error("api"); e.friendly = friendlyApiError(res.status, type); e.preStream = true; throw e;
   }
   const reader = res.body.getReader();
   const dec = new TextDecoder();
