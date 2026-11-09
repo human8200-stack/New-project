@@ -11,7 +11,7 @@ const SIDES = [
   { key: "during", label: "공사 중", max: 3 },
   { key: "after", label: "후", max: 6 }
 ];
-const MAX_EDGE = 1280, JPEG_Q = 0.82, BODY_BUDGET = 4.6e6; // base64 글자 수 합계 상한 (Netlify 6MB 안쪽)
+const MAX_EDGE = 1280, JPEG_Q = 0.82, BODY_BUDGET = 4.2e6; // 한 번에 보내는 base64 글자 수 상한 (Netlify 요청 6MB 안쪽)
 
 // 고르기 버튼 (값 v는 서버로 가는 값, t는 화면 글자)
 const GROUPS = {
@@ -111,7 +111,8 @@ async function addFiles(side, max, files, addBtn) {
     for (const f of arr.slice(0, Math.max(0, room))) {
       try {
         let blob = await shrink(f, MAX_EDGE, JPEG_Q);
-        if (blob.size > 700e3) blob = await shrink(f, MAX_EDGE, 0.7);
+        if (blob.size > 420e3) blob = await shrink(f, MAX_EDGE, 0.7);
+        if (blob.size > 420e3) blob = await shrink(f, 1024, 0.7);
         list.push({ id: ++pid, blob, url: URL.createObjectURL(blob) });
       } catch (_) { failed++; }
     }
@@ -197,6 +198,7 @@ async function enterCode(c) {
     const res = await api("/api/check");
     if (!res.ok) { const e = await readErr(res); gateErr(e.message); return; }
     const d = await res.json();
+    if (!d.ok) { gateErr(d.message || "접속 코드를 확인해 주세요."); return; }
     ls.set(K.code, code); ls.set(K.mode, "live"); mode = "live"; left = d.left;
     show("app"); paintMode();
     if (!d.ai) fail({ error: "no_key", message: "접속은 됐지만 AI 연결 열쇠가 아직 설정되지 않았어요. 회사에 알려 주세요. 그동안은 체험 모드로 둘러볼 수 있어요." });
@@ -384,20 +386,33 @@ async function runLive() {
     if (list.length && descCache && descCache.key === key) { descs = descCache.descs; }
     else if (list.length) {
       progress("사진 " + list.length + "장 읽는 중… (10~20초)", 10);
-      const data = []; let total = 0;
-      for (const p of list) { const d = await b64(p.blob); total += d.length; data.push({ side: p.side, data: d }); }
-      if (total > BODY_BUDGET) throw { error: "too_big", message: "사진이 너무 커요. 사진 몇 장을 빼고 다시 해 주세요." };
-      const res = await api("/api/photos", { photos: data });
-      if (!res.ok) {
-        const e = await readErr(res);
-        if (["no_key", "no_codes", "bad_code", "locked", "daily_limit", "key_bad", "billing"].includes(e.error)) throw e;
-        alerts.push("사진 내용을 읽지 못해 사진은 순서만 넣었어요.");
-      } else {
-        const d = await res.json();
-        if (Array.isArray(d.photos)) descs = d.photos.map((x, i) => ({ side: list[i].side, desc: x.desc, seen: x.seen || "", privacy: x.privacy || [] }));
-        if (!d.read) alerts.push("사진 내용을 다 읽지 못해 일부는 순서만 넣었어요.");
-        descCache = { key, descs };
+      const data = [];
+      for (const p of list) data.push({ side: p.side, data: await b64(p.blob) });
+      // 6MB 제한 안에 들게 두 묶음까지 나눠서 동시에 보낸다
+      const packs = []; let cur = [], size = 0;
+      data.forEach((d, i) => {
+        if (cur.length && (size + d.data.length > BODY_BUDGET || cur.length >= 8)) { packs.push(cur); cur = []; size = 0; }
+        cur.push({ i, d }); size += d.data.length;
+      });
+      if (cur.length) packs.push(cur);
+      if (packs.length > 2) throw { error: "too_big", message: "사진이 너무 커요. 사진 몇 장을 빼고 다시 해 주세요." };
+      const results = await Promise.all(packs.map(async pk => {
+        const res = await api("/api/photos", { photos: pk.map(x => x.d) });
+        if (!res.ok) return { pk, err: await readErr(res) };
+        return { pk, d: await res.json() };
+      }));
+      let readAll = true, anyOk = false;
+      for (const r of results) {
+        if (r.err) {
+          if (["no_key", "no_codes", "bad_code", "locked", "daily_limit", "key_bad", "billing"].includes(r.err.error)) throw r.err;
+          readAll = false; continue;
+        }
+        anyOk = true; if (!r.d.read) readAll = false;
+        (r.d.photos || []).forEach((x, k) => { const i = r.pk[k] && r.pk[k].i; if (i == null) return; descs[i] = { side: list[i].side, desc: x.desc || descs[i].desc, seen: x.seen || "", privacy: x.privacy || [] }; });
       }
+      if (!anyOk) alerts.push("사진 내용을 읽지 못해 사진은 순서만 넣었어요.");
+      else if (!readAll) alerts.push("사진 일부는 내용을 읽지 못해 순서만 넣었어요.");
+      if (anyOk) descCache = { key, descs };
     }
     descs.forEach((d, i) => { if (d.privacy && d.privacy.length) alerts.unshift("사진 " + (i + 1) + "에 " + d.privacy.join("·") + "이(가) 보여요. 블로그에 올리기 전에 가려 주세요."); });
 
@@ -538,8 +553,9 @@ paintChips(); renderPhotos(); refreshGen();
   const m = ls.get(K.mode, ""), c = ls.get(K.code, "");
   if (m === "demo") { enterDemo(); return; }
   if (c) { code = c; mode = "live"; show("app"); paintMode(); api("/api/check").then(async res => {
-    if (res.ok) { const d = await res.json(); left = d.left; paintMode(); if (!d.ai) fail({ error: "no_key", message: "AI 연결 열쇠가 아직 설정되지 않았어요. 회사에 알려 주세요. 그동안은 체험 모드로 둘러볼 수 있어요." }); }
-    else { const e = await readErr(res); if (e.error === "bad_code" || e.error === "no_codes") { ls.del(K.code); show("gate"); gateErr(e.message); } }
+    const d = res.ok ? await res.json() : null;
+    if (d && !d.ok) { if (d.error === "bad_code" || d.error === "no_codes") { ls.del(K.code); show("gate"); gateErr(d.message); } return; }
+    if (d) { left = d.left; paintMode(); if (!d.ai) fail({ error: "no_key", message: "AI 연결 열쇠가 아직 설정되지 않았어요. 회사에 알려 주세요. 그동안은 체험 모드로 둘러볼 수 있어요." }); }
   }).catch(() => {}); return; }
   show("gate");
 })();

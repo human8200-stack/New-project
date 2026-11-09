@@ -107,8 +107,8 @@ export async function usage(shop) {
 
 export async function take(shop, kind) {
   const L = limits();
-  const cap = kind === "photos" ? L.daily * 2 : L.daily;
-  const capAll = kind === "photos" ? L.all * 2 : L.all;
+  const cap = kind === "photos" ? L.daily * 4 : L.daily;   // 사진은 한 글에 두 번까지 나눠 보낼 수 있음
+  const capAll = kind === "photos" ? L.all * 4 : L.all;
   const store = await getGuardStore();
   const { day, u, all } = await usage(shop);
   if ((u[kind] || 0) >= cap || (all[kind] || 0) >= capAll) {
