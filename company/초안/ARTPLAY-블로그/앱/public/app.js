@@ -417,9 +417,8 @@ async function runLive() {
         if (!line) continue;
         let o; try { o = JSON.parse(line); } catch (_) { continue; }
         if (o.t) { text += o.t; progress("글 쓰는 중… " + text.length.toLocaleString("ko-KR") + "자", 25 + Math.min(70, text.length / 30)); }
-        else if (o.done) end = o;
+        else if (o.done) { end = o; if (o.left != null) left = o.left; }
         else if (o.error) err = o;
-        if (o.left != null) left = o.left;
       }
     }
     paintMode();
