@@ -2,26 +2,19 @@
 
 너는 회장님 크롬에서 일하는 Claude야. 회장님 ChatGPT(로그인돼 있음)로 그림만 만든다. 돈 드는 버튼(요금제 업그레이드, 런웨이 등)은 절대 누르지 않는다. 게시도 하지 않는다.
 
-## ★ 지금 할 일 (11/9 — 3장: ⑤ 마당 테이블 + 고양이 미엘 / ⑥ 마당에서 토마토 따기 / ⑦ 미엘 야옹)
-새 대화. 첨부 순서: image 1 = 집 https://raw.githubusercontent.com/human8200-stack/New-project/claude/focus-90days/company/%EC%B4%88%EC%95%88/%EB%A9%94%EC%A2%85%EC%97%90%EB%8D%B8-%EC%A7%91-%EC%B0%B8%EA%B3%A0%ED%8C%90-1.jpg · image 2 = 손 https://raw.githubusercontent.com/human8200-stack/New-project/claude/focus-90days/company/%EC%B4%88%EC%95%88/%EB%A9%94%EC%A2%85%EC%97%90%EB%8D%B8-%EA%B8%B0%EC%A4%80%EC%9E%A5%EB%A9%B4/%EB%9F%B0%EC%9B%A8%EC%9D%B4%EC%9A%A9/%EA%B3%A0%EC%A0%95-%EC%86%90%EA%B3%BC%EB%B9%9B_EP01%EC%82%AC%EA%B3%BC%EC%98%AC%EB%A6%AC%EA%B8%B0.jpg · image 3 = 미엘(마당) https://raw.githubusercontent.com/human8200-stack/New-project/claude/focus-90days/company/%EC%B4%88%EC%95%88/%EB%A9%94%EC%A2%85%EC%97%90%EB%8D%B8-%EB%AF%B8%EC%97%98/%EB%AF%B8%EC%97%98-%EA%B8%B0%EC%A4%803.jpg · image 4 = 접시 https://raw.githubusercontent.com/human8200-stack/New-project/claude/focus-90days/company/%EC%B4%88%EC%95%88/%EB%A9%94%EC%A2%85%EC%97%90%EB%8D%B8-%EA%B8%B0%EC%A4%80%EC%9E%A5%EB%A9%B4/%EB%9F%B0%EC%9B%A8%EC%9D%B4%EC%9A%A9/%EA%B7%B8%EB%A6%87-%EC%BD%94%EC%8A%A4%ED%83%80%EB%85%B8%EB%B0%94.jpg
-주문서(그대로 붙여 넣고, 끝에 아래 미엘 문장을 덧붙인다):
+## ★ 지금 할 일 (11/9 — 1장만: ⑧ 마당에서 먹기 · 회장님 "1번 승인 오케이")
+회장님 원문: "마당에서 숟가락을 입까지 가져가서 먹어야지.." / "늘 이제는 숟가락을 들고 있지 말고 먹는 것까지 손이 안보여도 괜찮." / 사장 제안("새 그림 1장 — 입술·턱까지만, 숟가락이 입에 들어가는 순간, 손 안 보임")에 "1번 승인 오케이"
+이 그림 1장만 그리고 끝낸다. 다른 그림은 그리지 않는다.
+첨부: ⑤를 그렸던 ChatGPT 대화가 남아 있으면 그 대화에서 이어서(첨부 없음). 없으면 새 대화를 열고, 노션 'Maison Edel 작업실' 맨 아래 'EP.05 토마토 솥밥 그림' 칸의 **No06-⑤-마당-미엘** 그림을 내려받아 image 1로 올린다. (회장님 집·얼굴 사진은 올리지 않는다)
+주문서(그대로 붙여 넣는다):
 ```
-Vertical 9:16 photo. A clear autumn morning in the small yard of Edel's country house — the same house as image 1, its cream plaster wall and dark wood window frame softly blurred in the background — right beside a small vegetable patch with rows of green leafy vegetables. Soft natural sunlight from the side, gentle shadows, calm and clean, not yellow. A small wooden table covered with a natural linen cloth. A woman sits at the table, seen from behind and slightly to the side (back three-quarter view): her shoulder, back and arm in a cream ruffled blouse with a beige linen apron strap; her face is hidden — no face, no profile, no lips visible (crop her head at the top of the frame or keep it turned away toward the garden). On the table in front of her: a sage-green matte speckled stoneware plate like image 4 with tomato rice — cooked white rice with small bits of browned beef and a few sliced scallions, and one soft peeled whole tomato on top, light steam. Her hand (like image 2, no jewelry) holds a spoon just above the plate, not touching yet. The plate and the green vegetable patch are the subject; background softly blurred. No text, no logos.
-Also in the picture: the same cream-colored cat from image 3 (Miel — soft cream fur with faint pale-apricot tabby stripes on the tail and forehead, white chest and paws, amber eyes) sits quietly on the low stone step beside the table, looking at the plate, small in the frame. Exactly one cat, correct anatomy. The plate stays like image 4.
+Vertical 9:16 photo. The same clear autumn morning in the same sunny yard as image 1: the same woman in the same cream ruffled blouse with the beige linen apron strap, the same soft natural side sunlight, calm and clean, not yellow. Now the moment she takes a bite. Close side view at mouth height: the frame shows only her lips, chin, a little of her neck, and her shoulder in the cream ruffled blouse with the apron strap. The top edge of the frame cuts just below her nose — no eyes, no nose, no full face. One silver spoon holding a small bite of tomato-stained rice with bits of browned beef and a few sliced green scallions is just entering between her softly parted lips. Her hand and fingers are not in the frame at all — the spoon handle runs out of the frame at the edge. Natural lips, no strong lipstick, natural skin of a Korean woman in her late thirties. Background: the green vegetable patch and the cream plaster wall, heavily blurred, with warm clear morning sunlight from the side and a soft rim of light on her chin and lips. No cat needed. No text, no logos.
 ```
-파일 이름 No06-⑤-마당-미엘.png → 노션 작업실 맨 아래 'EP.05 토마토 솥밥 그림' 칸 끝에 올린다.
-**두 번째 그림 (같은 '지금 할 일' — 회장님 11/9 "마당에 있는 토마토에서 토마토를 따서 요리하는 걸로")** — 새 대화. 첨부: image 1 = 집 https://raw.githubusercontent.com/human8200-stack/New-project/claude/focus-90days/company/%EC%B4%88%EC%95%88/%EB%A9%94%EC%A2%85%EC%97%90%EB%8D%B8-%EC%A7%91-%EC%B0%B8%EA%B3%A0%ED%8C%90-1.jpg · image 2 = 손 https://raw.githubusercontent.com/human8200-stack/New-project/claude/focus-90days/company/%EC%B4%88%EC%95%88/%EB%A9%94%EC%A2%85%EC%97%90%EB%8D%B8-%EA%B8%B0%EC%A4%80%EC%9E%A5%EB%A9%B4/%EB%9F%B0%EC%9B%A8%EC%9D%B4%EC%9A%A9/%EA%B3%A0%EC%A0%95-%EC%86%90%EA%B3%BC%EB%B9%9B_EP01%EC%82%AC%EA%B3%BC%EC%98%AC%EB%A6%AC%EA%B8%B0.jpg
-```
-Vertical 9:16 photo. A clear sunny autumn morning in the small vegetable garden beside Edel's country house from image 1 (cream plaster wall and dark wood window softly blurred in the background). Tall staked tomato plants with green leaves and a few ripe red tomatoes on the vine. Close view: an adult woman's hand like image 2 (cream ruffled blouse sleeve, no jewelry, no nail polish) gently holds one plump ripe red tomato on the vine, about to twist it off; her other hand holds a small woven basket at the bottom edge of the frame with two picked tomatoes inside. Soft natural side sunlight, gentle shadows, morning dew on the leaves, calm and fresh, not yellow. No face. No text, no logos.
-```
-파일 이름 No06-⑥-토마토따기.png → 같은 노션 칸.
-**세 번째 그림 (회장님 11/9 "고양이가 야옹하는 장면")** — 새 대화. 첨부: image 1 = 미엘(마당) https://raw.githubusercontent.com/human8200-stack/New-project/claude/focus-90days/company/%EC%B4%88%EC%95%88/%EB%A9%94%EC%A2%85%EC%97%90%EB%8D%B8-%EB%AF%B8%EC%97%98/%EB%AF%B8%EC%97%98-%EA%B8%B0%EC%A4%803.jpg · image 2 = 미엘(창가) https://raw.githubusercontent.com/human8200-stack/New-project/claude/focus-90days/company/%EC%B4%88%EC%95%88/%EB%A9%94%EC%A2%85%EC%97%90%EB%8D%B8-%EB%AF%B8%EC%97%98/%EB%AF%B8%EC%97%98-%EA%B8%B0%EC%A4%801.jpg
-```
-Vertical 9:16 photo. The same cat from image 1 and image 2 (Miel — soft cream fur with faint pale-apricot tabby stripes on the tail and forehead, white chest and paws, amber eyes) sits on the same low stone step in the sunny autumn yard beside the green vegetable patch. Close view of the cat from the chest up, looking slightly up toward the camera with its mouth just beginning to open in a soft meow. Soft natural side sunlight, calm, not yellow. Exactly one cat, correct anatomy. No people, no text, no logos.
-```
-파일 이름 No06-⑦-미엘야옹.png → 같은 노션 칸. 세 장 끝나면 회장님께 "3장 올렸어요".
+확인: 눈·코가 보이거나, 손·손가락이 보이거나, 숟가락이 입에 닿지 않았으면 한 번만 '고쳐 줘'(그 점만 짚어서). 그래도 다르면 그대로 두고 메모 한 줄.
+파일 이름 No06-⑧-마당-먹기.png → 노션 작업실 맨 아래 'EP.05 토마토 솥밥 그림' 칸 끝에 올린다. 끝나면 회장님께 "먹는 그림 1장 올렸어요".
+영상 만들기·런웨이·돈 드는 버튼은 절대 누르지 않는다.
 
-
+(이전 할 일: ⑤ 마당 테이블 + 미엘 / ⑥ 토마토 따기 / ⑦ 미엘 야옹 — 11/9 완료)
 
 ## 기준 사진 4장 (먼저 내려받기)
 - image 1: https://raw.githubusercontent.com/human8200-stack/New-project/claude/focus-90days/company/%EC%B4%88%EC%95%88/%EB%A9%94%EC%A2%85%EC%97%90%EB%8D%B8-%EC%A7%91-%EC%B0%B8%EA%B3%A0%ED%8C%90-1.jpg
