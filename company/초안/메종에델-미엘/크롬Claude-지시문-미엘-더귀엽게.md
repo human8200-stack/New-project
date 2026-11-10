@@ -1,6 +1,6 @@
 # 크롬 Claude 지시문 — 미엘 더 귀엽게 (회장님 11/10)
 
-회장님 원문: "미엘 사진이 나오긴 했지만, 조금만 더 귀엽게 만들까? 뚱뚱이도 좋고, 털이 더 많아도 좋고"
+회장님 원문: "미엘 사진이 나오긴 했지만, 조금만 더 귀엽게 만들까? 뚱뚱이도 좋고, 털이 더 많아도 좋고" / "약간 얼굴도 넓적한애 있잖아"
 
 너는 회장님 크롬에서 일하는 Claude야. 회장님 ChatGPT(로그인돼 있음)로 그림만 만든다. 돈 드는 버튼은 누르지 않는다. 게시·영상 만들기 하지 않는다.
 
@@ -10,15 +10,15 @@
 ## 그림 3장 (같은 대화에서 차례로)
 1) 첨부: 지금 미엘 사진
 ```
-Same cat as the attached photo, same place and same light, same cream fur color with very faint pale-apricot stripes, white chest and white paws, amber eyes. Make her cuter: a chubby, round, plump body (soft round belly, round cheeks), much fluffier and longer fur like a fluffy longhair cat (big fluffy chest ruff, fluffy tail, tufts on the ears), bigger round eyes, slightly shorter nose. Sitting upright on the windowsill, looking at the camera with a gentle, slightly sleepy happy face. Vertical 9:16, natural real photo, real fur texture, correct anatomy (four legs, one tail, two ears). No collar, no text, no logos.
+Same cat as the attached photo, same place and same light, same cream fur color with very faint pale-apricot stripes, white chest and white paws, amber eyes. Make her cuter: a chubby, round, plump body (soft round belly, round cheeks), much fluffier and longer fur like a fluffy longhair cat (big fluffy chest ruff, fluffy tail, tufts on the ears), a wide, broad, round face with big full chubby cheeks (like a British Longhair cat), a short flat-ish nose, small ears set wide apart, bigger round eyes. Sitting upright on the windowsill, looking at the camera with a gentle, slightly sleepy happy face. Vertical 9:16, natural real photo, real fur texture, correct anatomy (four legs, one tail, two ears). No collar, no text, no logos.
 ```
 2) 같은 대화에서 이어서:
 ```
-Same chubby fluffy cat exactly. Now lying like a round fluffy loaf on a folded beige linen napkin at the end of the wooden kitchen table, paws tucked in, eyes half closed, rainy window softly blurred behind. Vertical 9:16. No text, no logos.
+Same chubby fluffy cat with the same wide round chubby-cheeked face exactly. Now lying like a round fluffy loaf on a folded beige linen napkin at the end of the wooden kitchen table, paws tucked in, eyes half closed, rainy window softly blurred behind. Vertical 9:16. No text, no logos.
 ```
 3) 같은 대화에서 이어서:
 ```
-Same chubby fluffy cat exactly. Sitting on a low stone step in the small sunny yard next to a green vegetable patch, round fluffy body, looking up at the camera with big round eyes, mouth slightly open as if saying "meow". Soft side sunlight, not yellow. Vertical 9:16. No text, no logos.
+Same chubby fluffy cat with the same wide round chubby-cheeked face exactly. Sitting on a low stone step in the small sunny yard next to a green vegetable patch, round fluffy body, looking up at the camera with big round eyes, mouth slightly open as if saying "meow". Soft side sunlight, not yellow. Vertical 9:16. No text, no logos.
 ```
 
 ## 끝나면
