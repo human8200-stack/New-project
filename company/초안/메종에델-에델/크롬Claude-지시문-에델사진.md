@@ -1,6 +1,6 @@
 # 크롬 Claude 지시문 — 에델 얼굴 사진 (스토리·썸네일용, 회장님 11/10)
 
-회장님 원문: "우리 에델 얼굴 기준 다 잡아놨는데" / "머리는 그대로" / "에델이 사실적으로 변하면서 약간 늙어? 진 것 같아. 약간 나이들어보여" → 기준 얼굴의 젊고 부드러운 느낌 그대로, 더 나이 들어 보이지 않게 / "커피 마시거나, 미엘과 놀거나, 그릇을 닦거나, 스토리사진과 썸네일부터 시작해보자"
+회장님 원문: "우리 에델 얼굴 기준 다 잡아놨는데" / "머리는 그대로" / "에델이 사실적으로 변하면서 약간 늙어? 진 것 같아. 약간 나이들어보여" → 기준 얼굴의 젊고 부드러운 느낌 그대로, 더 나이 들어 보이지 않게 / 11/10 "난 이런 느낌이 좋아"(배우 사진 2장 — 첨부·흉내 금지, 분위기만): 차분하고 단정한 표정, 입 다문 옅은 미소, 자연스러운 피부결, 거의 없는 볼터치, 맑은 흰 자연광 / "커피 마시거나, 미엘과 놀거나, 그릇을 닦거나, 스토리사진과 썸네일부터 시작해보자"
 
 너는 회장님 크롬에서 일하는 Claude야. 회장님 ChatGPT(로그인돼 있음)로 그림만 만든다. 돈 드는 버튼은 누르지 않는다. 게시·영상 만들기 하지 않는다.
 
@@ -13,7 +13,7 @@
 
 
 ## 공통 (모든 그림)
-Same woman as the attached face references — exactly the same face, the same youthful age and soft look (this is Edel). Do NOT make her look older than the references: keep the same smooth soft skin, soft round cheeks, gentle young features; no wrinkles, no age lines, no harsh skin texture. Natural dark-brown wavy hair loosely tied with a few loose strands, exactly like the references. Keep and gently bring out a delicate, petite, innocent and clear impression: small soft face, clear bright eyes, a shy sweet smile, fresh barely-made-up skin, youthful lovely mood (do not reference or resemble any real celebrity). Cream blouse with soft pleated sleeves and a beige linen apron. Edel's house from the house reference: cream plaster wall, dark wood window frame, warm wooden table, soft natural window light (not yellow). Natural real photo, calm and cozy French country kitchen mood, correct hands (five fingers each). No text, no logos, no brand marks on cups or dishes. Vertical 9:16.
+Same woman as the attached face references — exactly the same face, the same youthful age and soft look (this is Edel). Do NOT make her look older than the references: keep the same smooth soft skin, soft round cheeks, gentle young features; no wrinkles, no age lines, no harsh skin texture. Natural dark-brown wavy hair loosely tied with a few loose strands, exactly like the references. Keep and gently bring out a delicate, petite, innocent and clear impression: small soft face, clear bright eyes, a shy sweet smile, fresh barely-made-up skin, youthful lovely mood (do not reference or resemble any real celebrity). Mood and finish: a calm, quiet, elegant expression — mostly a soft closed-mouth slight smile rather than a big grin; natural realistic skin with fine texture (not plastic or doll-like), very light natural makeup, almost no blush; clean cool-neutral soft daylight (not yellow or golden); refined, understated beauty. Cream blouse with soft pleated sleeves and a beige linen apron. Edel's house from the house reference: cream plaster wall, dark wood window frame, warm wooden table, soft natural window light (not yellow). Natural real photo, calm and cozy French country kitchen mood, correct hands (five fingers each). No text, no logos, no brand marks on cups or dishes. Vertical 9:16.
 
 ## 한 대화에서 차례로 (같은 사람이 되게) — 6장
 1) 커피(스토리): `Edel sitting by the kitchen window in the morning, holding a warm ceramic coffee cup with both hands, a gentle smile, looking out the window, steam rising softly.`
@@ -22,6 +22,9 @@ Same woman as the attached face references — exactly the same face, the same y
 4) 미엘 안기(스토리): `Edel by the window holding the chubby fluffy cream cat in her arms, the cat looking at the camera, Edel smiling at the cat.`
 5) 썸네일용 — 얼굴+요리: `Edel at the wooden table, upper body, smiling warmly at the camera, holding a ceramic bowl of a homemade dish in front of her, a lot of empty cream wall space above her head for a big title.`
 6) 썸네일용 — 장 본 날: `Edel coming in from the small yard holding a woven basket of fresh tomatoes and herbs, soft side light, friendly smile, empty wall space above for a title.`
+
+## 주의
+- 연예인·실존 인물 사진은 절대 첨부하지 않는다. 기준은 노션 에델 확정 얼굴과 위 글뿐.
 
 ## 끝나면
 - 파일 이름: 에델1-커피, 에델2-미엘놀기, 에델3-그릇닦기, 에델4-미엘안기, 에델5-썸네일-요리, 에델6-썸네일-바구니 (.png)
