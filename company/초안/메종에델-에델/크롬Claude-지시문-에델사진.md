@@ -11,17 +11,17 @@
 4. **미엘:** 노션 "📱 스토리" 페이지 맨 아래 "스토리 사진 창고"의 미엘1(통통·털 많은·넓적한 얼굴 새 미엘). 없으면 https://raw.githubusercontent.com/human8200-stack/New-project/claude/focus-90days/company/%EC%B4%88%EC%95%88/%EB%A9%94%EC%A2%85%EC%97%90%EB%8D%B8-%EB%AF%B8%EC%97%98/%EB%AF%B8%EC%97%98-%EA%B8%B0%EC%A4%801.jpg
 
 
-## 0단계 — 에델 얼굴 후보 3장 먼저 (회장님 11/10: 얼굴 느낌을 조금 바꾸되 "머리는 그대로")
+## 0단계 — 에델 얼굴 후보 3장 먼저 (회장님 11/10: 얼굴 느낌을 조금 바꾸되 "머리는 그대로", "사실적으로 변하면서 약간 나이들어보여" → 더 젊게)
 - 첨부: 에델 기준 얼굴 사진(1번). 실제 연예인·실존 인물 이름은 절대 쓰지 않는다.
 - 같은 대화에서 3장:
 ```
-Keep exactly the same hairstyle, hair length, hair color and outfit as the attached woman (Edel). Change only the face feel slightly: a natural, barely-made-up face with clear fair skin, bright sparkling eyes, and a playful, warm smile; unpretentious yet strong-minded, early-to-mid 30s Korean woman. Upper body, by the kitchen window in soft natural light, cream blouse and beige linen apron. Natural real photo. Vertical 9:16. No text. Make three clearly different face candidates, one per image.
+Keep exactly the same hairstyle, hair length, hair color and outfit as the attached woman (Edel). Change only the face feel slightly: a natural, barely-made-up face with clear fair skin, bright sparkling eyes, and a playful, warm smile; unpretentious yet strong-minded, youthful Korean woman in her late 20s to about 30 — she must look young: smooth youthful skin, no wrinkles or age lines, soft full cheeks, lively youthful face (not older than the reference). Upper body, by the kitchen window in soft natural light, cream blouse and beige linen apron. Natural real photo. Vertical 9:16. No text. Make three clearly different face candidates, one per image.
 ```
 - 3장을 회장님께 보여 드리고 "몇 번 얼굴로 할까요?"라고 묻는다. 회장님이 고른 그림을 아래 1~6장의 얼굴 기준으로 쓴다(머리·옷은 기준 그대로). 고르기 전에는 1~6장을 그리지 않는다.
 - 후보 3장도 노션 "📱 스토리" 맨 아래 "## 에델 얼굴 후보 (11/10)"에 올린다.
 
 ## 공통 (모든 그림)
-Same woman as the attached face reference — exactly the same face, hair, age and look (this is Edel). Cream blouse with soft pleated sleeves and a beige linen apron. Edel's house from the house reference: cream plaster wall, dark wood window frame, warm wooden table, soft natural window light (not yellow). Natural real photo, calm and cozy French country kitchen mood, correct hands (five fingers each). No text, no logos, no brand marks on cups or dishes. Vertical 9:16.
+Same woman as the chosen face candidate — exactly the same face, hair and look (this is Edel). She looks youthful, late 20s to about 30, smooth skin, no wrinkles. Cream blouse with soft pleated sleeves and a beige linen apron. Edel's house from the house reference: cream plaster wall, dark wood window frame, warm wooden table, soft natural window light (not yellow). Natural real photo, calm and cozy French country kitchen mood, correct hands (five fingers each). No text, no logos, no brand marks on cups or dishes. Vertical 9:16.
 
 ## 한 대화에서 차례로 (같은 사람이 되게) — 6장
 1) 커피(스토리): `Edel sitting by the kitchen window in the morning, holding a warm ceramic coffee cup with both hands, a gentle smile, looking out the window, steam rising softly.`
