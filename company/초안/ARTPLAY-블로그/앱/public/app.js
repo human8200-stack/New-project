@@ -3,7 +3,7 @@
    글 규칙은 서버의 netlify/lib/prompt.mjs 한 곳에 있어요. 여기에는 화면과 마지막 안전 점검만 있어요. */
 (function () {
 "use strict";
-const APP_VERSION = "1.3.1 (2026-11-11, 체험 글 사진 자리 맞추기·체험 경고)";
+const APP_VERSION = "1.4.0 (2026-11-11, 노트북 붙여 넣기 사진을 https 주소로)";
 // 마우스가 있는 컴퓨터인지 (컴퓨터에서만 [그림과 글 함께 복사]가 보여요. 휴대폰은 그대로)
 const IS_PC = (() => { try { return matchMedia("(pointer: fine) and (hover: hover)").matches; } catch (_) { return false; } })();
 const $ = s => document.querySelector(s);
@@ -738,25 +738,28 @@ Object.keys(COPY).forEach(id => {
 // 본문의 "📷 사진 n: …" 줄 자리에 사진 n(넣은 순서: 전 → 공사 중 → 후)을 넣고, 바로 아래 설명 1문장이 이어진다.
 // 사진은 방금 만든 글에서만 들어간다 (지난 글에는 사진이 없어 글만 복사).
 // 네이버 블로그 PC 편집기에 붙이면 사진+글이 섞여 들어가는 것을 회장님이 확인함 (2026-11-11, 영양 노트 앱).
+// 네이버는 data: 그림을 "허용되지 않는 사진"으로 막는다 → 누르면 사진을 먼저 /api/img 에 올리고(하루 뒤 지움)
+// https 주소로 <img>를 넣어 복사한다. 올리기에 실패하면 data: 로 복사하지 않고 "한 칸씩 복사"를 안내한다.
 const MARK_RE = /^\s*📷\s*사진\s*(\d+)(?!\d)/;
 const PC_EDGE = 1280, PC_Q = 0.82; // 붙여 넣을 사진 크기 (긴 변 1280px JPEG)
 const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const PC_HOWTO = ["크롬에서 네이버 블로그 → 글쓰기", "[제목만]을 눌러 제목 칸에 붙여넣기(Ctrl+V)", "본문 칸을 누르고 [그림과 글 함께 복사] → 붙여넣기(Ctrl+V)", "사진 순서·{연락처}를 한 번 보고 발행"];
-let pcJob = null, piecesKey = "";
+const UP_KEEP = 23 * 3600e3; // 서버는 24시간 뒤 지우므로, 23시간 지난 주소는 다시 올린다
+let pcJob = null, piecesKey = "", pcBusy = "";
 function isLive() { return !!(current && current.photoKey && allPhotos().length && current.photoKey === photoKey()); }
 function imgOf(k) { if (!isLive() || !pcJob || pcJob.key !== current.photoKey) return null; return pcJob.items[k - 1] || null; }
-function toDataUrl(blob) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(r.error); r.readAsDataURL(blob); }); }
 function preparePc() {
   const key = current.photoKey;
   if (pcJob && pcJob.key === key) return;
   const list = allPhotos(), job = { key, items: [], ready: false };
-  pcJob = job;
+  pcJob = job; if (pcBusy !== "up") pcBusy = "";
   (async () => {
     for (let i = 0; i < list.length; i++) {
       const p = list[i];
       try {
         let b; try { b = p.file ? await shrink(p.file, PC_EDGE, PC_Q) : p.blob; } catch (_) { b = p.blob; }
-        job.items[i] = { blob: b, url: await toDataUrl(b), alt: p.side + " 사진 " + (i + 1) };
+        if (b && b.size > 1.4e6 && p.file) { try { b = await shrink(p.file, PC_EDGE, 0.7); } catch (_) {} } // 서버 한도 1.5MB 안쪽으로
+        job.items[i] = { blob: b, url: "", upAt: 0, alt: p.side + " 사진 " + (i + 1) };
       } catch (_) {}
     }
     job.ready = true;
@@ -795,6 +798,30 @@ function buildPieces() {
   const top = [];
   for (let k = 1; k <= n; k++) if (!used.has(k) && imgOf(k)) top.push({ kind: "img", k });
   return top.concat(pieces);
+}
+// 사진 올리기: 아직 안 올렸거나 오래된 것만 올린다. 3장씩 동시에. 하나라도 실패하면 오류(쉬운 문구)
+const upFresh = im => !!(im && im.url && Date.now() - im.upAt < UP_KEEP);
+function needUpload() { return buildPieces().filter(p => p.kind === "img").map(p => imgOf(p.k)).filter(im => im && !upFresh(im)); }
+async function uploadOne(im) {
+  let res;
+  try { res = await fetch("/api/img", { method: "POST", headers: { "content-type": "image/jpeg" }, body: im.blob }); }
+  catch (_) { throw new Error("인터넷 연결을 확인해 주세요."); }
+  const d = await res.json().catch(() => null);
+  if (!res.ok || !d || !d.ok || !d.path) throw new Error((d && d.message) || "사진을 올리지 못했어요.");
+  im.url = new URL(d.path, location.href).href; im.upAt = Date.now();
+}
+async function uploadAll(onStep) {
+  const list = needUpload(), total = list.length;
+  let done = 0, next = 0, err = null;
+  onStep(0, total);
+  const worker = async () => {
+    while (!err && next < list.length) {
+      const im = list[next++];
+      try { await uploadOne(im); done++; onStep(done, total); } catch (e) { err = e; }
+    }
+  };
+  await Promise.all([worker(), worker(), worker()]);
+  if (err) throw err;
 }
 function imgHtml(k) { const im = imgOf(k); return '<p><img src="' + esc(im.url) + '" alt="' + esc(im.alt) + '" style="max-width:100%;height:auto"></p>'; }
 function buildHtml() {
@@ -881,23 +908,55 @@ function paintPc() {
   if (live) preparePc();
   const waiting = live && pcJob && !pcJob.ready;
   const n = buildPieces().filter(p => p.kind === "img").length;
+  $("#pcCloud").hidden = !n;
+  paintPieces();
+  if (pcBusy) return; // 사진 올리는 중이거나 "한 번 더 누르세요" 상태는 그대로 둔다
   const b = $("#pcAll");
   b.disabled = !!waiting;
   b.textContent = waiting ? "그림 준비 중…" : n ? "그림과 글 함께 복사" : "블로그에 붙여 넣을 글 복사";
   $("#pcNote").textContent = waiting ? "" : n
     ? (pasteMode() === "bundle" ? "사진 " + n + "장이 글 맨 위에 순서대로 들어가요. 이 방식은 사진 밑에 글이 오지 않아요." : "사진 " + n + "장이 글 사이 제자리에 들어가요. 설명 문장은 사진 바로 아래에 붙어요.")
     : "사진은 방금 만든 글에서만 함께 복사돼요. 지금은 글만 복사돼요.";
-  paintPieces();
 }
-$("#pcAll").addEventListener("click", async () => {
+function pcDone(how, n, text) {
   const b = $("#pcAll");
-  if (!current || b.disabled) return;
-  const text = warnText(plainText()), n = buildPieces().filter(p => p.kind === "img").length;
-  const how = await copyHtml(warnHtml(buildHtml()), text);
   if (how === "html") { b.textContent = n ? "✓ 그림 " + n + "장과 글 복사됨" : "✓ 복사됨"; $("#fbBox").hidden = true; }
   else if (how === "text") { b.textContent = "✓ 글만 복사됨 (사진은 한 칸씩 복사로)"; }
   else { b.textContent = "복사가 안 됐어요"; showFb(text); }
-  setTimeout(() => paintPc(), 2500);
+  pcBusy = "shown"; b.disabled = false;
+  setTimeout(() => { pcBusy = ""; paintPc(); }, 2500);
+}
+function upFail(e) {
+  const b = $("#pcAll");
+  pcBusy = "shown"; b.disabled = false;
+  b.textContent = "사진을 올리지 못했어요 — 아래 한 칸씩 복사를 써 주세요";
+  $("#pcNote").textContent = ((e && e.message) || "사진을 올리지 못했어요.") + " 아래 [한 칸씩 복사]로 글과 사진을 차례로 붙여 넣어 주세요.";
+  setTimeout(() => { if (pcBusy === "shown") { pcBusy = ""; paintPc(); } }, 6000);
+}
+$("#pcAll").addEventListener("click", async () => {
+  const b = $("#pcAll");
+  if (!current || b.disabled || pcBusy === "up") return;
+  const text = warnText(plainText()), n = buildPieces().filter(p => p.kind === "img").length;
+  // 사진이 없거나 이미 다 올렸으면 (또는 "한 번 더 누르세요" 뒤) 바로 복사
+  if (!n || !needUpload().length) { pcBusy = ""; pcDone(await copyHtml(warnHtml(buildHtml()), text), n, text); return; }
+  pcBusy = "up"; b.disabled = true;
+  const up = uploadAll((d, t) => { b.textContent = "사진 올리는 중 " + d + "/" + t; });
+  up.catch(() => {}); // 오류는 아래에서 받는다
+  // ① 크롬: 누른 순간 클립보드에 "곧 채울 내용"을 넘겨 두면, 올리기가 끝난 뒤 한 번에 복사된다
+  let wrote = null;
+  try {
+    if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write && (!ClipboardItem.supports || ClipboardItem.supports("text/html"))) {
+      const htmlP = up.then(() => new Blob([warnHtml(buildHtml())], { type: "text/html" }));
+      const textP = up.then(() => new Blob([text], { type: "text/plain" }));
+      wrote = navigator.clipboard.write([new ClipboardItem({ "text/html": htmlP, "text/plain": textP })]).then(() => true, () => false);
+    }
+  } catch (_) { wrote = null; }
+  try { await up; } catch (e) { pcBusy = ""; upFail(e); return; }
+  const ok = wrote ? await wrote : false;
+  if (ok) { pcBusy = ""; pcDone("html", n, text); return; }
+  // ② 한 번에 안 되는 브라우저: 올리기는 끝났으니 한 번 더 누르면 바로 복사
+  pcBusy = "again"; b.disabled = false;
+  b.textContent = "복사 준비 됐어요 — 한 번 더 누르세요";
 });
 
 /* ---------- 지난 글 (이 휴대폰에만, 10개) ---------- */

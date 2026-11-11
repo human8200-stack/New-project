@@ -13,15 +13,17 @@ const here = fileURLToPath(new URL(".", import.meta.url));
 const pub = join(here, "public");
 const PORT = Number(process.env.PORT || 8888);
 const routes = {};
-for (const name of ["check", "photos", "write"]) {
+for (const name of ["check", "photos", "write", "img"]) {
   const mod = await import(new URL("./netlify/functions/" + name + ".mjs", import.meta.url));
-  routes[mod.config.path] = mod.default;
+  [].concat(mod.config.path).forEach(p => { routes[p] = mod.default; });
 }
+// "/api/img/*" 같은 끝 별표 주소도 찾는다
+const route = p => routes[p] || Object.keys(routes).filter(k => k.endsWith("/*")).map(k => p.startsWith(k.slice(0, -1)) ? routes[k] : null).find(Boolean);
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".webmanifest": "application/manifest+json", ".png": "image/png", ".svg": "image/svg+xml", ".json": "application/json" };
 
 http.createServer(async (req, res) => {
   const url = new URL(req.url, "http://localhost");
-  const fn = routes[url.pathname];
+  const fn = route(url.pathname);
   if (fn) {
     const chunks = []; for await (const c of req) chunks.push(c);
     const body = chunks.length ? Buffer.concat(chunks) : undefined;

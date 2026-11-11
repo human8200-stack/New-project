@@ -441,26 +441,26 @@ body{background:var(--bg);color:var(--ink);
 .spread .page.l{box-shadow:-1px 1px 3px var(--shadow);background:linear-gradient(to left,var(--paper-edge),var(--paper) 7%)}
 .spread .page.r{box-shadow:1px 1px 3px var(--shadow);background:linear-gradient(to right,var(--paper-edge),var(--paper) 7%)}
 .page.blank{background:var(--paper)}
-.run{position:absolute;left:30px;right:30px;top:16px;font-size:10px;letter-spacing:.04em;color:var(--sub);
+.run{position:absolute;left:30px;right:30px;top:16px;font-size:7px;letter-spacing:.04em;color:var(--sub);
   display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:5px;white-space:nowrap}
 .run b{font-family:"Nanum Myeongjo","Noto Serif KR",serif;font-weight:800;color:var(--accent);margin-right:6px}
 .pbody{position:absolute;left:30px;right:30px;top:42px;bottom:40px;overflow:hidden}
-.folio{position:absolute;left:0;right:0;bottom:14px;text-align:center;font-size:11px;color:var(--sub);
+.folio{position:absolute;left:0;right:0;bottom:14px;text-align:center;font-size:7.7px;color:var(--sub);
   letter-spacing:.12em;font-variant-numeric:tabular-nums}
 .page.r .folio{text-align:right;padding-right:30px}
 .page.l .folio{text-align:left;padding-left:30px}
 
 /* 본문 */
-.pbody{font-size:13.5px;line-height:1.78;color:var(--ink2);word-break:keep-all;overflow-wrap:break-word}
+.pbody{font-size:9.4px;line-height:1.78;color:var(--ink2);word-break:keep-all;overflow-wrap:break-word}
 .pbody strong{color:var(--ink);font-weight:700}
 .art-head{margin-bottom:6px}
-.art-no{font-family:"Nanum Myeongjo","Noto Serif KR",serif;font-weight:800;font-size:13px;color:var(--accent);
+.art-no{font-family:"Nanum Myeongjo","Noto Serif KR",serif;font-weight:800;font-size:9.1px;color:var(--accent);
   letter-spacing:.08em}
-.art-title{font-family:"Nanum Myeongjo","Noto Serif KR",serif;font-weight:800;font-size:20px;line-height:1.4;
+.art-title{font-family:"Nanum Myeongjo","Noto Serif KR",serif;font-weight:800;font-size:14px;line-height:1.4;
   color:var(--ink);margin-top:2px}
 .art-title .kw{color:var(--accent)}
-.meta{font-size:10.5px;line-height:1.5;color:var(--sub);margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--line)}
-.h3{font-family:"Nanum Myeongjo","Noto Serif KR",serif;font-weight:800;font-size:15.5px;line-height:1.45;
+.meta{font-size:7.3px;line-height:1.5;color:var(--sub);margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.h3{font-family:"Nanum Myeongjo","Noto Serif KR",serif;font-weight:800;font-size:10.8px;line-height:1.45;
   color:var(--ink);margin:14px 0 6px}
 .pbody > .h3:first-child{margin-top:0}
 .para{margin:0 0 8px;text-indent:0}
@@ -473,65 +473,65 @@ body{background:var(--bg);color:var(--ink);
 ol.lst li::marker{color:var(--accent);font-weight:700}
 ul.lst li::marker{color:var(--accent)}
 .story{margin:6px 0 12px;border:1.5px dashed var(--story);border-radius:8px;padding:12px 12px;text-align:center;
-  font-size:12.5px;color:var(--sub);background:transparent}
+  font-size:8.8px;color:var(--sub);background:transparent}
 .fig{margin:8px 0 12px;border:1.5px dashed var(--fig);border-radius:8px;padding:9px 12px 10px;
-  font-size:12px;line-height:1.6;color:var(--ink2)}
-.fig-lab{font-size:10.5px;font-weight:700;letter-spacing:.08em;color:var(--fig);margin-bottom:3px}
+  font-size:8.4px;line-height:1.6;color:var(--ink2)}
+.fig-lab{font-size:7.3px;font-weight:700;letter-spacing:.08em;color:var(--fig);margin-bottom:3px}
 .fig.cont .fig-lab::after{content:" (이어서)"}
 .figgroup .fg-u{margin:0 0 7px}
 .figgroup .fg-u:last-child{margin-bottom:0}
 .figgroup .para,.figgroup p{margin:0 0 3px}
 .figgroup .lst{margin:2px 0 2px;padding-left:1.2em}
-.kv{margin:6px 0 10px;border-radius:8px;padding:8px 11px 8px;background:var(--accent-soft);font-size:12.5px;line-height:1.62}
-.kv-lab{font-size:11.5px;font-weight:700;letter-spacing:.05em;margin-bottom:3px}
+.kv{margin:6px 0 10px;border-radius:8px;padding:8px 11px 8px;background:var(--accent-soft);font-size:8.8px;line-height:1.62}
+.kv-lab{font-size:8px;font-weight:700;letter-spacing:.05em;margin-bottom:3px}
 .kv1 .kv-lab{color:var(--kv1)} .kv2 .kv-lab{color:var(--kv2)} .kv3 .kv-lab{color:var(--kv3)}
 .kv1{border-left:3px solid var(--kv1)} .kv2{border-left:3px solid var(--kv2)} .kv3{border-left:3px solid var(--kv3)}
 .kv.cont .kv-lab::after{content:" (이어서)";font-weight:500;color:var(--sub)}
 .kv ul{padding-left:1.1em}
 .kv li{margin:3px 0}
 .key{margin:10px 0 12px;padding:10px 12px;border-top:1.5px solid var(--ink);border-bottom:1px solid var(--line)}
-.key-lab{font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent);margin-bottom:3px}
-.key p{font-family:"Nanum Myeongjo","Noto Serif KR",serif;font-weight:800;font-size:15px;line-height:1.6;color:var(--ink)}
-.callout{margin:8px 0 12px;padding:9px 12px;border:1.5px solid var(--kv3);border-radius:8px;font-size:12.5px;line-height:1.6}
+.key-lab{font-size:7.7px;font-weight:700;letter-spacing:.08em;color:var(--accent);margin-bottom:3px}
+.key p{font-family:"Nanum Myeongjo","Noto Serif KR",serif;font-weight:800;font-size:10.5px;line-height:1.6;color:var(--ink)}
+.callout{margin:8px 0 12px;padding:9px 12px;border:1.5px solid var(--kv3);border-radius:8px;font-size:8.8px;line-height:1.6}
 .callout-lab{font-weight:700;color:var(--kv3);margin-bottom:3px}
 .callout .lst{margin:2px 0;padding-left:1.1em}
-.see{margin:10px 0 0;padding-top:8px;border-top:1px dashed var(--line);font-size:11.5px;line-height:1.6;color:var(--sub)}
+.see{margin:10px 0 0;padding-top:8px;border-top:1px dashed var(--line);font-size:8px;line-height:1.6;color:var(--sub)}
 .see b{color:var(--accent);font-weight:700;margin-right:4px}
-.tbl{width:100%;border-collapse:collapse;font-size:11.5px;margin:6px 0 10px}
+.tbl{width:100%;border-collapse:collapse;font-size:8px;margin:6px 0 10px}
 .tbl th,.tbl td{border:1px solid var(--line);padding:4px 6px;vertical-align:top;text-align:left}
 .brk{display:none}
-.side-mark{font-size:10px;color:var(--sub);letter-spacing:.06em;margin:0 0 6px}
+.side-mark{font-size:7px;color:var(--sub);letter-spacing:.06em;margin:0 0 6px}
 
 /* 표지 */
 .cover{position:absolute;left:32px;right:30px;top:58px;bottom:40px}
-.pill{display:inline-block;padding:2px 10px 3px;border:1px solid var(--sub);border-radius:999px;font-size:11px;
+.pill{display:inline-block;padding:2px 10px 3px;border:1px solid var(--sub);border-radius:999px;font-size:7.7px;
   color:var(--sub);letter-spacing:.06em}
-.c-title{font-family:"Nanum Myeongjo","Noto Serif KR",serif;font-weight:800;font-size:31px;line-height:1.25;
+.c-title{font-family:"Nanum Myeongjo","Noto Serif KR",serif;font-weight:800;font-size:21.7px;line-height:1.25;
   margin-top:26px;color:var(--ink);letter-spacing:.01em}
-.c-sub{font-family:"Nanum Myeongjo","Noto Serif KR",serif;font-weight:700;font-size:14px;line-height:1.55;
+.c-sub{font-family:"Nanum Myeongjo","Noto Serif KR",serif;font-weight:700;font-size:9.8px;line-height:1.55;
   color:var(--ink2);margin-top:12px;word-break:keep-all}
 .c-rule{width:40px;height:2px;background:var(--ink);margin:30px 0 26px}
-.c-ch{font-family:"Nanum Myeongjo","Noto Serif KR",serif;font-weight:800;font-size:20px;line-height:1.45;color:var(--ink);word-break:keep-all}
+.c-ch{font-family:"Nanum Myeongjo","Noto Serif KR",serif;font-weight:800;font-size:14px;line-height:1.45;color:var(--ink);word-break:keep-all}
 .ch-no{color:var(--accent);margin-right:4px}
-.c-key{margin-top:14px;font-size:15px;font-weight:700;line-height:1.7;color:var(--ink);word-break:keep-all}
-.c-foot{position:absolute;left:0;right:0;bottom:6px;font-size:11px;line-height:1.6;color:var(--sub);word-break:keep-all}
+.c-key{margin-top:14px;font-size:10.5px;font-weight:700;line-height:1.7;color:var(--ink);word-break:keep-all}
+.c-foot{position:absolute;left:0;right:0;bottom:6px;font-size:7.7px;line-height:1.6;color:var(--sub);word-break:keep-all}
 
 /* 차례 */
 .toc{position:absolute;left:28px;right:28px;top:30px;bottom:30px}
-.toc-lab{font-family:"Nanum Myeongjo","Noto Serif KR",serif;font-weight:800;font-size:21px;letter-spacing:.3em;color:var(--ink)}
-.toc-ch{font-family:"Nanum Myeongjo","Noto Serif KR",serif;font-weight:800;font-size:15px;line-height:1.4;margin-top:8px;
+.toc-lab{font-family:"Nanum Myeongjo","Noto Serif KR",serif;font-weight:800;font-size:14.7px;letter-spacing:.3em;color:var(--ink)}
+.toc-ch{font-family:"Nanum Myeongjo","Noto Serif KR",serif;font-weight:800;font-size:10.5px;line-height:1.4;margin-top:8px;
   padding-top:8px;border-top:1.5px solid var(--ink);color:var(--ink);word-break:keep-all}
-.toc-key{font-size:12px;font-weight:700;line-height:1.55;margin:4px 0 6px;color:var(--ink);word-break:keep-all}
+.toc-key{font-size:8.4px;font-weight:700;line-height:1.55;margin:4px 0 6px;color:var(--ink);word-break:keep-all}
 .trow{display:flex;align-items:flex-end;width:100%;background:none;border:0;font:inherit;color:var(--ink2);
-  text-align:left;padding:2px 0;cursor:pointer;font-size:11.5px;line-height:1.38}
-.trow .tn{flex:0 0 34px;color:var(--sub);font-size:11px;font-variant-numeric:tabular-nums;line-height:1.55}
+  text-align:left;padding:2px 0;cursor:pointer;font-size:8px;line-height:1.38}
+.trow .tn{flex:0 0 34px;color:var(--sub);font-size:7.7px;font-variant-numeric:tabular-nums;line-height:1.55}
 .trow .tt{flex:0 1 auto;word-break:keep-all}
 .trow .tt b{color:var(--ink);font-weight:700}
 .trow .dots{flex:1 1 auto;min-width:14px;height:5px;margin:0 6px 5px;
   background-image:radial-gradient(circle,var(--sub) .9px,transparent 1.2px);background-size:7px 5px;background-repeat:repeat-x;opacity:.7}
 .trow .tp{flex:0 0 auto;min-width:1.8em;text-align:right;font-family:"Nanum Myeongjo","Noto Serif KR",serif;font-weight:800;
   color:var(--accent);font-variant-numeric:tabular-nums}
-.toc-note{margin-top:6px;font-size:9.5px;line-height:1.55;color:var(--sub);word-break:keep-all}
+.toc-note{margin-top:6px;font-size:6.6px;line-height:1.55;color:var(--sub);word-break:keep-all}
 
 /* 넘김 애니메이션 */
 .flip{position:absolute;top:0;z-index:5;pointer-events:none;backface-visibility:hidden}
