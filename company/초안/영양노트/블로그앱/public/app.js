@@ -261,7 +261,7 @@ let ckT = null;
 // 보낼 글 = 본문 + 태그 (제목은 따로: 블로그 제목 칸에 붙여 넣음). 네이버 블로그는 본문 속 #태그를 태그로 받아요.
 function sendText() { return [$("#rBody").value.trim(), $("#rTags").value.trim()].filter(Boolean).join("\n\n"); }
 function photoKey() { return photos.map(p => p.id).join(","); }
-let saveJob = null, copiedForSend = false;
+let saveJob = null, copiedForSend = false, sendLabel = "네이버 블로그로 보내기";
 function hasLivePhotos() { return !!(current && current.photoKey && current.photoKey === photoKey() && photos.length); }
 function canShareFiles(files) {
   try { return !!(navigator.share && navigator.canShare && navigator.canShare({ files: files || [new File([new Blob(["x"], { type: "image/jpeg" })], "t.jpg", { type: "image/jpeg" })] })); }
@@ -274,13 +274,13 @@ function paintSend() {
   const note = $("#sendNote");
   copiedForSend = false;
   if (!live) {
-    $("#sendBtn").textContent = "글 복사하기";
+    sendLabel = "글 복사하기";
     note.textContent = photos.length ? "사진은 방금 만든 글에서만 보낼 수 있어요. 지금은 글만 복사돼요." : "사진이 없어 글만 복사돼요. 네이버 블로그 앱 글쓰기 칸에 붙여 넣으세요.";
   } else if (!share) {
-    $("#sendBtn").textContent = "글 복사 + 사진 저장";
+    sendLabel = "글 복사 + 사진 저장";
     note.textContent = "이 휴대폰(브라우저)은 바로 보내기가 안 돼요. 글을 복사하고 사진을 01, 02… 순서로 저장해요. 블로그 앱에서 사진 버튼 → 01부터 순서대로 고르고, 글 칸에 붙여 넣으세요.";
   } else {
-    $("#sendBtn").textContent = "네이버 블로그로 보내기";
+    sendLabel = "네이버 블로그로 보내기";
     note.textContent = "사진 " + photos.length + "장이 글 맨 위에 순서대로 들어가요.";
   }
   paintSaveBtn();
@@ -307,7 +307,7 @@ function paintSaveBtn() {
   b.disabled = !ready; b.textContent = ready ? "사진 순서대로 저장 (" + saveJob.files.length + "장)" : "사진 준비 중…";
   $("#saveNote").textContent = live ? "01, 02… 순서대로 사진 앱에 저장해요. 공유 창이 뜨면 [이미지 " + photos.length + "개 저장]을 누르세요." : "";
   s.disabled = live && !ready;
-  if (live && !ready) s.textContent = "사진 준비 중…";
+  s.textContent = live && !ready ? "사진 준비 중…" : sendLabel;
 }
 function copyText(text) {
   // 누른 그 순간에 바로 부른다 (아이폰은 누른 직후에만 복사·공유를 허락함)
