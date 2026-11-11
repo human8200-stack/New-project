@@ -3,7 +3,7 @@
    글 규칙은 서버의 netlify/lib/prompt.mjs 한 곳에 있어요. 여기에는 화면과 마지막 안전 점검만 있어요. */
 (function () {
 "use strict";
-const APP_VERSION = "1.4.2 (2026-11-11, 노트북에서 사진 끌어다 놓기·사진 폴더 연결)";
+const APP_VERSION = "1.4.3 (2026-11-11, 폴더에서 아직 넣지 않은 사진 다시 보기·전체 다시 보기)";
 // 마우스가 있는 컴퓨터인지 (컴퓨터에서만 [그림과 글 함께 복사]가 보여요. 휴대폰은 그대로)
 const IS_PC = (() => { try { return matchMedia("(pointer: fine) and (hover: hover)").matches; } catch (_) { return false; } })();
 const $ = s => document.querySelector(s);
@@ -149,7 +149,7 @@ function b64(blob) {
 function msg(t) { const m = $("#photoMsg"); m.textContent = t || ""; m.hidden = !t; }
 async function addFiles(side, max, files, addBtn) {
   const list = photos[side]; const arr = Array.from(files || []);
-  const room = max - list.length; let failed = 0;
+  const room = max - list.length; let failed = 0; const added = [];
   shrinking++; renderPhotos(); refreshGen();
   addBtn.classList.add("busy"); addBtn.firstChild.textContent = "줄이는 중";
   try {
@@ -158,7 +158,7 @@ async function addFiles(side, max, files, addBtn) {
         let blob = await shrink(f, MAX_EDGE, JPEG_Q);
         if (blob.size > 420e3) blob = await shrink(f, MAX_EDGE, 0.7);
         if (blob.size > 420e3) blob = await shrink(f, 1024, 0.7);
-        list.push({ id: ++pid, blob, file: f, url: URL.createObjectURL(blob) });
+        list.push({ id: ++pid, blob, file: f, url: URL.createObjectURL(blob) }); added.push(f);
       } catch (_) { failed++; }
     }
   } finally { shrinking--; }
@@ -166,6 +166,7 @@ async function addFiles(side, max, files, addBtn) {
   if (arr.length > room) t.push("사진은 전·후 각 6장, 공사 중 3장까지 넣을 수 있어요.");
   if (failed) t.push(failed + "장은 열 수 없었어요. 다른 사진을 골라 주세요.");
   descCache = null; renderPhotos(); msg(t.join(" ")); refreshGen();
+  return added; // 실제로 줄에 들어간 파일 (폴더 가져오기가 '넣은 사진 목록'에 적는다)
 }
 function allPhotos() {
   const out = [];
@@ -211,7 +212,7 @@ function setupDrop() {
     row.addEventListener("dragleave", () => { if (--depth <= 0) off(); });
     row.addEventListener("drop", e => {
       if (!hasFiles(e)) return; e.preventDefault(); off();
-      if (shrinking > 0 || busy) { msg("지금은 사진을 줄이는 중이에요. 잠시 뒤 다시 놓아 주세요."); return; }
+      if (shrinking > 0 || busy) { msg(shrinking > 0 ? "지금은 사진을 줄이는 중이에요. 잠시 뒤 다시 놓아 주세요." : "지금은 글을 만드는 중이에요. 끝난 뒤 다시 놓아 주세요."); return; }
       const all = Array.from(e.dataTransfer.files || []);
       const imgs = all.filter(f => /^image\//.test(f.type) || (!f.type && /\.(jpe?g|png|gif|webp|heic|heif|bmp)$/i.test(f.name)));
       if (!imgs.length) { msg("사진 파일만 넣을 수 있어요."); return; }
@@ -228,14 +229,17 @@ function setupDrop() {
 
 /* ---------- 노트북: 사진 폴더 연결 (크롬·엣지만) ----------
    폴더를 한 번 고르면 그 손잡이(handle)를 이 노트북 IndexedDB에 둔다. 다음부터 [폴더에서 새 사진 가져오기] 한 번.
-   지난 가져오기 뒤 새로 생긴 사진(파일 수정 시각 기준)만 보여 주고, 고른 사진은 [+]와 같은 addFiles로 줄여 넣는다.
+   실제로 줄에 넣은 파일 목록(경로|크기|수정 시각, 최근 FLD_SEEN_MAX개)을 IndexedDB "seen"에 두고, 목록에 없는 사진만 보여 준다.
+   (체크를 끈 사진·자리가 넘쳐 빠진 사진·열지 못한 사진은 목록에 안 들어가 다음에 다시 나온다) [전체 다시 보기]는 목록을 무시한다.
+   고른 사진은 [+]와 같은 addFiles로 줄여 넣는다.
    전·공사 중·후 나누기는 '제안': ① 접속 코드로 쓸 때는 작게 줄인 사진(512px)을 /api/photos에 보내 AI가 kind로 나눔(저장 안 함, 30장까지)
-   ② 체험·열쇠 없음·실패면 찍은 시각 순 간격으로 나눔(fldByTime). 사진마다 [전][공사 중][후]로 바꾼다.
+   ② 체험·열쇠 없음·실패면 파일 시각 순 간격으로 나눔(fldByTime). 사진마다 [전][공사 중][후]로 바꾼다.
    사파리·파이어폭스·휴대폰은 버튼을 숨긴다. */
 const FLD_OK = IS_PC && typeof window.showDirectoryPicker === "function" && window.isSecureContext !== false;
-const FLD_EXT = /\.(jpe?g|png|heic|heif|webp)$/i, FLD_MAX = 60;
+const FLD_EXT = /\.(jpe?g|png|heic|heif|webp)$/i, FLD_MAX = 60, FLD_SEEN_MAX = 2000;
 const FLD_AI_MAX = 30, FLD_GAP = 6 * 3600e3; // AI로 나누는 최대 장수, 다른 날 묶음으로 보는 간격(6시간)
-let fldDir = null, fldLast = 0, fldItems = [], fldUrls = [], fldBusy = false, fldHow = "time";
+let fldDir = null, fldSeen = [], fldItems = [], fldUrls = [], fldBusy = false, fldHow = "time";
+const fldKey = (path, f) => path + "|" + f.size + "|" + f.lastModified;
 function idb(op, key, val) {
   return new Promise((res, rej) => {
     let rq; try { rq = indexedDB.open("artplay-folder", 1); } catch (e) { rej(e); return; }
@@ -254,15 +258,16 @@ async function idbSet(k, v) { try { await idb("put", k, v); } catch (_) {} }
 function fldInfo(t) { $("#fldInfo").textContent = t || ""; }
 function fldPaint() {
   $("#fldGet").textContent = fldDir ? "폴더에서 새 사진 가져오기" : "사진 폴더 연결하기";
-  $("#fldPick").hidden = !fldDir;
-  const off = shrinking > 0 || busy || fldBusy; $("#fldGet").disabled = off; $("#fldPick").disabled = off;
-  if (!$("#fldInfo").textContent) fldInfo(fldDir ? "연결된 폴더: " + fldDir.name + (fldLast ? " · 지난번에 가져온 뒤 새로 들어온 사진만 보여요." : "")
+  $("#fldPick").hidden = !fldDir; $("#fldAll").hidden = !fldDir;
+  $("#fldAiNote").hidden = !(mode === "live" && code);
+  const off = shrinking > 0 || busy || fldBusy; $("#fldGet").disabled = off; $("#fldPick").disabled = off; $("#fldAll").disabled = off;
+  if (!$("#fldInfo").textContent) fldInfo(fldDir ? "연결된 폴더: " + fldDir.name + (fldSeen.length ? " · 아직 넣지 않은 사진만 보여요." : "")
     : "현장 사진을 모아 두는 폴더를 한 번 정해 두면, 다음부터 새 사진만 골라 가져와요.");
 }
 async function fldChoose() {
   try { fldDir = await window.showDirectoryPicker({ id: "artplay-photos", mode: "read" }); }
   catch (e) { if (e && e.name !== "AbortError") fldInfo("폴더를 열 수 없었어요. 다른 폴더를 골라 주세요."); return false; }
-  fldLast = 0; await idbSet("dir", fldDir); await idbSet("last", 0); fldInfo(""); fldPaint(); return true;
+  fldSeen = []; await idbSet("dir", fldDir); await idbSet("seen", []); fldInfo(""); fldPaint(); return true;
 }
 async function fldAllowed() {
   const o = { mode: "read" };
@@ -271,12 +276,12 @@ async function fldAllowed() {
     return (await fldDir.requestPermission(o)) === "granted";
   } catch (_) { return false; }
 }
-async function fldScan() {
-  const out = [];
+async function fldScan(all) {
+  const out = [], seen = new Set(all ? [] : fldSeen);
   const walk = async (dir, path, depth) => {
     for await (const h of dir.values()) {
       if (h.kind === "file" && FLD_EXT.test(h.name)) {
-        try { const f = await h.getFile(); if (f.lastModified > fldLast) out.push({ f, path: path + h.name }); } catch (_) {}
+        try { const f = await h.getFile(), p = path + h.name; if (!seen.has(fldKey(p, f))) out.push({ f, path: p }); } catch (_) {}
       } else if (h.kind === "directory" && depth < 1 && !h.name.startsWith(".")) await walk(h, path + h.name + "/", depth + 1);
     }
   };
@@ -284,7 +289,7 @@ async function fldScan() {
   out.sort((a, b) => a.f.lastModified - b.f.lastModified);
   return out;
 }
-// 찍은 시각으로 나누기: 6시간 넘게 떨어지면 다른 묶음. 묶음이 3개 이상이면 첫 묶음 전, 끝 묶음 후, 가운데 공사 중.
+// 파일 시각으로 나누기: 6시간 넘게 떨어지면 다른 묶음. 묶음이 3개 이상이면 첫 묶음 전, 끝 묶음 후, 가운데 공사 중.
 // 묶음이 1~2개면 가장 긴 간격(보통 공사 기간)을 기준으로 앞 = 전, 뒤 = 후. (규칙을 바꾸려면 이 함수만 고친다)
 function fldByTime(list) {
   const n = list.length, t = list.map(x => x.f.lastModified); if (!n) return [];
@@ -347,47 +352,59 @@ function fldCount() {
   const over = SIDES.filter(S => c[S.key] > S.max - photos[S.key].length).map(S => S.label + " " + (S.max - photos[S.key].length) + "장");
   $("#fldPut").disabled = !on.length;
   $("#fldPut").textContent = on.length ? "고른 사진 " + on.length + "장 넣기 (" + SIDES.map(S => S.label + " " + c[S.key]).join(" · ") + ")" : "넣을 사진을 골라 주세요";
-  $("#fldHow").textContent = fldHow === "ai" ? "AI가 나눴어요 — 틀린 것만 눌러 바꿔 주세요" : "찍은 날짜로 나눴어요 — 틀린 것만 바꿔 주세요";
+  $("#fldHow").textContent = fldHow === "ai" ? "AI가 나눴어요 — 틀린 것만 눌러 바꿔 주세요" : "파일 날짜로 나눴어요 — 카톡·MYBOX에서 받은 사진은 날짜가 틀릴 수 있어요. 틀린 것만 바꿔 주세요";
   $("#fldHead").textContent = over.length ? "남은 자리: " + over.join(", ") + ". 넘치는 사진은 빠져요." : "";
 }
-async function fldOpen() {
+async function fldOpen(all) {
+  all = all === true;
   if (shrinking > 0 || busy || fldBusy) return;
-  if (!fldDir) { if (!(await fldChoose())) return; }
-  else if (!(await fldAllowed())) { fldInfo("폴더를 볼 수 있게 허용해 주세요. (주소창 옆 창에서 [허용]) 안 되면 [폴더 바꾸기]로 다시 골라 주세요."); return; }
-  fldInfo("폴더를 살펴보는 중…");
-  let list;
-  try { list = await fldScan(); } catch (_) { fldInfo("폴더를 읽지 못했어요. [폴더 바꾸기]로 다시 골라 주세요."); return; }
-  if (!list.length) { fldInfo("새 사진이 없어요. (지난 가져오기 뒤 폴더에 들어온 사진만 보여요)"); return; }
-  const more = list.length > FLD_MAX; if (more) list = list.slice(-FLD_MAX);
-  const byTime = fldByTime(list); let ai = null;
-  if (mode === "live" && code && list.length <= FLD_AI_MAX) {
-    fldBusy = true; fldPaint(); fldInfo("AI가 전·공사 중·후를 나누는 중… (10~20초)");
-    try { ai = await fldByAI(list); } finally { fldBusy = false; }
-  }
-  fldHow = ai ? "ai" : "time";
-  fldItems = list.map((x, i) => ({ ...x, on: true, side: (ai && ai[i]) || byTime[i] }));
-  fldInfo(more ? "새 사진이 많아서 가장 최근 " + FLD_MAX + "장만 보여요." : ""); fldPaint();
-  fldRender(); openSheet("#fldSheet");
+  fldBusy = true; fldPaint(); // 폴더 고르기·살펴보기·AI 나누기 동안 버튼을 다시 못 누르게
+  try {
+    if (!fldDir) { if (!(await fldChoose())) return; }
+    else if (!(await fldAllowed())) { fldInfo("폴더를 볼 수 있게 허용해 주세요. (주소창 옆 창에서 [허용]) 안 되면 [폴더 바꾸기]로 다시 골라 주세요."); return; }
+    fldInfo("폴더를 살펴보는 중…");
+    let list;
+    try { list = await fldScan(all); } catch (_) { fldInfo("폴더를 읽지 못했어요. [폴더 바꾸기]로 다시 골라 주세요."); return; }
+    if (!list.length) { fldInfo(all ? "폴더에 사진이 없어요." : "새 사진이 없어요. (아직 넣지 않은 사진만 보여요 — 넣었던 사진까지 보려면 [전체 다시 보기])"); return; }
+    const more = list.length > FLD_MAX; if (more) list = list.slice(-FLD_MAX);
+    const byTime = fldByTime(list); let ai = null;
+    if (mode === "live" && code && list.length <= FLD_AI_MAX) {
+      fldInfo("AI가 전·공사 중·후를 나누는 중… (10~20초)");
+      ai = await fldByAI(list);
+    }
+    fldHow = ai ? "ai" : "time";
+    fldItems = list.map((x, i) => ({ ...x, on: true, side: (ai && ai[i]) || byTime[i] }));
+    fldInfo(more ? "사진이 많아서 가장 최근 " + FLD_MAX + "장만 보여요." : "");
+    $("#fldTitle").textContent = all ? "폴더의 모든 사진" : "폴더의 새 사진";
+    fldRender(); openSheet("#fldSheet");
+  } finally { fldBusy = false; fldPaint(); }
 }
 async function fldPut() {
   const on = fldItems.filter(x => x.on); if (!on.length) return;
-  const newest = Math.max(fldLast, ...fldItems.map(x => x.f.lastModified));
   closeSheets();
+  const done = [];
   for (const S of SIDES) {
-    const files = on.filter(x => x.side === S.key).map(x => x.f); if (!files.length) continue;
+    const items = on.filter(x => x.side === S.key); if (!items.length) continue;
     const a = $("#strip-" + S.key + " label.add");
     if (!a) { msg(S.label + " 사진은 " + S.max + "장까지 넣을 수 있어요."); continue; }
-    await addFiles(S.key, S.max, files, a);
+    const added = (await addFiles(S.key, S.max, items.map(x => x.f), a)) || [];
+    items.forEach(x => { if (added.indexOf(x.f) >= 0) done.push(fldKey(x.path, x.f)); });
   }
-  fldLast = newest; await idbSet("last", fldLast); fldItems = [];
-  fldInfo(""); fldPaint();
+  // 실제로 넣은 사진만 목록에 적는다 (빼 둔 사진·넘쳐 빠진 사진은 다음에 다시 나온다). 최근 FLD_SEEN_MAX개까지.
+  if (done.length) {
+    const add = new Set(done);
+    fldSeen = fldSeen.filter(k => !add.has(k)).concat(done).slice(-FLD_SEEN_MAX);
+    await idbSet("seen", fldSeen);
+  }
+  fldItems = []; fldInfo(""); fldPaint();
 }
 async function setupFolder() {
   if (!FLD_OK) return;
   $("#fldBox").hidden = false;
-  const d = await idbGet("dir"); if (d && d.kind === "directory") { fldDir = d; fldLast = Number(await idbGet("last")) || 0; }
+  const d = await idbGet("dir"); if (d && d.kind === "directory") { fldDir = d; const sv = await idbGet("seen"); fldSeen = Array.isArray(sv) ? sv : []; }
   fldPaint();
-  $("#fldGet").addEventListener("click", fldOpen);
+  $("#fldGet").addEventListener("click", () => fldOpen(false));
+  $("#fldAll").addEventListener("click", () => fldOpen(true));
   $("#fldPick").addEventListener("click", async () => { if (await fldChoose()) fldOpen(); });
   $("#fldPut").addEventListener("click", fldPut);
   $("#fldAllOn").addEventListener("click", () => { fldItems.forEach(x => { x.on = true; }); fldRender(); });
@@ -404,6 +421,7 @@ function show(which) {
 }
 function paintMode() {
   const bar = $("#modeBar"); bar.textContent = ""; bar.className = "modebar" + (mode === "demo" ? " demo" : "");
+  if (FLD_OK && !$("#fldBox").hidden) fldPaint(); // 접속 코드일 때만 'AI에 작게 보내요' 안내
   const s = document.createElement("span");
   if (mode === "demo") { s.innerHTML = "<b>체험 모드</b> · 예시 문장에 고른 값만 넣었어요 (실제는 AI가 사진을 보고 새로 써요)"; }
   else { s.textContent = left == null ? "접속됨" : "오늘 남은 글 " + left + "편"; }
