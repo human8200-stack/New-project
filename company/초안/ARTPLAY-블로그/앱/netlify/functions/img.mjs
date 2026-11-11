@@ -1,11 +1,11 @@
 // 붙여 넣기용 사진 잠깐 올려 두기 (노트북 [그림과 글 함께 복사]용)
 //   POST /api/img            몸통 = 사진 1장 (image/jpeg, 1.5MB까지)  → { ok, id, path: "/api/img/<id>.jpg", left }
-//   GET  /api/img/<id>.jpg   그 사진 (image/jpeg, 캐시 1일)
+//   GET  /api/img/<id>.jpg   그 사진 (image/jpeg, CDN에는 남기지 않고 브라우저에만 10분)
 // 왜: 네이버 블로그 PC 편집기는 data: 그림을 "허용되지 않는 사진"으로 막는다. https 주소 그림은 받아 준다.
 // 사진은 24시간 뒤 지운다 (올릴 때 10분마다 한 번 오래된 것 정리 + 열 때 24시간 지났으면 지우고 없음).
-// 접속 코드가 없어도(체험 모드) 쓸 수 있지만 같은 IP 하루 60장, 앱 전체 하루 1500장까지. 비밀 값은 쓰지 않는다.
+// 올리기(POST)는 접속 코드가 맞을 때만 (머리글 x-shop-code, 틀리면 401). 같은 IP 하루 60장, 앱 전체 하루 1500장까지.
 import crypto from "node:crypto";
-import { getGuardStore, kstDate, NO_STORE } from "../lib/guard.mjs";
+import { getGuardStore, kstDate, NO_STORE, checkCode } from "../lib/guard.mjs";
 import { json, clientIp } from "../lib/claude.mjs";
 
 export const MAX_BYTES = 1.5e6;        // 한 장 최대 1.5MB
@@ -81,6 +81,10 @@ async function handle(req, context) {
   if (req.method === "GET") return serve(url.pathname);
   if (req.method !== "POST" || !/^\/api\/img\/?$/.test(url.pathname)) return json(405, { error: "method", message: "잘못된 요청이에요." });
 
+  // 접속 코드 먼저 (코드 없음·틀림 401, 여러 번 틀리면 잠금 423, 코드 설정 없음 503)
+  const c = await checkCode(req.headers.get("x-shop-code"), clientIp(req, context));
+  if (!c.ok) return json(c.status, { error: c.error, message: c.message });
+
   const type = (req.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
   if (type !== "image/jpeg") return json(415, { error: "bad_type", message: "JPEG 사진만 올릴 수 있어요." });
   const len = Number(req.headers.get("content-length") || 0);
@@ -123,7 +127,8 @@ async function serve(pathname) {
     headers: {
       "content-type": "image/jpeg",
       "content-length": String(buf.length),
-      "cache-control": "public, max-age=86400",
+      "netlify-cdn-cache-control": "no-store",   // Netlify CDN에는 남기지 않는다 (하루 뒤 정말 못 열게)
+      "cache-control": "private, max-age=600",   // 브라우저에만 10분 (네이버가 붙여 넣을 때 가져가기엔 충분)
       "access-control-allow-origin": "*",
       "cross-origin-resource-policy": "cross-origin"
     }

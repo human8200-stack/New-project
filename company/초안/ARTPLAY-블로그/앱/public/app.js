@@ -3,7 +3,7 @@
    글 규칙은 서버의 netlify/lib/prompt.mjs 한 곳에 있어요. 여기에는 화면과 마지막 안전 점검만 있어요. */
 (function () {
 "use strict";
-const APP_VERSION = "1.4.0 (2026-11-11, 노트북 붙여 넣기 사진을 https 주소로)";
+const APP_VERSION = "1.4.1 (2026-11-11, 사진 올리기는 접속 코드 있을 때만)";
 // 마우스가 있는 컴퓨터인지 (컴퓨터에서만 [그림과 글 함께 복사]가 보여요. 휴대폰은 그대로)
 const IS_PC = (() => { try { return matchMedia("(pointer: fine) and (hover: hover)").matches; } catch (_) { return false; } })();
 const $ = s => document.querySelector(s);
@@ -802,9 +802,12 @@ function buildPieces() {
 // 사진 올리기: 아직 안 올렸거나 오래된 것만 올린다. 3장씩 동시에. 하나라도 실패하면 오류(쉬운 문구)
 const upFresh = im => !!(im && im.url && Date.now() - im.upAt < UP_KEEP);
 function needUpload() { return buildPieces().filter(p => p.kind === "img").map(p => imgOf(p.k)).filter(im => im && !upFresh(im)); }
+// 사진 올리기에는 접속 코드가 필요하다. 코드를 넣고 시작했다가 (열쇠가 없어) 체험으로 간 경우에도 저장된 코드를 보낸다.
+const upCode = () => (code || ls.get(K.code, "") || "").trim();
+const NO_CODE_UP = "접속 코드를 넣으면 사진까지 한 번에 붙여져요. 지금은 [한 칸씩 복사]를 써 주세요.";
 async function uploadOne(im) {
   let res;
-  try { res = await fetch("/api/img", { method: "POST", headers: { "content-type": "image/jpeg" }, body: im.blob }); }
+  try { res = await fetch("/api/img", { method: "POST", headers: { "content-type": "image/jpeg", "x-shop-code": encodeURIComponent(upCode()) }, body: im.blob }); }
   catch (_) { throw new Error("인터넷 연결을 확인해 주세요."); }
   const d = await res.json().catch(() => null);
   if (!res.ok || !d || !d.ok || !d.path) throw new Error((d && d.message) || "사진을 올리지 못했어요.");
@@ -908,14 +911,14 @@ function paintPc() {
   if (live) preparePc();
   const waiting = live && pcJob && !pcJob.ready;
   const n = buildPieces().filter(p => p.kind === "img").length;
-  $("#pcCloud").hidden = !n;
+  $("#pcCloud").hidden = !n || !upCode(); // 코드 없이 체험이면 사진을 올리지 않으므로 안내도 숨김
   paintPieces();
   if (pcBusy) return; // 사진 올리는 중이거나 "한 번 더 누르세요" 상태는 그대로 둔다
   const b = $("#pcAll");
   b.disabled = !!waiting;
   b.textContent = waiting ? "그림 준비 중…" : n ? "그림과 글 함께 복사" : "블로그에 붙여 넣을 글 복사";
   $("#pcNote").textContent = waiting ? "" : n
-    ? (pasteMode() === "bundle" ? "사진 " + n + "장이 글 맨 위에 순서대로 들어가요. 이 방식은 사진 밑에 글이 오지 않아요." : "사진 " + n + "장이 글 사이 제자리에 들어가요. 설명 문장은 사진 바로 아래에 붙어요.")
+    ? (!upCode() && needUpload().length ? NO_CODE_UP : pasteMode() === "bundle" ? "사진 " + n + "장이 글 맨 위에 순서대로 들어가요. 이 방식은 사진 밑에 글이 오지 않아요." : "사진 " + n + "장이 글 사이 제자리에 들어가요. 설명 문장은 사진 바로 아래에 붙어요.")
     : "사진은 방금 만든 글에서만 함께 복사돼요. 지금은 글만 복사돼요.";
 }
 function pcDone(how, n, text) {
@@ -939,6 +942,14 @@ $("#pcAll").addEventListener("click", async () => {
   const text = warnText(plainText()), n = buildPieces().filter(p => p.kind === "img").length;
   // 사진이 없거나 이미 다 올렸으면 (또는 "한 번 더 누르세요" 뒤) 바로 복사
   if (!n || !needUpload().length) { pcBusy = ""; pcDone(await copyHtml(warnHtml(buildHtml()), text), n, text); return; }
+  // 코드 없이 [체험해 보기]만 한 경우: 사진은 올리지 않고 한 칸씩 복사를 안내
+  if (!upCode()) {
+    pcBusy = "shown"; b.disabled = false;
+    b.textContent = "체험에서는 사진을 함께 복사하지 않아요";
+    $("#pcNote").textContent = NO_CODE_UP;
+    setTimeout(() => { if (pcBusy === "shown") { pcBusy = ""; paintPc(); } }, 6000);
+    return;
+  }
   pcBusy = "up"; b.disabled = true;
   const up = uploadAll((d, t) => { b.textContent = "사진 올리는 중 " + d + "/" + t; });
   up.catch(() => {}); // 오류는 아래에서 받는다
