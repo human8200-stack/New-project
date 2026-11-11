@@ -51,7 +51,7 @@ async function handle(req, context) {
         if (cut && got > 0) { send({ done: true, stop: "time_cut", left: t.left }); }
         else {
           // AI가 처음부터 200이 아닌 응답을 줬을 때만 되돌림 (생각만 하다 끊긴 경우는 돈이 나갔으므로 안 돌려줌)
-          if (e && e.preStream) await giveBack(c.shop, "posts");
+          if (e && e.preStream) await giveBack(c.shop, "posts", t.ticket);
           const fr = cut ? { error: "timeout", message: "글쓰기가 너무 오래 걸렸어요. [다시 시도]를 눌러 주세요." }
                          : ((e && e.friendly) || { error: "api", message: "글을 못 만들었어요. 잠시 뒤 다시 눌러 주세요." });
           send(fr);

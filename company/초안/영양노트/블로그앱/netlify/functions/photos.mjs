@@ -65,7 +65,7 @@ async function handle(req, context) {
     console.log("[photos]", c.shop, list.length + "장", JSON.stringify(r.usage || {}));
     return json(200, { ok: true, photos: out, read: Array.isArray(parsed) });
   } catch (e) {
-    if (e && e.preStream) await giveBack(c.shop, "photos");   // AI가 처음부터 거절했을 때만 되돌림
+    if (e && e.preStream) await giveBack(c.shop, "photos", t.ticket);   // AI가 처음부터 거절했을 때만 되돌림
     if (e && e.name === "AbortError") return json(504, { error: "timeout", message: "사진 읽기가 너무 오래 걸렸어요. 사진 수를 줄여 다시 해 주세요." });
     return json(502, (e && e.friendly) || { error: "api", message: "사진을 읽지 못했어요. 잠시 뒤 다시 해 주세요." });
   } finally { clearTimeout(timer); }

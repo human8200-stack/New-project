@@ -6,7 +6,7 @@
 import { checkPost, HANMADI_SLOT, DEFAULT_SOURCE, DEFAULT_TAGS } from "./rules.js";
 import { DEMO } from "./demo.js";
 
-const APP_VERSION = "1.0.0 (2026-11-11, 첫판: 노트 불러오기·네이버 블로그로 보내기)";
+const APP_VERSION = "1.0.1 (2026-11-11, 검수 반영: 규칙 검사기 강화·공유 안 될 때 안내)";
 const $ = s => document.querySelector(s);
 const K = { code: "nutri-code", mode: "nutri-mode", hist: "nutri-history-v1", set: "nutri-settings-v1" };
 const MAX_PHOTOS = 10;
@@ -267,6 +267,13 @@ function canShareFiles(files) {
   try { return !!(navigator.share && navigator.canShare && navigator.canShare({ files: files || [new File([new Blob(["x"], { type: "image/jpeg" })], "t.jpg", { type: "image/jpeg" })] })); }
   catch (_) { return false; }
 }
+// 3단계 안내 (고정 글이라 HTML로 넣음)
+const STEPS = {
+  share: ["위 버튼 → 뜨는 창에서 <b>블로그</b>(네이버 블로그)를 눌러요. 사진이 들어간 글쓰기 화면이 열려요.", "글 쓰는 칸을 <b>길게 눌러 [붙여넣기]</b>. 글과 태그가 한 번에 들어가요.", "이 앱으로 돌아와 <b>[제목 복사]</b> → 블로그 제목 칸에 붙여 넣고 <b>[발행]</b>."],
+  save: ["위 버튼 → 글이 복사되고 사진이 <b>01, 02…</b> 순서로 저장돼요.", "네이버 블로그 앱 → 글쓰기 → <b>사진 버튼</b> → 01부터 순서대로 골라 넣고, 글 칸을 <b>길게 눌러 [붙여넣기]</b>.", "이 앱으로 돌아와 <b>[제목 복사]</b> → 블로그 제목 칸에 붙여 넣고 <b>[발행]</b>."],
+  text: ["위 버튼 → 글과 태그가 복사돼요.", "네이버 블로그 앱 → 글쓰기 → 글 칸을 <b>길게 눌러 [붙여넣기]</b>.", "이 앱으로 돌아와 <b>[제목 복사]</b> → 블로그 제목 칸에 붙여 넣고 <b>[발행]</b>."]
+};
+function paintSteps(k) { $("#sendSteps").innerHTML = STEPS[k].map(t => "<li>" + t + "</li>").join(""); }
 function paintSend() {
   const live = hasLivePhotos();
   if (live) prepareSave(); else saveJob = null;
@@ -274,13 +281,13 @@ function paintSend() {
   const note = $("#sendNote");
   copiedForSend = false;
   if (!live) {
-    sendLabel = "글 복사하기";
+    sendLabel = "글 복사하기"; paintSteps("text");
     note.textContent = photos.length ? "사진은 방금 만든 글에서만 보낼 수 있어요. 지금은 글만 복사돼요." : "사진이 없어 글만 복사돼요. 네이버 블로그 앱 글쓰기 칸에 붙여 넣으세요.";
   } else if (!share) {
-    sendLabel = "글 복사 + 사진 저장";
+    sendLabel = "글 복사 + 사진 저장"; paintSteps("save");
     note.textContent = "이 휴대폰(브라우저)은 바로 보내기가 안 돼요. 글을 복사하고 사진을 01, 02… 순서로 저장해요. 블로그 앱에서 사진 버튼 → 01부터 순서대로 고르고, 글 칸에 붙여 넣으세요.";
   } else {
-    sendLabel = "네이버 블로그로 보내기";
+    sendLabel = "네이버 블로그로 보내기"; paintSteps("share");
     note.textContent = "사진 " + photos.length + "장이 글 맨 위에 순서대로 들어가요.";
   }
   paintSaveBtn();

@@ -21,7 +21,9 @@ function memStore() {
     const m = new Map();
     memory = {
       async get(k) { return m.has(k) ? JSON.parse(m.get(k)) : null; },
-      async setJSON(k, v) { m.set(k, JSON.stringify(v)); }
+      async setJSON(k, v) { m.set(k, JSON.stringify(v)); },
+      async del(k) { m.delete(k); },
+      async count(prefix) { let n = 0; for (const k of m.keys()) if (k.startsWith(prefix)) n++; return n; }
     };
   }
   return memory;
@@ -38,7 +40,9 @@ export function getGuardStore() {
         const s = getStore({ name: "nutri-blog-guard", consistency: "strong" });
         return {
           async get(k) { return await s.get(k, { type: "json" }); },
-          async setJSON(k, v) { await s.setJSON(k, v); }
+          async setJSON(k, v) { await s.setJSON(k, v); },
+          async del(k) { await s.delete(k); },
+          async count(prefix) { const r = await s.list({ prefix }); return (r && r.blobs ? r.blobs.length : 0); }
         };
       } catch (e) {
         // 배포한 곳에서 기록 저장소를 못 쓰면 한도·잠금이 사라지므로 멈춘다 (메모리로 넘어가지 않음)
@@ -105,45 +109,39 @@ export async function checkCode(code, ip) {
 }
 
 // 하루 사용량. kind: "posts"(글) | "photos"(사진 읽기)
-export async function usage(shop) {
-  const store = await getGuardStore();
-  const day = kstDate();
-  const u = (await store.get("day:" + day + ":" + shop)) || { posts: 0, photos: 0 };
-  const all = (await store.get("day:" + day + ":_all")) || { posts: 0, photos: 0 };
-  return { day, u, all };
-}
+// 동시에 두 요청이 와도 한도를 넘지 않게: 숫자 하나를 고쳐 쓰지 않고, 쓸 때마다 "표 한 장"(따로 된 기록)을 먼저 남긴 뒤
+// 표 수를 센다. 한도를 넘었으면 내 표를 지우고 거절한다. (동시에 오면 둘 다 거절될 수는 있어도, 한도를 넘겨 쓰지는 않음)
+function prefixFor(day, kind, shop) { return "use:" + day + ":" + kind + ":" + (shop ? shop + ":" : ""); }
 
 export async function take(shop, kind) {
   const L = limits();
   const cap = kind === "photos" ? L.daily * 2 : L.daily;   // 사진 읽기는 글 수의 2배까지
   const capAll = kind === "photos" ? L.all * 2 : L.all;
   const store = await getGuardStore();
-  const { day, u, all } = await usage(shop);
-  if ((u[kind] || 0) >= cap) {
+  const day = kstDate();
+  const ticket = prefixFor(day, kind, shop) + Date.now().toString(36) + crypto.randomBytes(6).toString("hex");
+  await store.setJSON(ticket, { t: Date.now() });
+  const mine = await store.count(prefixFor(day, kind, shop));
+  const all = await store.count(prefixFor(day, kind));
+  if (mine > cap) {
+    await store.del(ticket);
     return { ok: false, status: 429, error: "daily_limit", message: "오늘 만들 수 있는 글을 다 썼어요 (하루 " + L.daily + "편). 내일 다시 쓸 수 있어요." };
   }
-  if ((all[kind] || 0) >= capAll) {
+  if (all > capAll) {
+    await store.del(ticket);
     return { ok: false, status: 429, error: "all_limit", message: "오늘은 앱 전체 사용량이 많아 잠시 멈췄어요. 내일 다시 쓸 수 있어요. 급하면 회사에 알려 주세요." };
   }
-  u[kind] = (u[kind] || 0) + 1; all[kind] = (all[kind] || 0) + 1;
-  await store.setJSON("day:" + day + ":" + shop, u);
-  await store.setJSON("day:" + day + ":_all", all);
-  return { ok: true, left: Math.max(0, L.daily - (u.posts || 0)) };
+  const posts = kind === "posts" ? mine : await store.count(prefixFor(day, "posts", shop));
+  return { ok: true, left: Math.max(0, L.daily - posts), ticket };
 }
 
-// 글을 하나도 못 받았을 때 되돌려 준다
-export async function giveBack(shop, kind) {
-  try {
-    const store = await getGuardStore();
-    const { day, u, all } = await usage(shop);
-    if (u[kind] > 0) u[kind] -= 1;
-    if (all[kind] > 0) all[kind] -= 1;
-    await store.setJSON("day:" + day + ":" + shop, u);
-    await store.setJSON("day:" + day + ":_all", all);
-  } catch (_) { /* 되돌리기 실패는 무시 */ }
+// AI가 처음부터 거절해 돈이 나가지 않았을 때 표를 돌려준다
+export async function giveBack(shop, kind, ticket) {
+  try { if (ticket) { const store = await getGuardStore(); await store.del(ticket); } }
+  catch (_) { /* 되돌리기 실패는 무시 */ }
 }
 
 export async function postsLeft(shop) {
-  const { u } = await usage(shop);
-  return Math.max(0, limits().daily - (u.posts || 0));
+  const store = await getGuardStore();
+  return Math.max(0, limits().daily - await store.count(prefixFor(kstDate(), "posts", shop)));
 }
