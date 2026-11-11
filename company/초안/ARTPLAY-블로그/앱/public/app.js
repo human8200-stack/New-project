@@ -3,7 +3,7 @@
    글 규칙은 서버의 netlify/lib/prompt.mjs 한 곳에 있어요. 여기에는 화면과 마지막 안전 점검만 있어요. */
 (function () {
 "use strict";
-const APP_VERSION = "1.3.0 (2026-11-11, 컴퓨터에서 그림과 글 함께 복사)";
+const APP_VERSION = "1.3.1 (2026-11-11, 체험 글 사진 자리 맞추기·체험 경고)";
 // 마우스가 있는 컴퓨터인지 (컴퓨터에서만 [그림과 글 함께 복사]가 보여요. 휴대폰은 그대로)
 const IS_PC = (() => { try { return matchMedia("(pointer: fine) and (hover: hover)").matches; } catch (_) { return false; } })();
 const $ = s => document.querySelector(s);
@@ -287,7 +287,8 @@ function parse(t) {
   }
   let summary = "", body = bl.slice(i).join("\n").trim();
   if (sawRow) { summary = top.join("\n"); body = bl.slice(j).join("\n").replace(/^\s+/, "").trim(); }
-  const tags = (sec["해시태그"] || "").replace(/\s+/g, " ").trim();
+  const seenTag = new Set(); // 같은 해시태그는 한 번만
+  const tags = (sec["해시태그"] || "").replace(/\s+/g, " ").trim().split(" ").filter(w => { if (w === "#") return false; if (!w.startsWith("#")) return true; const k = w.toLowerCase(); if (seenTag.has(k)) return false; seenTag.add(k); return true; }).join(" ");
   const checks = (sec["확인할 점"] || "").split("\n").map(s => s.replace(/^\s*[-•·]\s*/, "").trim()).filter(s => s && s !== "없음");
   return { titles, summary, body, tags, checks, ok: marks.length > 0 && (titles.length > 0 || checks.length > 0) };
 }
@@ -331,6 +332,7 @@ function renderResult(r) {
   if (contact && r.body && r.body.includes("{연락처}")) r.body = r.body.split("{연락처}").join(contact);
   if (contact && r.bodyBundle && r.bodyBundle.includes("{연락처}")) r.bodyBundle = r.bodyBundle.split("{연락처}").join(contact);
   $("#rSummary").value = r.summary || ""; $("#rTags").value = r.tags || "";
+  $("#demoWarn").hidden = !r.demo; $("#demoWarn").textContent = DEMO_WARN;
   paintPaste();
   $("#fbBox").hidden = true;
   $("#result").hidden = false;
@@ -383,7 +385,7 @@ function paintPaste() {
   const m = pasteMode();
   document.querySelectorAll("#pasteMode .chip").forEach(c => c.setAttribute("aria-pressed", c.dataset.v === m ? "true" : "false"));
   $("#pasteHelp").textContent = m === "bundle"
-    ? "사진을 글 맨 위에 한 번에 넣고, 글은 아래에 붙여요. 가장 쉬워요."
+    ? "사진을 글 맨 위에 한 번에 넣고, 글은 아래에 붙여요. 가장 쉬워요." + (IS_PC ? " 컴퓨터에서 이 방식은 사진 밑에 글이 오지 않아요. 사진 밑 설명이 필요하면 (나)를 골라 주세요." : "")
     : "글 사이사이에 사진 자리를 표시해요. 손은 더 가지만 검색에 조금 유리해요.";
   const body = m === "bundle" ? (r.bodyBundle != null ? r.bodyBundle : stripMarks(r.body)) : (r.body || "");
   $("#rBody").value = body;
@@ -528,16 +530,66 @@ function fillDemo(tpl, f) {
     "{기간}": PERIOD_TEXT[f.period] || null, "{메모}": f.memo ? f.memo.replace(/\s+/g, " ").slice(0, 120) : null,
     "{사진만}": f.consent === "photo" ? "" : null, "{지역동의}": f.consent === "region" && region ? "" : null,
     "{#지역}": region ? "#" + region.replace(/\s+/g, "") + "인테리어 " : "",
-    "{#평수}": size.replace(/\s+/g, "").replace(/~\d+평/, "평대"), "{#공간}": first
+    "{#평수}": size.replace(/\s+/g, "").replace(/~\d+평/, "평대"), "{#공간}": first,
+    "{하자안내}": f.shop && f.shop.warranty ? "" : null
   };
+  const plain = space.replace(/\s*\([^)]*\)/g, ""); // 제목에는 괄호 업종명 대신 "매장"처럼
   const keys = Object.keys(V);
-  const lines = [];
+  const lines = []; let inTitle = false;
   tpl.split("\n").forEach(line => {
+    if (/^\[(제목|본문|해시태그|확인할 점)\]$/.test(line.trim())) inTitle = line.trim() === "[제목]";
     const alt = line.split("||").find(a => keys.every(k => !a.includes(k) || V[k] !== null));
     if (alt == null) return; // 값이 없으면 그 줄을 뺀다
-    lines.push(keys.reduce((s, k) => s.split(k).join(V[k] || ""), alt).replace(/ {2,}/g, " "));
+    const T = inTitle ? alt.split("{공간}").join(plain) : alt;
+    lines.push(keys.reduce((s, k) => s.split(k).join(V[k] || ""), T).replace(/ {2,}/g, " "));
   });
   return lines.join("\n").replace(/\n{3,}/g, "\n\n");
+}
+
+// 체험 글의 사진 자리를 넣은 사진에 맞춘다 (2026-11-11 품질관리팀 반려).
+// 예시 자리의 구분(전·공사 중·후)대로 실제 사진을 앞에서부터 짝지어 번호를 다시 붙이고,
+// 짝 없는 자리는 자리 줄 + 바로 밑 설명 줄을 함께 빼고, 남는 사진은 그 구분 마지막 자리 뒤(없으면 【자주 묻는 질문】 앞)에 붙인다.
+// 돌려주는 map: 예시 번호 → 새 번호 (빠진 자리는 없음)
+const DEMO_MARK = /^📷 사진 (\d+): (전|공사 중|후) - (.*)$/;
+const DEMO_SIDES = ["전", "공사 중", "후"];
+const EXTRA_CAP = { "전": "공사 전 모습이에요.", "공사 중": "공사하는 중의 모습이에요.", "후": "시공 후 모습이에요." };
+function fitDemoPhotos(body, list) {
+  const cnt = { "전": 0, "공사 중": 0, "후": 0 }; list.forEach(p => { if (p.side in cnt) cnt[p.side]++; });
+  const base = { "전": 0, "공사 중": cnt["전"], "후": cnt["전"] + cnt["공사 중"] };
+  const L = String(body || "").split("\n"), slots = {};
+  L.forEach((l, i) => { const m = l.match(DEMO_MARK); if (m) slots[i] = { n: +m[1], side: m[2], desc: m[3] }; });
+  DEMO_SIDES.forEach(sd => Object.values(slots).filter(x => x.side === sd).sort((a, b) => a.n - b.n).forEach((x, k) => { x.k = k; }));
+  const isCap = t => t != null && !!t.trim() && !/^\s*(【|Q\.|A\.|📷)/.test(t);
+  const out = [], after = {}, used = { "전": 0, "공사 중": 0, "후": 0 }, map = {};
+  for (let i = 0; i < L.length; i++) {
+    const s = slots[i];
+    if (!s) { out.push(L[i]); continue; }
+    const cap = isCap(L[i + 1]);
+    if (s.k < cnt[s.side]) {
+      const n = base[s.side] + s.k + 1; map[s.n] = n; used[s.side]++;
+      out.push("📷 사진 " + n + ": " + s.side + " - " + s.desc);
+      if (cap) { out.push(L[i + 1]); i++; }
+      after[s.side] = out.length;
+    } else if (cap) i++;
+  }
+  const end = (() => { const k = out.findIndex(l => /^【자주 묻는 질문】/.test(l.trim())); if (k >= 0) return k; const c = out.findIndex(l => /^📞/.test(l.trim())); return c >= 0 ? c : out.length; })();
+  const ins = {};
+  DEMO_SIDES.forEach(sd => {
+    for (let k = used[sd]; k < cnt[sd]; k++) {
+      const pos = after[sd] != null ? after[sd] : end;
+      (ins[pos] = ins[pos] || []).push("", "📷 사진 " + (base[sd] + k + 1) + ": " + sd + " - 추가 사진", EXTRA_CAP[sd]);
+    }
+  });
+  Object.keys(ins).map(Number).sort((a, b) => b - a).forEach(pos => {
+    const add = ins[pos].slice(); if (pos === end && pos < out.length) add.push("");
+    out.splice(pos, 0, ...add);
+  });
+  return { body: out.join("\n").replace(/\n{3,}/g, "\n\n").trim(), map };
+}
+// 확인할 점의 "사진 n(…)" 번호도 새 번호로 (빠진 사진 이야기는 뺀다)
+function fitDemoChecks(checks, map) {
+  return checks.filter(c => { const m = c.match(/사진 (\d+)\(/); return !m || map[m[1]]; })
+    .map(c => c.replace(/사진 (\d+)\(/g, (a, n) => "사진 " + map[n] + "("));
 }
 
 async function runDemo() {
@@ -550,6 +602,7 @@ async function runDemo() {
   let shown = 0; const step = Math.ceil(full.length / 30);
   while (shown < full.length) { shown = Math.min(full.length, shown + step); progress("글 쓰는 중… " + shown.toLocaleString("ko-KR") + "자 (체험)", 20 + 80 * shown / full.length); await sleep(60); }
   const p = parse(full);
+  const fitted = fitDemoPhotos(p.body, list); p.body = fitted.body; p.checks = fitDemoChecks(p.checks, fitted.map);
   const order = (p.body.match(/^📷 사진 \d+: .+$/gm) || []).map(l => l.replace("📷 ", "").replace(":", " —"))
     .sort((a, b) => parseInt(a.replace(/\D+/, ""), 10) - parseInt(b.replace(/\D+/, ""), 10));
   const alerts = ["체험 모드 — 예시 문장에 고른 값만 넣었어요 (실제는 AI가 사진을 보고 새로 써요). 그대로 올리면 안 돼요."];
@@ -654,6 +707,11 @@ $("#newBtn").addEventListener("click", () => {
 });
 
 /* ---------- 복사 ---------- */
+// 체험 글은 진짜 후기처럼 올라가지 않게, 모든 복사 맨 첫 줄에 경고를 넣는다
+const DEMO_WARN = "[체험 예시 글 — 실제 현장이 아니에요. 그대로 올리지 마세요]";
+const isDemo = () => !!(current && current.demo);
+const warnText = t => isDemo() ? DEMO_WARN + "\n\n" + t : t;
+const warnHtml = h => isDemo() ? "<p>" + esc(DEMO_WARN) + "</p><p><br></p>" + h : h;
 function full() { const r = current; return [r.titles[r.sel] || "", $("#rSummary").value.trim(), $("#rBody").value.trim(), $("#rTags").value.trim()].filter(Boolean).join("\n\n"); }
 const COPY = {
   cpAll: () => full(),
@@ -665,7 +723,7 @@ Object.keys(COPY).forEach(id => {
   const b = $("#" + id), label = b.textContent;
   b.addEventListener("click", () => {
     if (!current) return;
-    const text = COPY[id]();
+    const text = warnText(COPY[id]());
     const done = () => { b.textContent = "✓ 복사됨"; $("#fbBox").hidden = true; setTimeout(() => { b.textContent = label; }, 1500); };
     const fallback = () => { const f = $("#fbText"); f.value = text; $("#fbBox").hidden = false; fit(f); f.focus(); f.select(); try { f.setSelectionRange(0, text.length); } catch (_) {} };
     try {
@@ -805,9 +863,9 @@ function paintPieces() {
     b.textContent = label;
     b.addEventListener("click", async () => {
       const im = pc.kind === "img" ? imgOf(pc.k) : null;
-      const ok = pc.kind === "text" ? !!(await copyHtml(linesToHtml(pc.lines), pc.text)) : (im ? await copyImage(im.blob) : false);
+      const ok = pc.kind === "text" ? !!(await copyHtml(warnHtml(linesToHtml(pc.lines)), warnText(pc.text))) : (im ? await copyImage(im.blob) : false);
       if (ok) { b.textContent = "✓ " + label; b.classList.add("done"); }
-      else { b.textContent = label + " — 다시 눌러 주세요"; if (pc.kind === "text") showFb(pc.text); }
+      else { b.textContent = label + " — 다시 눌러 주세요"; if (pc.kind === "text") showFb(warnText(pc.text)); }
     });
     list.appendChild(b);
   });
@@ -827,15 +885,15 @@ function paintPc() {
   b.disabled = !!waiting;
   b.textContent = waiting ? "그림 준비 중…" : n ? "그림과 글 함께 복사" : "블로그에 붙여 넣을 글 복사";
   $("#pcNote").textContent = waiting ? "" : n
-    ? (pasteMode() === "bundle" ? "사진 " + n + "장이 글 맨 위에 순서대로 들어가요." : "사진 " + n + "장이 글 사이 제자리에 들어가요. 설명 문장은 사진 바로 아래에 붙어요.")
+    ? (pasteMode() === "bundle" ? "사진 " + n + "장이 글 맨 위에 순서대로 들어가요. 이 방식은 사진 밑에 글이 오지 않아요." : "사진 " + n + "장이 글 사이 제자리에 들어가요. 설명 문장은 사진 바로 아래에 붙어요.")
     : "사진은 방금 만든 글에서만 함께 복사돼요. 지금은 글만 복사돼요.";
   paintPieces();
 }
 $("#pcAll").addEventListener("click", async () => {
   const b = $("#pcAll");
   if (!current || b.disabled) return;
-  const text = plainText(), n = buildPieces().filter(p => p.kind === "img").length;
-  const how = await copyHtml(buildHtml(), text);
+  const text = warnText(plainText()), n = buildPieces().filter(p => p.kind === "img").length;
+  const how = await copyHtml(warnHtml(buildHtml()), text);
   if (how === "html") { b.textContent = n ? "✓ 그림 " + n + "장과 글 복사됨" : "✓ 복사됨"; $("#fbBox").hidden = true; }
   else if (how === "text") { b.textContent = "✓ 글만 복사됨 (사진은 한 칸씩 복사로)"; }
   else { b.textContent = "복사가 안 됐어요"; showFb(text); }
