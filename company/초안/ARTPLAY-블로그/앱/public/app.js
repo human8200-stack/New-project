@@ -236,7 +236,7 @@ function setupDrop() {
    실제로 줄에 넣은 파일 목록(경로|크기|수정 시각, 최근 FLD_SEEN_MAX개)을 IndexedDB "seen"에 두고, 목록에 없는 사진만 보여 준다.
    (체크를 끈 사진·자리가 넘쳐 빠진 사진·열지 못한 사진은 목록에 안 들어가 다음에 다시 나온다) [전체 다시 보기]는 목록을 무시한다.
    고른 사진은 [+]와 같은 addFiles로 줄여 넣는다.
-   전·공사 중·후 나누기는 '제안': ① 접속 코드로 쓸 때는 작게 줄인 사진(512px)을 /api/photos에 보내 AI가 kind로 나눔(저장 안 함, 30장까지)
+   전·공사 중·후 나누기는 '제안': ① AI 열쇠로 쓸 때는 작게 줄인 사진(512px)을 /api/photos에 보내 AI가 kind로 나눔(저장 안 함, 30장까지)
    ② 체험·열쇠 없음·실패면 파일 시각 순 간격으로 나눔(fldByTime). 사진마다 [전][공사 중][후]로 바꾼다.
    사파리·파이어폭스·휴대폰은 버튼을 숨긴다. */
 const FLD_OK = IS_PC && typeof window.showDirectoryPicker === "function" && window.isSecureContext !== false;
@@ -1433,7 +1433,7 @@ $("#keySave").addEventListener("click", () => {
 });
 $("#keyDel").addEventListener("click", () => {
   ls.del(K.key); $("#keyIn").value = "";
-  $("#keyInfo").textContent = "✓ 이 노트북에서 열쇠를 지웠어요.";
+  $("#keyInfo").textContent = "✓ 이 기기에서 열쇠를 지웠어요.";
   paintKey(); paintMode();
 });
 $("#modeSwitch").addEventListener("click", () => {
