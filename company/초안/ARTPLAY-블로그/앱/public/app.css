@@ -157,3 +157,17 @@ textarea.paper{min-height:120px}
 .chips-big .chip{min-height:52px;min-width:96px;font-size:18px;font-weight:600}
 .pchips{display:flex;flex-wrap:wrap;gap:8px}
 .howto{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:4px;font-size:16px}
+/* 1.5.0 AI 열쇠 (설정) */
+.keyBox{border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:10px}
+.keyRow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.keyRow input{flex:1 1 200px}
+.keyRow .mid{flex:1 1 140px}
+.keySteps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+/* 1.5.0 폴더 골라내기 */
+.fldAll{flex-wrap:wrap}
+.fgrp{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:0 4px 0 40px;margin-top:-2px}
+.fmembers{display:flex;flex-direction:column;gap:6px;padding-left:28px}
+.frow.fmem{background:var(--card)}
+.fwarn{display:block;font-weight:700;margin-top:2px}
+.fwarn::before{content:"⚠ "}
+.fwhy{display:block;margin-top:2px}

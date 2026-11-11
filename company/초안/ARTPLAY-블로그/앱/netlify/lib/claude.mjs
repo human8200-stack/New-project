@@ -1,4 +1,8 @@
-// Claude API 연결 (SDK 없이 fetch로). 키는 환경 변수 ANTHROPIC_API_KEY에서만 읽는다.
+// Claude API 연결 (SDK 없이 fetch로).
+// 1.5.0 (2026-11-11 회장님 지시): AI 열쇠는 가게 사장님이 앱 설정에 넣은 열쇠만 쓴다.
+//   화면이 머리글 x-user-key로 보내고, 서버는 그 열쇠로만 Anthropic을 부른다.
+//   서버 환경 변수 ANTHROPIC_API_KEY는 이 사이트에서 읽지 않는다 (회사 열쇠로 돈이 나가지 않게).
+//   열쇠는 로그·저장소·응답 어디에도 남기지 않는다.
 //   CLAUDE_MODEL  쓸 모델 (기본 claude-sonnet-5-5). 더 좋은 글이 필요하면 claude-opus-5-5
 //   WRITE_EFFORT  글쓰기 생각 깊이 (기본 medium). low / medium / high
 
@@ -7,12 +11,22 @@ export const API_VERSION = "2026-10-21";
 export const MODEL = process.env.CLAUDE_MODEL || "claude-sonnet-5-5";
 export const WRITE_EFFORT = ["low", "medium", "high"].includes(process.env.WRITE_EFFORT) ? process.env.WRITE_EFFORT : "medium";
 
-export function hasKey() { return !!(process.env.ANTHROPIC_API_KEY || "").trim(); }
+// 사장님 열쇠 모양: sk-ant- 로 시작, 글자·숫자·-·_ 만
+export const KEY_RE = /^sk-ant-[A-Za-z0-9_-]{10,300}$/;
+// 요청 머리글에서 사장님 열쇠를 꺼낸다. 없으면 "", 모양이 틀리면 null
+export function userKey(req) {
+  const k = String((req && req.headers && req.headers.get("x-user-key")) || "").trim();
+  if (!k) return "";
+  return KEY_RE.test(k) ? k : null;
+}
+// 로그에 남길 글에서 열쇠처럼 생긴 것을 가린다 (혹시라도)
+export function scrub(v) { return String(v == null ? "" : v).replace(/sk-ant-[A-Za-z0-9_-]+/g, "sk-ant-[가림]"); }
 
 export const NO_KEY = {
   error: "no_key",
-  message: "아직 AI 연결 열쇠(API 키)가 설정되지 않았어요. 회사에 알려 주세요. 그동안은 [체험해 보기]로 화면을 둘러볼 수 있어요."
+  message: "설정에서 AI 열쇠를 넣어 주세요. 그동안은 [체험 모드로 둘러보기]로 예시 글을 볼 수 있어요."
 };
+export const KEY_BAD = { error: "key_bad", message: "열쇠가 맞지 않아요. console.anthropic.com에서 다시 확인해 주세요." };
 
 export function json(status, body, extra) {
   return new Response(JSON.stringify(body), {
@@ -27,31 +41,32 @@ export function clientIp(req, context) {
 
 // API 오류 → 사장님이 읽을 쉬운 말
 export function friendlyApiError(status, type) {
-  if (status === 401 || type === "authentication_error") return { error: "key_bad", message: "AI 연결 열쇠(API 키)가 맞지 않아요. 회사에 알려 주세요." };
-  if (status === 402 || type === "billing_error") return { error: "billing", message: "AI 사용 요금 결제에 문제가 있어요. 회사에 알려 주세요." };
+  if (status === 401 || status === 403 || type === "authentication_error" || type === "permission_error") return { ...KEY_BAD };
+  if (status === 402 || type === "billing_error") return { error: "billing", message: "AI 사용 요금이 부족하거나 결제에 문제가 있어요. console.anthropic.com의 Billing에서 확인해 주세요." };
   if (status === 429 || type === "rate_limit_error") return { error: "busy", message: "AI를 너무 자주 불렀어요. 1분쯤 뒤에 다시 눌러 주세요." };
   if (status === 529 || type === "overloaded_error") return { error: "busy", message: "AI가 지금 붐벼요. 잠시 뒤 다시 눌러 주세요." };
   if (status === 413 || type === "request_too_large") return { error: "too_big", message: "사진이 너무 커요. 사진 수를 줄여 다시 해 주세요." };
-  if (status === 400 && /spend|limit/i.test(type || "")) return { error: "billing", message: "이번 달 AI 사용 한도에 닿았어요. 회사에 알려 주세요." };
+  if (status === 400 && /spend|limit/i.test(type || "")) return { error: "billing", message: "이번 달 AI 사용 한도에 닿았어요. console.anthropic.com의 Limits에서 확인해 주세요." };
   return { error: "api", message: "AI가 글을 못 만들었어요. 잠시 뒤 다시 눌러 주세요." };
 }
 
-function headers() {
+function headers(key) {
+  if (!key || !KEY_RE.test(key)) { const e = new Error("no_key"); e.friendly = { ...NO_KEY }; e.preStream = true; throw e; }
   return {
-    "x-api-key": (process.env.ANTHROPIC_API_KEY || "").trim(),
+    "x-api-key": key,
     "anthropic-version": API_VERSION,
     "content-type": "application/json"
   };
 }
 
-// 한 번에 받기 (사진 읽기용)
+// 한 번에 받기 (사진 읽기용). key = 사장님 열쇠 (userKey로 꺼낸 것)
 // 오류에 preStream=true가 붙으면 "AI가 처음부터 200이 아닌 응답을 줬다" = 돈이 나가지 않았다는 뜻 → 한도를 돌려준다
-export async function callOnce(body, signal) {
-  const res = await fetch(API_URL, { method: "POST", headers: headers(), body: JSON.stringify(body), signal });
+export async function callOnce(key, body, signal) {
+  const res = await fetch(API_URL, { method: "POST", headers: headers(key), body: JSON.stringify(body), signal });
   if (!res.ok) {
     const data = await res.json().catch(() => null);
     const type = data && data.error && data.error.type;
-    console.warn("[claude] 오류", res.status, type, data && data.error && data.error.message);
+    console.warn("[claude] 오류", res.status, scrub(type), scrub(data && data.error && data.error.message));
     const e = new Error("api"); e.friendly = friendlyApiError(res.status, type); e.preStream = true; throw e;
   }
   const data = await res.json().catch(() => ({}));
@@ -60,12 +75,12 @@ export async function callOnce(body, signal) {
 }
 
 // 흘려 받기 (글쓰기용). onText(조각)을 부르고, 끝나면 {stop, usage}를 돌려준다.
-export async function callStream(body, onText, signal) {
-  const res = await fetch(API_URL, { method: "POST", headers: headers(), body: JSON.stringify({ ...body, stream: true }), signal });
+export async function callStream(key, body, onText, signal) {
+  const res = await fetch(API_URL, { method: "POST", headers: headers(key), body: JSON.stringify({ ...body, stream: true }), signal });
   if (!res.ok) {
     const data = await res.json().catch(() => null);
     const type = data && data.error && data.error.type;
-    console.warn("[claude] 오류", res.status, type, data && data.error && data.error.message);
+    console.warn("[claude] 오류", res.status, scrub(type), scrub(data && data.error && data.error.message));
     const e = new Error("api"); e.friendly = friendlyApiError(res.status, type); e.preStream = true; throw e;
   }
   const reader = res.body.getReader();

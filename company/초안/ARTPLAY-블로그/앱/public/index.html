@@ -64,7 +64,7 @@
       <button class="mid" id="fldGet" type="button">사진 폴더 연결하기</button>
       <button class="ghost" id="fldAll" type="button" hidden>전체 다시 보기</button>
       <button class="ghost" id="fldPick" type="button" hidden>폴더 바꾸기</button>
-      <p class="small" id="fldAiNote" hidden>접속 코드로 쓸 때는 나누기를 위해 작게 줄인 사진을 잠깐 보내요(저장 안 함)</p>
+      <p class="small" id="fldAiNote" hidden>AI 열쇠로 쓸 때는 나누기·고르기를 위해 작게 줄인 사진을 잠깐 보내요(저장 안 함)</p>
       <p class="small" id="fldInfo" role="status"></p>
     </div>
     <div class="prow"><div class="tag">전</div><div class="strip" id="strip-before"></div></div>
@@ -132,6 +132,7 @@
     <button class="mid" id="retryBtn" type="button">다시 시도</button>
     <button class="mid" id="failDemo" type="button" hidden>체험 모드로 둘러보기</button>
     <button class="mid" id="failCode" type="button" hidden>접속 코드 다시 넣기</button>
+    <button class="mid" id="failSet" type="button" hidden>설정에서 AI 열쇠 넣기</button>
   </div>
 
   <section class="box" id="result" hidden>
@@ -195,6 +196,34 @@
     <div class="field"><label class="small" for="sTags">고정 해시태그</label><input type="text" id="sTags" maxlength="120" placeholder="#아트플레이 #ARTPLAY인테리어"></div>
     <button class="big" id="setSave" type="button">저장</button>
     <p class="small" id="setInfo" role="status"></p>
+    <div class="keyBox">
+      <p class="lbl"><label for="keyIn">AI 열쇠</label> <span class="small">(sk-ant- 로 시작해요)</span></p>
+      <p class="small">이 노트북에만 저장돼요. 회사 서버에는 저장하지 않아요. 사용료는 이 열쇠의 계정에서 나가요.</p>
+      <p class="small" id="keyNow"></p>
+      <div class="keyRow">
+        <input type="password" id="keyIn" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="sk-ant-… 붙여 넣기">
+        <button class="ghost" id="keyShow" type="button" aria-pressed="false" aria-controls="keyIn">보기</button>
+      </div>
+      <div class="keyRow">
+        <button class="mid" id="keySave" type="button">열쇠 저장</button>
+        <button class="mid" id="keyDel" type="button" hidden>열쇠 지우기</button>
+      </div>
+      <p class="small" id="keyInfo" role="status"></p>
+      <details class="more" id="keyHow">
+        <summary><span>열쇠 만드는 법</span></summary>
+        <div class="in">
+          <ol class="small keySteps">
+            <li><b>console.anthropic.com</b> 에 로그인해요.</li>
+            <li>왼쪽 <b>Billing</b> 에서 크레딧을 충전해요. (예: 5달러)</li>
+            <li><b>Limits</b> 에서 월 한도를 걸어 둬요. (예: 10달러 — 이 금액을 넘게 쓰이지 않아요)</li>
+            <li>왼쪽 <b>API Keys</b> → <b>Create Key</b> → 이름(예: blog) → 만들기</li>
+            <li>나온 열쇠를 <b>Copy</b> 해요. (창을 닫으면 다시 볼 수 없어요 — 복사 전에 닫지 않기)</li>
+            <li>여기 칸에 붙여 넣고 [열쇠 저장]을 눌러요.</li>
+          </ol>
+          <p class="small">열쇠는 카톡·문자·메일로 보내지 마세요. 새 나간 것 같으면 API Keys에서 그 열쇠를 지우고(Delete) 새로 만들어요.</p>
+        </div>
+      </details>
+    </div>
     <button class="mid" id="modeSwitch" type="button">체험 모드 끝내기</button>
     <button class="mid" id="codeReset" type="button">접속 코드 바꾸기</button>
     <p class="small" id="verInfo"></p>
@@ -204,9 +233,10 @@
 <div class="sheet" id="fldSheet" hidden role="dialog" aria-modal="true" aria-labelledby="fldTitle">
   <div class="sheet-in">
     <div class="sheet-head"><h2 class="hand" id="fldTitle">폴더의 새 사진</h2><button class="ghost" data-close type="button">닫기</button></div>
+    <p class="lbl" id="fldSum" role="status" hidden></p>
     <p class="lbl" id="fldHow"></p>
     <p class="small" id="fldHead"></p>
-    <div class="fldAll"><button class="ghost" id="fldAllOn" type="button">모두 고르기</button><button class="ghost" id="fldAllOff" type="button">모두 빼기</button></div>
+    <div class="fldAll"><button class="ghost" id="fldAllOn" type="button">모두 고르기</button><button class="ghost" id="fldAllOff" type="button">모두 빼기</button><button class="ghost" id="fldAllRep" type="button">묶음마다 1장씩</button></div>
     <div id="fldList" class="fldList"></div>
     <button class="big" id="fldPut" type="button">고른 사진 넣기</button>
     <p class="small">폴더의 사진은 그대로 둬요. 넣는 사진은 이 노트북에서 줄여서 써요. (접속 코드로 쓸 때는 나누기를 위해 작게 줄인 사진을 AI에게 잠깐 보여 주고, 저장하지 않아요)</p>

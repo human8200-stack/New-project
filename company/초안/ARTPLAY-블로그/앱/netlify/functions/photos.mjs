@@ -1,23 +1,26 @@
 // 사진 읽기: POST /api/photos  { type: "home"|"shop", photos: [{ side: "전"|"공사 중"|"후"|"모름", data: base64 JPEG }] }
 // 사진마다 짧은 설명과 가려야 할 것, 사진으로 본 단계(kind: 전·공사 중·후)를 돌려준다. ("모름" = 노트북 폴더 가져오기에서 나누기용) 사진은 저장하지 않는다 (메모리에서만 쓰고 버림).
 import { checkCode, take, giveBack, NO_STORE } from "../lib/guard.mjs";
-import { json, clientIp, hasKey, NO_KEY, callOnce, MODEL } from "../lib/claude.mjs";
+import { json, clientIp, userKey, KEY_BAD, NO_KEY, scrub, callOnce, MODEL } from "../lib/claude.mjs";
 import { photoPrompt } from "../lib/prompt.mjs";
 
 const MAX_PHOTOS = 15; // 전 6 + 후 6 + 공사 중 3
 const MAX_ONE = 1.6e6;   // 사진 한 장 base64 글자 수 상한 (약 1.2MB)
 const MAX_BODY = 5.5e6;  // Netlify 요청 6MB 제한 안쪽
+const p0 = v => { const n = Math.round(Number(v)); return n >= 1 && n <= 5 ? n : 0; }; // 쓸만함 1~5, 아니면 0
 
 export default async (req, context) => {
   try { return await handle(req, context); }
-  catch (e) { if (e && e.code === "no_store") return json(503, NO_STORE); console.error(e); return json(500, { error: "server", message: "잠시 문제가 생겼어요. 다시 해 주세요." }); }
+  catch (e) { if (e && e.code === "no_store") return json(503, NO_STORE); console.error(scrub(e && e.stack || e)); return json(500, { error: "server", message: "잠시 문제가 생겼어요. 다시 해 주세요." }); }
 };
 
 async function handle(req, context) {
   if (req.method !== "POST") return json(405, { error: "method", message: "잘못된 요청이에요." });
   const c = await checkCode(req.headers.get("x-shop-code"), clientIp(req, context));   // 코드 먼저
   if (!c.ok) return json(c.status, { error: c.error, message: c.message });
-  if (!hasKey()) return json(503, NO_KEY);
+  const key = userKey(req);                                   // 사장님 열쇠 (서버 환경 변수 열쇠는 쓰지 않음)
+  if (key === "") return json(401, NO_KEY);
+  if (key === null) return json(401, KEY_BAD);
 
   const raw = await req.text();
   if (raw.length > MAX_BODY) return json(413, { error: "too_big", message: "사진이 너무 커요. 사진 수를 줄여 다시 해 주세요." });
@@ -44,7 +47,7 @@ async function handle(req, context) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 50e3);
   try {
-    const r = await callOnce({
+    const r = await callOnce(key, {
       model: MODEL,
       max_tokens: 4000,
       output_config: { effort: "low" },
@@ -61,6 +64,9 @@ async function handle(req, context) {
       if (x.seen) o.seen = String(x.seen).slice(0, 120);
       if (Array.isArray(x.privacy)) o.privacy = x.privacy.map(String).filter(Boolean).slice(0, 5);
       if (["전", "공사 중", "후"].includes(x.kind)) o.kind = x.kind;
+      if (p0(x.use)) o.use = p0(x.use);                                   // 폴더 골라내기용 (1.5.0)
+      if (x.shot === "전체" || x.shot === "가까이") o.shot = x.shot;
+      if (x.room) o.room = String(x.room).slice(0, 12);
     });
     console.log("[photos]", c.shop, photos.length + "장", JSON.stringify(r.usage || {}));
     return json(200, { ok: true, photos: out, read: Array.isArray(parsed) });

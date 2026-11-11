@@ -3,11 +3,11 @@
    글 규칙은 서버의 netlify/lib/prompt.mjs 한 곳에 있어요. 여기에는 화면과 마지막 안전 점검만 있어요. */
 (function () {
 "use strict";
-const APP_VERSION = "1.4.3 (2026-11-11, 폴더에서 아직 넣지 않은 사진 다시 보기·전체 다시 보기)";
+const APP_VERSION = "1.5.0 (2026-11-11, 사장님 AI 열쇠를 설정에 넣어 쓰기)";
 // 마우스가 있는 컴퓨터인지 (컴퓨터에서만 [그림과 글 함께 복사]가 보여요. 휴대폰은 그대로)
 const IS_PC = (() => { try { return matchMedia("(pointer: fine) and (hover: hover)").matches; } catch (_) { return false; } })();
 const $ = s => document.querySelector(s);
-const K = { code: "artplay-code", mode: "artplay-mode", hist: "artplay-history-v1", set: "artplay-settings-v1", paste: "artplay-paste" };
+const K = { code: "artplay-code", mode: "artplay-mode", hist: "artplay-history-v1", set: "artplay-settings-v1", paste: "artplay-paste", key: "artplay-ai-key" };
 // 붙여 넣는 방식 기본값: "marks" = (나) 📷 사진 자리 표시 넣기, "bundle" = (가) 사진 한 묶음 + 글
 // 회장님 최종 답("사진 쉽게")이 오면 여기 한 줄만 바꾼다.
 const DEFAULT_PASTE = "marks";
@@ -70,6 +70,10 @@ const ls = {
   set(k, v) { try { localStorage.setItem(k, v); return true; } catch (_) { return false; } },
   del(k) { try { localStorage.removeItem(k); } catch (_) {} }
 };
+// 사장님 AI 열쇠 (이 브라우저 localStorage에만. 설정 JSON과 따로 둔다)
+const KEY_RE = /^sk-ant-[A-Za-z0-9_-]{10,300}$/;
+function aiKey() { const k = String(ls.get(K.key, "") || "").trim(); return KEY_RE.test(k) ? k : ""; }
+const NO_KEY_ERR = { error: "no_key", message: "설정에서 AI 열쇠를 넣어 주세요. 그동안은 [체험 모드로 둘러보기]로 예시 글을 볼 수 있어요." };
 function settings() { try { return JSON.parse(ls.get(K.set, "{}")) || {}; } catch (_) { return {}; } }
 
 /* ---------- 고르기 버튼 ---------- */
@@ -236,8 +240,8 @@ function setupDrop() {
    ② 체험·열쇠 없음·실패면 파일 시각 순 간격으로 나눔(fldByTime). 사진마다 [전][공사 중][후]로 바꾼다.
    사파리·파이어폭스·휴대폰은 버튼을 숨긴다. */
 const FLD_OK = IS_PC && typeof window.showDirectoryPicker === "function" && window.isSecureContext !== false;
-const FLD_EXT = /\.(jpe?g|png|heic|heif|webp)$/i, FLD_MAX = 60, FLD_SEEN_MAX = 2000;
-const FLD_AI_MAX = 30, FLD_GAP = 6 * 3600e3; // AI로 나누는 최대 장수, 다른 날 묶음으로 보는 간격(6시간)
+const FLD_EXT = /\.(jpe?g|png|heic|heif|webp)$/i, FLD_MAX = 400, FLD_SEEN_MAX = 2000;
+const FLD_AI_MAX = 30, FLD_GAP = 6 * 3600e3; // AI로 보는 최대 장수(묶고 추린 대표 사진), 다른 날 묶음으로 보는 간격(6시간)
 let fldDir = null, fldSeen = [], fldItems = [], fldUrls = [], fldBusy = false, fldHow = "time";
 const fldKey = (path, f) => path + "|" + f.size + "|" + f.lastModified;
 function idb(op, key, val) {
@@ -259,7 +263,7 @@ function fldInfo(t) { $("#fldInfo").textContent = t || ""; }
 function fldPaint() {
   $("#fldGet").textContent = fldDir ? "폴더에서 새 사진 가져오기" : "사진 폴더 연결하기";
   $("#fldPick").hidden = !fldDir; $("#fldAll").hidden = !fldDir;
-  $("#fldAiNote").hidden = !(mode === "live" && code);
+  $("#fldAiNote").hidden = !(mode === "live" && code && aiKey());
   const off = shrinking > 0 || busy || fldBusy; $("#fldGet").disabled = off; $("#fldPick").disabled = off; $("#fldAll").disabled = off;
   if (!$("#fldInfo").textContent) fldInfo(fldDir ? "연결된 폴더: " + fldDir.name + (fldSeen.length ? " · 아직 넣지 않은 사진만 보여요." : "")
     : "현장 사진을 모아 두는 폴더를 한 번 정해 두면, 다음부터 새 사진만 골라 가져와요.");
@@ -301,48 +305,166 @@ function fldByTime(list) {
   return list.map((_, i) => i <= k ? "before" : "after");
 }
 const FLD_KIND = { "전": "before", "공사 중": "during", "후": "after" };
-// AI로 나누기: 성공하면 [side...] (못 읽은 사진은 null), 안 되면 null
+/* ---------- 폴더 골라내기 (1.5.0, 회장님 지시: 비슷한 사진 수십 장·안 넣어도 될 사진) ----------
+   모든 결과는 '제안'이고, 사장님이 체크로 넣고 뺀다.
+   ① 비슷한 사진 묶기: 사진을 64px로 줄여 dHash(차이 해시 64칸)를 만들고, 다른 칸이 FLD_HASH_DIST 이하 + 6시간 안 + 같은 단계면 한 묶음.
+      묶음마다 선명도 점수(128px 라플라시안 분산 × 밝기 보정 — 흔들림·어두움은 낮게)가 가장 높은 1장만 체크.
+   ② 흐린 사진: 점수가 전체 가운데값의 FLD_BLUR배보다 낮으면 체크하지 않음.
+   ③ 그래도 줄의 남은 자리보다 많으면 추리기:
+      AI 열쇠가 있으면 /api/photos 응답의 use(쓸만함 1~5)·shot(전체/가까이)·room(공간)으로 공간마다 전체 컷 + 가까운 컷을 고루.
+      열쇠가 없으면 시간 순으로 자리 수만큼 나눈 구간마다 가장 선명한 1장 (시간이 고루 퍼지게).
+   ④ AI가 얼굴·번호판·주소 등을 본 사진은 '확인 필요'로 표시하고 자동 체크하지 않음.
+   사진 수백 장도 화면이 멈추지 않게 몇 장마다 쉬어 가며 진행 표시를 한다. */
+const FLD_HASH_DIST = 10, FLD_BLUR = 0.35;
+const fldTick = () => new Promise(r => setTimeout(r, 0));
+let fldGroups = [], fldSum = "";
+const fldCv = document.createElement("canvas");
+const fldCtx = fldCv.getContext("2d", { willReadFrequently: true });
+function fldGray(w, h) {
+  const d = fldCtx.getImageData(0, 0, w, h).data, g = new Float32Array(w * h);
+  for (let i = 0, j = 0; i < g.length; i++, j += 4) g[i] = 0.299 * d[j] + 0.587 * d[j + 1] + 0.114 * d[j + 2];
+  return g;
+}
+// 사진 한 장 살펴보기 → { hash: 64칸(0/1) 또는 null, score: 선명도 또는 null }
+async function fldLook(f) {
+  if (/\.(heic|heif)$/i.test(f.name)) return { hash: null, score: null };
+  let bmp;
+  try { bmp = await createImageBitmap(f, { resizeWidth: 128, resizeQuality: "low", imageOrientation: "from-image" }); }
+  catch (_) { return { hash: null, score: null }; }
+  try {
+    // 선명도: 128px 회색에서 라플라시안 분산, 너무 어둡거나 하얗게 날아가면 낮춤
+    const w = bmp.width, h = Math.max(3, Math.min(256, bmp.height));
+    fldCv.width = w; fldCv.height = h; fldCtx.drawImage(bmp, 0, 0, w, h);
+    const g = fldGray(w, h); let sum = 0, sq = 0, n = 0, mean = 0;
+    for (let i = 0; i < g.length; i++) mean += g[i];
+    mean /= g.length;
+    for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+      const i = y * w + x, v = 4 * g[i] - g[i - 1] - g[i + 1] - g[i - w] - g[i + w];
+      sum += v; sq += v * v; n++;
+    }
+    const lap = n ? sq / n - (sum / n) * (sum / n) : 0;
+    const light = mean < 45 ? Math.max(0.1, mean / 45) : mean > 230 ? Math.max(0.1, (255 - mean) / 25) : 1;
+    // dHash: 64px로 줄인 뒤 9×8로 더 줄여 옆 칸보다 밝은지
+    fldCv.width = 64; fldCv.height = 64; fldCtx.drawImage(bmp, 0, 0, 64, 64);
+    fldCtx.drawImage(fldCv, 0, 0, 64, 64, 0, 0, 9, 8);
+    const s = fldGray(9, 8), hash = new Uint8Array(64);
+    for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) hash[y * 8 + x] = s[y * 9 + x] > s[y * 9 + x + 1] ? 1 : 0;
+    return { hash, score: lap * light };
+  } catch (_) { return { hash: null, score: null }; }
+  finally { try { bmp.close(); } catch (_) {} }
+}
+function fldHam(a, b) { let d = 0; for (let i = 0; i < 64; i++) if (a[i] !== b[i]) d++; return d; }
+// 비슷한 사진 묶기 (items는 시간 순). 묶음 = { items, rep(고른 1장), open }
+function fldGroup(items) {
+  let groups = [];
+  items.forEach(it => {
+    // 닮은 사진이 있는 묶음을 모두 찾아 하나로 합친다 (A~B, B~C면 A·B·C 한 묶음)
+    const hit = !it.hash ? [] : groups.filter(C => C.side === it.side &&
+      C.items.some(m => m.hash && Math.abs(m.f.lastModified - it.f.lastModified) <= FLD_GAP && fldHam(m.hash, it.hash) <= FLD_HASH_DIST));
+    let G = hit[0];
+    if (!G) { G = { items: [], side: it.side, open: false }; groups.push(G); }
+    for (const C of hit.slice(1)) { G.items.push(...C.items); groups = groups.filter(x => x !== C); }
+    G.items.push(it);
+  });
+  groups.forEach(G => { G.items.sort((a, b) => a.f.lastModified - b.f.lastModified); G.items.forEach(m => { m.g = G; }); });
+  const sc = x => x.score == null ? -1 : x.score;
+  groups.forEach(G => { G.rep = G.items.reduce((a, b) => sc(b) > sc(a) ? b : a, G.items[0]); });
+  return groups;
+}
+// 시간이 고루 퍼지게: 시간 순으로 k구간 나눠 구간마다 가장 선명한 1장
+function fldSpread(pool, k) {
+  const L = pool.slice().sort((a, b) => a.f.lastModified - b.f.lastModified), out = [];
+  if (k <= 0) return out;
+  const sc = x => x.score == null ? -1 : x.score;
+  for (let b = 0; b < k; b++) {
+    const part = L.slice(Math.floor(b * L.length / k), Math.floor((b + 1) * L.length / k));
+    if (part.length) out.push(part.reduce((a, c) => sc(c) > sc(a) ? c : a, part[0]));
+  }
+  return out;
+}
+// AI 점수로 추리기: 공간마다 전체 컷 → 가까운 컷 → 남은 자리는 공간을 돌아가며 쓸만함 높은 순
+function fldPickAI(pool, k) {
+  const sc = x => x.score == null ? -1 : x.score;
+  const cmp = (a, b) => ((b.use || 0) - (a.use || 0)) || (sc(b) - sc(a));
+  const rooms = new Map();
+  pool.forEach(r => { const key = r.room || "?"; if (!rooms.has(key)) rooms.set(key, []); rooms.get(key).push(r); });
+  const lists = [...rooms.values()].map(a => a.sort(cmp)).sort((a, b) => cmp(a[0], b[0]));
+  const out = [], used = new Set();
+  const take = r => { if (r && !used.has(r) && out.length < k) { used.add(r); out.push(r); } };
+  for (const shot of ["전체", "가까이"]) for (const L of lists) take(L.find(r => r.shot === shot && !used.has(r)));
+  let more = true;
+  while (out.length < k && more) { more = false; for (const L of lists) { const r = L.find(x => !used.has(x)); if (r) { take(r); more = true; } } }
+  return out;
+}
+// AI로 나누기·점수: 성공하면 [{side, use, shot, room, privacy} 또는 null...], 안 되면 null
 async function fldByAI(list) {
-  if (mode !== "live" || !code || list.length > FLD_AI_MAX) return null;
+  if (mode !== "live" || !code || !aiKey() || !list.length || list.length > FLD_AI_MAX) return null;
   const small = [];
-  for (const x of list) { try { small.push(await b64(await shrink(x.f, 512, 0.6))); } catch (_) { small.push(null); } }
+  for (let i = 0; i < list.length; i++) {
+    fldInfo("AI에게 보낼 사진 줄이는 중… " + (i + 1) + "/" + list.length);
+    try { small.push(await b64(await shrink(list[i].f, 512, 0.6))); } catch (_) { small.push(null); }
+  }
   const idx = small.map((d, i) => d ? i : -1).filter(i => i >= 0); if (!idx.length) return null;
   const packs = []; for (let i = 0; i < idx.length; i += 15) packs.push(idx.slice(i, i + 15));
   let type = "home"; try { type = fields().type === "shop" ? "shop" : "home"; } catch (_) {}
   const out = list.map(() => null); let ok = false;
+  fldInfo("AI가 전·공사 중·후를 나누고 쓸 만한 사진을 보는 중… (10~20초)");
   for (const pk of packs) {
     try {
       const res = await api("/api/photos", { type, photos: pk.map(i => ({ side: "모름", data: small[i] })) });
       if (!res.ok) { const e = await readErr(res); if (["daily_limit", "all_limit", "no_key", "bad_code", "locked", "no_codes", "key_bad", "billing", "no_store"].includes(e.error)) break; continue; }
       const d = await res.json();
-      (d.photos || []).forEach((x, k) => { const s2 = FLD_KIND[x && x.kind]; if (s2 && pk[k] != null) { out[pk[k]] = s2; ok = true; } });
+      (d.photos || []).forEach((x, k) => {
+        if (!x || pk[k] == null) return;
+        out[pk[k]] = { side: FLD_KIND[x.kind] || null, use: Number(x.use) || 0, shot: x.shot || "", room: x.room || "", privacy: Array.isArray(x.privacy) ? x.privacy : [] };
+        ok = true;
+      });
     } catch (_) {}
   }
   return ok ? out : null;
 }
 function fldRelease() { fldUrls.forEach(u => URL.revokeObjectURL(u)); fldUrls = []; }
+function fldRow(it, member) {
+  const row = document.createElement("label"); row.className = "frow" + (it.on ? "" : " offrow") + (member ? " fmem" : "");
+  const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = it.on;
+  cb.addEventListener("change", () => { it.on = cb.checked; row.classList.toggle("offrow", !it.on); fldCount(); });
+  let th;
+  if (/\.(heic|heif)$/i.test(it.f.name)) { th = document.createElement("div"); th.className = "noimg"; th.textContent = "HEIC"; }
+  else { th = document.createElement("img"); const u = URL.createObjectURL(it.f); fldUrls.push(u); th.src = u; th.alt = ""; th.loading = "lazy"; }
+  const meta = document.createElement("div"); meta.className = "fmeta";
+  const b = document.createElement("b"); b.textContent = it.path;
+  const sp = document.createElement("span"); sp.className = "small"; sp.textContent = new Date(it.f.lastModified).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" });
+  meta.append(b, sp);
+  if (it.privacy && it.privacy.length) { const w = document.createElement("span"); w.className = "fwarn"; w.textContent = "확인 필요: " + it.privacy.join("·") + " — 올리기 전에 가리거나 빼 주세요"; meta.appendChild(w); }
+  else if (it.why) { const w = document.createElement("span"); w.className = "fwhy small"; w.textContent = it.why; meta.appendChild(w); }
+  const sw = document.createElement("div"); sw.className = "fside"; sw.setAttribute("role", "group"); sw.setAttribute("aria-label", it.path + " 넣을 줄");
+  SIDES.forEach(S => {
+    const bt = document.createElement("button"); bt.type = "button"; bt.className = "chip"; bt.textContent = S.label; bt.dataset.side = S.key;
+    bt.setAttribute("aria-pressed", String(it.side === S.key));
+    bt.addEventListener("click", e => { e.preventDefault(); it.side = S.key; sw.querySelectorAll("button").forEach(z => z.setAttribute("aria-pressed", String(z.dataset.side === S.key))); fldCount(); });
+    sw.appendChild(bt);
+  });
+  meta.appendChild(sw);
+  row.append(cb, th, meta);
+  return row;
+}
 function fldRender() {
   const box = $("#fldList"); box.textContent = ""; fldRelease();
-  fldItems.forEach(it => {
-    const row = document.createElement("label"); row.className = "frow" + (it.on ? "" : " offrow");
-    const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = it.on;
-    cb.addEventListener("change", () => { it.on = cb.checked; row.classList.toggle("offrow", !it.on); fldCount(); });
-    let th;
-    if (/\.(heic|heif)$/i.test(it.f.name)) { th = document.createElement("div"); th.className = "noimg"; th.textContent = "HEIC"; }
-    else { th = document.createElement("img"); const u = URL.createObjectURL(it.f); fldUrls.push(u); th.src = u; th.alt = ""; th.loading = "lazy"; }
-    const meta = document.createElement("div"); meta.className = "fmeta";
-    const b = document.createElement("b"); b.textContent = it.path;
-    const sp = document.createElement("span"); sp.className = "small"; sp.textContent = new Date(it.f.lastModified).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" });
-    meta.append(b, sp);
-    const sw = document.createElement("div"); sw.className = "fside"; sw.setAttribute("role", "group"); sw.setAttribute("aria-label", it.path + " 넣을 줄");
-    SIDES.forEach(S => {
-      const bt = document.createElement("button"); bt.type = "button"; bt.className = "chip"; bt.textContent = S.label; bt.dataset.side = S.key;
-      bt.setAttribute("aria-pressed", String(it.side === S.key));
-      bt.addEventListener("click", e => { e.preventDefault(); it.side = S.key; sw.querySelectorAll("button").forEach(z => z.setAttribute("aria-pressed", String(z.dataset.side === S.key))); fldCount(); });
-      sw.appendChild(bt);
-    });
-    meta.appendChild(sw);
-    row.append(cb, th, meta); box.appendChild(row);
+  $("#fldSum").textContent = fldSum; $("#fldSum").hidden = !fldSum;
+  fldGroups.forEach(G => {
+    box.appendChild(fldRow(G.rep, false));
+    const rest = G.items.filter(x => x !== G.rep);
+    if (!rest.length) return;
+    const line = document.createElement("div"); line.className = "fgrp";
+    const t = document.createElement("span"); t.className = "small";
+    t.textContent = G.rep.on ? "비슷한 사진 " + G.items.length + "장 중 1장 골랐어요" : "비슷한 사진 " + G.items.length + "장 묶음";
+    const bt = document.createElement("button"); bt.type = "button"; bt.className = "ghost"; bt.setAttribute("aria-expanded", String(G.open));
+    bt.textContent = G.open ? "접기" : "펼쳐 보기";
+    const wrap = document.createElement("div"); wrap.className = "fmembers"; wrap.hidden = !G.open;
+    const fill = () => { if (!wrap.childNodes.length) rest.forEach(m => wrap.appendChild(fldRow(m, true))); };
+    if (G.open) fill();
+    bt.addEventListener("click", () => { G.open = !G.open; if (G.open) fill(); wrap.hidden = !G.open; bt.textContent = G.open ? "접기" : "펼쳐 보기"; bt.setAttribute("aria-expanded", String(G.open)); });
+    line.append(t, bt); box.append(line, wrap);
   });
   fldCount();
 }
@@ -354,6 +476,51 @@ function fldCount() {
   $("#fldPut").textContent = on.length ? "고른 사진 " + on.length + "장 넣기 (" + SIDES.map(S => S.label + " " + c[S.key]).join(" · ") + ")" : "넣을 사진을 골라 주세요";
   $("#fldHow").textContent = fldHow === "ai" ? "AI가 나눴어요 — 틀린 것만 눌러 바꿔 주세요" : "파일 날짜로 나눴어요 — 카톡·MYBOX에서 받은 사진은 날짜가 틀릴 수 있어요. 틀린 것만 바꿔 주세요";
   $("#fldHead").textContent = over.length ? "남은 자리: " + over.join(", ") + ". 넘치는 사진은 빠져요." : "";
+}
+// 살펴보기 → 묶기 → (AI) → 추리기. 체크(on)와 이유(why)를 정한다.
+async function fldCurate(list) {
+  const byTime = fldByTime(list);
+  const items = list.map((x, i) => ({ ...x, side: byTime[i], on: false, hash: null, score: null, why: "", privacy: [], blur: false }));
+  for (let i = 0; i < items.length; i++) {
+    if (i % 4 === 0) { fldInfo("사진 살펴보는 중… " + i + "/" + items.length + " (비슷한 사진·흐린 사진 찾기)"); await fldTick(); }
+    Object.assign(items[i], await fldLook(items[i].f));
+  }
+  const groups = fldGroup(items);
+  const reps = groups.map(G => G.rep);
+  const scores = reps.map(r => r.score).filter(v => v != null).sort((a, b) => a - b);
+  const med = scores.length ? scores[Math.floor(scores.length / 2)] : 0;
+  reps.forEach(r => { if (r.score != null && med > 0 && r.score < FLD_BLUR * med) { r.blur = true; r.why = "흐리거나 어두워 보여서 뺐어요"; } });
+  // AI: 흐리지 않은 대표 사진만, 많으면 시간이 고루 퍼지게 FLD_AI_MAX장까지
+  let aiUsed = false;
+  if (mode === "live" && code && aiKey()) {
+    const cand = reps.filter(r => !r.blur);
+    const send = cand.length > FLD_AI_MAX ? fldSpread(cand, FLD_AI_MAX) : cand;
+    const info = await fldByAI(send);
+    if (info) {
+      aiUsed = true;
+      send.forEach((r, k) => {
+        const x = info[k]; if (!x) return;
+        if (x.side) r.g.items.forEach(m => { m.side = x.side; });   // 같은 묶음은 같은 단계
+        r.use = x.use; r.shot = x.shot; r.room = x.room; r.privacy = x.privacy;
+      });
+    }
+  }
+  reps.forEach(r => { if (r.privacy && r.privacy.length) r.why = ""; });
+  SIDES.forEach(S => {
+    const room = Math.max(0, S.max - photos[S.key].length);
+    const pool = reps.filter(r => r.side === S.key && !r.blur && !(r.privacy && r.privacy.length));
+    const pick = pool.length <= room ? pool : (aiUsed ? fldPickAI(pool, room) : fldSpread(pool, room));
+    pick.forEach(r => { r.on = true; });
+    pool.forEach(r => { if (!r.on) r.why = room ? "자리(" + S.label + " " + room + "장)보다 많아 뺐어요" : S.label + " 줄에 자리가 없어요"; });
+  });
+  const on = items.filter(x => x.on).length;
+  const sim = items.length - groups.length, blur = reps.filter(r => r.blur).length, priv = reps.filter(r => r.privacy && r.privacy.length).length;
+  const why = []; if (sim) why.push("비슷한 사진"); if (blur) why.push("흐린 사진");
+  fldSum = items.length > on
+    ? items.length + "장 중 " + (why.length ? why.join("·") + "을 빼고 " : "") + on + "장을 골랐어요 — 바꾸려면 체크를 눌러 주세요" + (priv ? " (확인 필요 " + priv + "장은 넣지 않았어요)" : "")
+    : "";
+  fldGroups = groups; fldItems = items;
+  return aiUsed;
 }
 async function fldOpen(all) {
   all = all === true;
@@ -367,13 +534,7 @@ async function fldOpen(all) {
     try { list = await fldScan(all); } catch (_) { fldInfo("폴더를 읽지 못했어요. [폴더 바꾸기]로 다시 골라 주세요."); return; }
     if (!list.length) { fldInfo(all ? "폴더에 사진이 없어요." : "새 사진이 없어요. (아직 넣지 않은 사진만 보여요 — 넣었던 사진까지 보려면 [전체 다시 보기])"); return; }
     const more = list.length > FLD_MAX; if (more) list = list.slice(-FLD_MAX);
-    const byTime = fldByTime(list); let ai = null;
-    if (mode === "live" && code && list.length <= FLD_AI_MAX) {
-      fldInfo("AI가 전·공사 중·후를 나누는 중… (10~20초)");
-      ai = await fldByAI(list);
-    }
-    fldHow = ai ? "ai" : "time";
-    fldItems = list.map((x, i) => ({ ...x, on: true, side: (ai && ai[i]) || byTime[i] }));
+    fldHow = (await fldCurate(list)) ? "ai" : "time";
     fldInfo(more ? "사진이 많아서 가장 최근 " + FLD_MAX + "장만 보여요." : "");
     $("#fldTitle").textContent = all ? "폴더의 모든 사진" : "폴더의 새 사진";
     fldRender(); openSheet("#fldSheet");
@@ -396,7 +557,7 @@ async function fldPut() {
     fldSeen = fldSeen.filter(k => !add.has(k)).concat(done).slice(-FLD_SEEN_MAX);
     await idbSet("seen", fldSeen);
   }
-  fldItems = []; fldInfo(""); fldPaint();
+  fldItems = []; fldGroups = []; fldSum = ""; fldInfo(""); fldPaint();
 }
 async function setupFolder() {
   if (!FLD_OK) return;
@@ -408,6 +569,7 @@ async function setupFolder() {
   $("#fldPick").addEventListener("click", async () => { if (await fldChoose()) fldOpen(); });
   $("#fldPut").addEventListener("click", fldPut);
   $("#fldAllOn").addEventListener("click", () => { fldItems.forEach(x => { x.on = true; }); fldRender(); });
+  $("#fldAllRep").addEventListener("click", () => { fldGroups.forEach(G => { G.items.forEach(x => { x.on = false; }); G.rep.on = true; }); fldRender(); });
   $("#fldAllOff").addEventListener("click", () => { fldItems.forEach(x => { x.on = false; }); fldRender(); });
 }
 
@@ -430,15 +592,24 @@ function paintMode() {
   if (!st.contact && !st.area && !st.warranty) {
     const b = document.createElement("button"); b.type = "button"; b.className = "ghost"; b.textContent = "처음 설정";
     b.addEventListener("click", openSet); bar.appendChild(b);
+  } else if (mode === "live" && !aiKey()) {
+    const b = document.createElement("button"); b.type = "button"; b.className = "ghost"; b.textContent = "AI 열쇠 넣기";
+    b.addEventListener("click", openSet); bar.appendChild(b);
   }
   $("#modeSwitch").textContent = mode === "demo" ? "체험 끝내고 코드 넣기" : "체험 모드로 보기";
 }
 function gateErr(t) { const e = $("#gateErr"); e.textContent = t || ""; e.hidden = !t; }
 
+// 열쇠는 AI를 부르는 두 곳(/api/photos, /api/write)에만 보낸다
+function apiHeaders(path) {
+  const h = { "content-type": "application/json", "x-shop-code": encodeURIComponent(code) }; // 머리글에는 한글이 못 들어가서 바꿔 보냄
+  if (path === "/api/photos" || path === "/api/write") { const k = aiKey(); if (k) h["x-user-key"] = k; }
+  return h;
+}
 async function api(path, body) {
   const res = await fetch(path, {
     method: "POST",
-    headers: { "content-type": "application/json", "x-shop-code": encodeURIComponent(code) }, // 머리글에는 한글이 못 들어가서 바꿔 보냄
+    headers: apiHeaders(path),
     body: body ? JSON.stringify(body) : "{}"
   });
   return res;
@@ -459,7 +630,7 @@ async function enterCode(c) {
     if (!d.ok) { gateErr(d.message || "접속 코드를 확인해 주세요."); return; }
     ls.set(K.code, code); ls.set(K.mode, "live"); mode = "live"; left = d.left;
     show("app"); paintMode();
-    if (!d.ai) fail({ error: "no_key", message: "접속은 됐지만 AI 연결 열쇠가 아직 설정되지 않았어요. 회사에 알려 주세요. 그동안은 체험 모드로 둘러볼 수 있어요." });
+    if (!aiKey()) fail(NO_KEY_ERR);
   } catch (_) { gateErr("연결이 잘 안 됐어요. 인터넷을 확인하고 다시 해 주세요."); }
   finally { btn.disabled = false; btn.textContent = "시작하기"; }
 }
@@ -688,6 +859,7 @@ function fail(e) {
   const err = e && e.error;
   $("#failDemo").hidden = !(err === "no_key" || err === "no_codes") || mode === "demo";
   $("#failCode").hidden = !(err === "bad_code");
+  $("#failSet").hidden = !(err === "no_key" || err === "key_bad" || err === "billing") || mode === "demo";
   $("#retryBtn").hidden = ["no_key", "no_codes", "bad_code", "locked", "daily_limit", "all_limit", "no_store", "no_consent", "key_bad", "billing"].includes(err);
   $("#failBox").hidden = false;
   $("#failBox").scrollIntoView({ behavior: "smooth", block: "center" });
@@ -828,6 +1000,7 @@ async function runDemo() {
 }
 
 async function runLive() {
+  if (!aiKey()) { fail(NO_KEY_ERR); return; }   // 열쇠가 없으면 서버에 보내지 않는다
   const list = allPhotos(); const f = fields();
   const alerts = [];
   let descs = list.map((p, i) => ({ side: p.side, desc: p.side + " 사진 " + (i + 1), seen: "", privacy: [] }));
@@ -910,6 +1083,7 @@ $("#retryBtn").addEventListener("click", generate);
 $("#regenBtn").addEventListener("click", generate);
 $("#failDemo").addEventListener("click", enterDemo);
 $("#failCode").addEventListener("click", () => { ls.del(K.code); code = ""; show("gate"); });
+$("#failSet").addEventListener("click", () => { openSet(); const k = $("#keyIn"); if (k) k.focus(); });
 $("#newBtn").addEventListener("click", () => {
   SIDES.forEach(S => { photos[S.key].forEach(p => URL.revokeObjectURL(p.url)); photos[S.key] = []; });
   Object.keys(GROUPS).forEach(g => { sel[g] = new Set(DEFAULTS[g] ? [DEFAULTS[g]] : []); });
@@ -1218,6 +1392,7 @@ function openSet() {
   $("#contactIn").value = s.contact || ""; $("#sArea").value = s.area || ""; $("#sDirect").value = s.direct || "";
   $("#sWarranty").value = s.warranty || ""; $("#sLicense").value = s.license || ""; $("#sPrep").value = s.prep || "";
   $("#sTags").value = s.tags || ""; $("#setInfo").textContent = "";
+  paintKey(); $("#keyIn").value = ""; $("#keyIn").type = "password"; $("#keyShow").textContent = "보기"; $("#keyShow").setAttribute("aria-pressed", "false"); $("#keyInfo").textContent = "";
   openSheet("#setSheet");
 }
 $("#histBtn").addEventListener("click", () => { renderHist(); openSheet("#histSheet"); });
@@ -1232,6 +1407,34 @@ $("#setSave").addEventListener("click", () => {
   };
   $("#setInfo").textContent = ls.set(K.set, JSON.stringify(s)) ? "✓ 저장했어요. 다음 글부터 들어가요." : "저장하지 못했어요. 사파리 개인정보 보호 모드를 꺼 주세요.";
   paintMode();
+});
+/* ---------- AI 열쇠 (설정) ---------- */
+// 저장한 열쇠는 화면에 다시 보여 주지 않는다 (앞 10글자 + 끝 4글자만)
+function paintKey() {
+  const k = aiKey();
+  $("#keyNow").textContent = k ? "지금 넣어 둔 열쇠: " + k.slice(0, 10) + "…" + k.slice(-4) : "아직 넣은 열쇠가 없어요.";
+  $("#keyDel").hidden = !k;
+}
+$("#keyShow").addEventListener("click", () => {
+  const i = $("#keyIn"), on = i.type === "password";
+  i.type = on ? "text" : "password"; $("#keyShow").textContent = on ? "가리기" : "보기"; $("#keyShow").setAttribute("aria-pressed", on ? "true" : "false");
+});
+$("#keySave").addEventListener("click", () => {
+  const v = $("#keyIn").value.replace(/\s+/g, "");
+  const info = $("#keyInfo");
+  if (!v) { info.textContent = "열쇠를 붙여 넣어 주세요."; return; }
+  if (!v.startsWith("sk-ant-")) { info.textContent = "열쇠는 sk-ant- 로 시작해요. console.anthropic.com에서 복사한 것을 그대로 붙여 넣어 주세요."; return; }
+  if (!KEY_RE.test(v)) { info.textContent = "열쇠 모양이 이상해요. 빠진 글자 없이 다시 복사해 주세요."; return; }
+  if (!ls.set(K.key, v)) { info.textContent = "저장하지 못했어요. 사파리 개인정보 보호 모드를 꺼 주세요."; return; }
+  $("#keyIn").value = ""; $("#keyIn").type = "password"; $("#keyShow").textContent = "보기";
+  info.textContent = "✓ 저장했어요. 이제 글 만들기에 이 열쇠를 써요.";
+  paintKey(); paintMode();
+  if (mode === "live") $("#failBox").hidden = true;
+});
+$("#keyDel").addEventListener("click", () => {
+  ls.del(K.key); $("#keyIn").value = "";
+  $("#keyInfo").textContent = "✓ 이 노트북에서 열쇠를 지웠어요.";
+  paintKey(); paintMode();
 });
 $("#modeSwitch").addEventListener("click", () => {
   closeSheets();
@@ -1250,7 +1453,7 @@ paintChips(); renderPhotos(); refreshGen(); setupDrop(); setupFolder();
   if (c) { code = c; mode = "live"; show("app"); paintMode(); api("/api/check").then(async res => {
     const d = res.ok ? await res.json() : null;
     if (d && !d.ok) { if (d.error === "bad_code" || d.error === "no_codes") { ls.del(K.code); show("gate"); gateErr(d.message); } return; }
-    if (d) { left = d.left; paintMode(); if (!d.ai) fail({ error: "no_key", message: "AI 연결 열쇠가 아직 설정되지 않았어요. 회사에 알려 주세요. 그동안은 체험 모드로 둘러볼 수 있어요." }); }
+    if (d) { left = d.left; paintMode(); if (!aiKey()) fail(NO_KEY_ERR); }
   }).catch(() => {}); return; }
   show("gate");
 })();

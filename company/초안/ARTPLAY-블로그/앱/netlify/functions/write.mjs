@@ -2,21 +2,23 @@
 // 글을 흘려 보낸다 (한 줄에 JSON 하나): {"t":"글 조각"} … 마지막 {"done":true,"stop":"end_turn","left":19}
 // 실패하면 {"error":"...","message":"..."} 한 줄.
 import { checkCode, take, giveBack, NO_STORE } from "../lib/guard.mjs";
-import { json, clientIp, hasKey, NO_KEY, callStream, MODEL, WRITE_EFFORT } from "../lib/claude.mjs";
+import { json, clientIp, userKey, KEY_BAD, NO_KEY, scrub, callStream, MODEL, WRITE_EFFORT } from "../lib/claude.mjs";
 import { systemFor, buildInput } from "../lib/prompt.mjs";
 
 const TIME_CAP = 55e3; // Netlify 함수 60초 제한보다 조금 먼저 끊는다
 
 export default async (req, context) => {
   try { return await handle(req, context); }
-  catch (e) { if (e && e.code === "no_store") return json(503, NO_STORE); console.error(e); return json(500, { error: "server", message: "잠시 문제가 생겼어요. 다시 해 주세요." }); }
+  catch (e) { if (e && e.code === "no_store") return json(503, NO_STORE); console.error(scrub(e && e.stack || e)); return json(500, { error: "server", message: "잠시 문제가 생겼어요. 다시 해 주세요." }); }
 };
 
 async function handle(req, context) {
   if (req.method !== "POST") return json(405, { error: "method", message: "잘못된 요청이에요." });
   const c = await checkCode(req.headers.get("x-shop-code"), clientIp(req, context));   // 코드 먼저
   if (!c.ok) return json(c.status, { error: c.error, message: c.message });
-  if (!hasKey()) return json(503, NO_KEY);
+  const key = userKey(req);                                   // 사장님 열쇠 (서버 환경 변수 열쇠는 쓰지 않음)
+  if (key === "") return json(401, NO_KEY);
+  if (key === null) return json(401, KEY_BAD);
 
   const raw = await req.text();
   if (raw.length > 60e3) return json(413, { error: "too_big", message: "보낸 내용이 너무 길어요." });
@@ -41,7 +43,7 @@ async function handle(req, context) {
       const timer = setInterval(() => { if (Date.now() - started > TIME_CAP) { cut = true; ctrl.abort(); } }, 1000);
       try {
         send({ hello: true, left: t.left });
-        const r = await callStream({
+        const r = await callStream(key, {
           model: MODEL,
           max_tokens: 12000,
           output_config: { effort: WRITE_EFFORT },
