@@ -4,11 +4,13 @@
         → 결과: 휴대폰은 큰 버튼 하나 [사진 순서대로 보내기] = 글 복사(문단 그대로, 그림 없이) + 사진 공유 창
           (공유 창이 안 되면 사진 01, 02… 저장, 사진 없는 글은 글만 복사)
           컴퓨터(마우스)는 큰 버튼 [그림과 글 함께 복사] = 문단 HTML + "📷 사진 n" 자리에 그림
+   1.3.0: 노트에 회사가 미리 쓴 글(notes.json의 post)이 있으면 [글 만들기]가 AI를 부르지 않고 그 글을 바로 보여 준다
+          (체험 모드·접속 코드 둘 다. 돈 안 듦). 카드는 글 맨 아래 【카드로 한눈에 정리】 밑 "📷 사진 n" 자리.
    글 규칙: AI 지시문은 netlify/lib/prompt.mjs, 영양소 표·금지어·규칙 검사기는 rules.js (서버와 같이 씀) */
-import { checkPost, HANMADI_SLOT, DEFAULT_SOURCE, DEFAULT_TAGS } from "./rules.js";
+import { checkPost, bodyLength, LEN_HINT, HANMADI_SLOT, DEFAULT_SOURCE, DEFAULT_TAGS } from "./rules.js";
 import { DEMO } from "./demo.js";
 
-const APP_VERSION = "1.2.0 (2026-11-11, 보내기 버튼 하나: 사진 순서대로 보내기 + 문단 유지)";
+const APP_VERSION = "1.3.0 (2026-11-11, 회사가 쓴 깊은 글 바로 불러오기 + 카드는 글 맨 아래)";
 const $ = s => document.querySelector(s);
 const K = { code: "nutri-code", mode: "nutri-mode", hist: "nutri-history-v1", set: "nutri-settings-v1" };
 const MAX_PHOTOS = 10;
@@ -48,12 +50,16 @@ async function loadNotes() {
   add("", "노트를 골라 주세요");
   PLAN.forEach(([no, title]) => {
     const n = NOTES.find(x => x.no === no);
-    add(n ? "note:" + n.id : "plan:" + no, no + " " + title + (n ? " ✓ 카드·원고 있음" : ""));
+    add(n ? "note:" + n.id : "plan:" + no, no + " " + title + (n ? noteMark(n) : ""));
   });
-  NOTES.filter(n => !PLAN.some(p => p[0] === n.no)).forEach(n => add("note:" + n.id, n.no + " " + n.title + " ✓ 카드·원고 있음"));
+  NOTES.filter(n => !PLAN.some(p => p[0] === n.no)).forEach(n => add("note:" + n.id, n.no + " " + n.title + noteMark(n)));
   add("free", "직접 쓰기 (자유 주제)");
   const first = NOTES[0]; if (first) { s.value = "note:" + first.id; await pickNote(); }
 }
+// 회사가 미리 쓴 완성 글이 있는 노트인지
+function hasPost(n) { return !!(n && n.post && n.post.body && Array.isArray(n.post.titles) && n.post.titles.length); }
+function noteMark(n) { return hasPost(n) ? " ✓ 글·카드 있음" : " ✓ 카드·원고 있음"; }
+function selNote() { const v = $("#noteSel").value; return v.startsWith("note:") ? NOTES.find(x => "note:" + x.id === v) || null : null; }
 function topicText() {
   const v = $("#noteSel").value;
   if (v === "free") return $("#freeTopic").value.trim();
@@ -88,7 +94,9 @@ async function pickNote() {
       }
       photos.unshift(...cards); photos.splice(MAX_PHOTOS);
     } finally { shrinking--; }
-    info.textContent = "✓ " + n.no + " 카드 " + got + "장과 원고를 불러왔어요. 한마디만 넣고 [글 만들기]를 누르세요.";
+    info.textContent = hasPost(n)
+      ? "✓ " + n.no + " 회사가 미리 쓴 글과 카드 " + got + "장이 있어요. [글 불러오기]를 누르면 바로 나와요 (AI를 쓰지 않아 돈이 들지 않아요)."
+      : "✓ " + n.no + " 카드 " + got + "장과 원고를 불러왔어요. 한마디만 넣고 [글 만들기]를 누르세요.";
   } else if (v.startsWith("plan:")) {
     $("#manuscript").value = ""; $("#nextNote").value = nextOf(v.slice(5));
     info.textContent = "이 노트는 아직 회사 카드·원고가 없어요. 원고 없이 쓰면 사실 확인이 더 필요해요.";
@@ -186,7 +194,7 @@ async function enterCode(c) {
     if (!d.ok) { gateErr(d.message || "접속 코드를 확인해 주세요."); return; }
     ls.set(K.code, code); ls.set(K.mode, "live"); mode = "live"; left = d.left;
     show("app"); paintMode();
-    if (!d.ai) fail({ error: "no_key", message: "접속은 됐지만 AI 연결 열쇠가 아직 설정되지 않았어요. 회사에 알려 주세요. 그동안은 체험 모드로 둘러볼 수 있어요." });
+    if (!d.ai) fail({ error: "no_key", message: "접속됐어요. AI 연결 열쇠는 아직 없어서, 회사가 미리 쓴 노트(✓ 글·카드 있음)만 [글 불러오기]로 쓸 수 있어요." });
   } catch (_) { gateErr("연결이 잘 안 됐어요. 인터넷을 확인하고 다시 해 주세요."); }
   finally { btn.disabled = false; btn.textContent = "시작하기"; }
 }
@@ -248,8 +256,8 @@ function runChecks() {
   block("꼭 고칠 것 (" + res.red.length + ")", res.red, true);
   block("한 번 더 볼 것", res.check.concat(current.checks || []), false);
   if (!res.red.length) { const p = document.createElement("p"); p.className = "ok"; p.textContent = "✓ 금지어·단정 표현 검사 통과"; box.prepend(p); }
-  const n = stripMarks($("#rBody").value).length;
-  $("#rStat").textContent = "본문 " + n.toLocaleString("ko-KR") + "자 (1,500~2,200자가 좋아요)";
+  const n = bodyLength($("#rBody").value);
+  $("#rStat").textContent = "본문 " + n.toLocaleString("ko-KR") + "자 (" + LEN_HINT + ", 사진 줄 빼고 셈)";
 }
 let ckT = null;
 ["#rBody", "#rTags"].forEach(id => $(id).addEventListener("input", e => {
@@ -272,7 +280,18 @@ const MARK_RE = /^\s*📷\s*사진\s*(\d+)\s*$/;
 const IS_PC = (() => { try { return matchMedia("(pointer: fine) and (hover: hover)").matches; } catch (_) { return false; } })();
 const USER_EDGE = 1080, USER_Q = 0.75;   // 컴퓨터 복사 때 직접 넣은 사진을 HTML에 data 주소로 넣을 크기 (한 장 약 100~250KB)
 function stripMarks(t) { return String(t || "").split("\n").filter(l => !MARK_RE.test(l)).join("\n").replace(/\n{3,}/g, "\n\n").trim(); }
-function sendText() { return [stripMarks($("#rBody").value), $("#rTags").value.trim()].filter(Boolean).join("\n\n"); }
+function sendText() { return [stripMarks(dropCardHead($("#rBody").value)), $("#rTags").value.trim()].filter(Boolean).join("\n\n"); }
+// 휴대폰: 사진은 공유 창으로 글 위에 따로 들어가므로, 맨 아래 "【카드로 한눈에 정리】" 밑이 사진 줄뿐이면 그 소제목도 뺀다
+function dropCardHead(t) {
+  const L = String(t || "").replace(/\r/g, "").split("\n");
+  for (let i = L.length - 1; i >= 0; i--) {
+    const l = L[i].trim();
+    if (!l || MARK_RE.test(l)) continue;
+    if (/^【.+】$/.test(l) && L.slice(i + 1).some(x => MARK_RE.test(x.trim()))) { L.splice(i, 1); return L.join("\n"); }
+    break;
+  }
+  return L.join("\n");
+}
 function photoKey() { return photos.map(p => p.id).join(","); }
 let saveJob = null, userJob = null, copiedForShare = false;
 function hasLivePhotos() { return !!(current && current.photoKey && current.photoKey === photoKey() && photos.length); }
@@ -289,8 +308,8 @@ function imgSrc(n) {
   return (hasLivePhotos() && userJob && userJob.key === current.photoKey && userJob.urls[n - 1]) || "";
 }
 // 붙여 넣을 HTML. withImgs=true(컴퓨터)면 "📷 사진 n" 자리에 그림, false(휴대폰)면 글만 (<img> 없음)
-function buildHtml(withImgs) {
-  const lines = String($("#rBody").value || "").replace(/\r/g, "").split("\n");
+function buildHtml(withImgs, bodyText) {
+  const lines = String(bodyText != null ? bodyText : ($("#rBody").value || "")).replace(/\r/g, "").split("\n");
   const out = [], used = new Set();
   const n = (current && current.imgs) ? current.imgs.length : 0;
   const img = k => '<p><img src="' + esc(imgSrc(k)) + '" alt="' + esc((current.imgs[k - 1] && current.imgs[k - 1].alt) || "사진 " + k) + '" style="max-width:100%;height:auto"></p>';
@@ -503,7 +522,7 @@ $("#sendBtn").addEventListener("click", async () => {
   if (live && !(saveJob && saveJob.files)) return;
   const files = live ? saveJob.files : null;
   // 1) 글 복사 (그림 없이 — 사진은 공유 창으로 따로 감). 두 번째 누를 때는 건너뜀
-  const copyP = copiedForShare ? Promise.resolve("html") : copyHtml(buildHtml(false).html, text);
+  const copyP = copiedForShare ? Promise.resolve("html") : copyHtml(buildHtml(false, dropCardHead($("#rBody").value)).html, text);
   // 2) 사진 공유 창 (복사와 같은 순간에 부른다)
   let shareP = null;
   if (files && canShareFiles(files)) { try { shareP = navigator.share({ files }); } catch (e) { shareP = Promise.reject(e); } }
@@ -559,7 +578,7 @@ Object.keys(COPY).forEach(id => {
 function refreshGen() {
   const b = $("#genBtn");
   b.disabled = busy || shrinking > 0;
-  b.textContent = busy ? "만드는 중…" : shrinking > 0 ? "사진 준비 중…" : "글 만들기";
+  b.textContent = busy ? "만드는 중…" : shrinking > 0 ? "사진 준비 중…" : hasPost(selNote()) ? "글 불러오기" : "글 만들기";
   $("#regenBtn").disabled = b.disabled; $("#retryBtn").disabled = b.disabled;
 }
 function progress(text, pct) {
@@ -584,7 +603,7 @@ async function generate() {
   $("#failBox").hidden = true;
   if (!topicText()) { fail({ error: "no_topic", message: $("#noteSel").value === "free" ? "주제를 한 줄 적어 주세요." : "노트를 먼저 골라 주세요." }); return; }
   busy = true; refreshGen(); renderPhotos(); keepAwake(true);
-  try { if (mode === "demo") await runDemo(); else await runLive(); }
+  try { const n = selNote(); if (hasPost(n)) await runPost(n); else if (mode === "demo") await runDemo(); else await runLive(); }
   finally { busy = false; progress(null); refreshGen(); renderPhotos(); keepAwake(false); }
 }
 function finish(p, alerts, f) {
@@ -595,8 +614,20 @@ function finish(p, alerts, f) {
   renderResult(r); addHistory(r);
   $("#result").scrollIntoView({ behavior: "smooth", block: "start" });
 }
+// 회사가 미리 쓴 완성 글 (AI 호출 없음, 체험·접속 코드 둘 다). 한마디를 넣었으면 [회장님 한 줄] 자리에 넣는다.
+async function runPost(n, extra) {
+  const f = fields(), p = n.post;
+  let body = String(p.body).replace(/\r/g, "");
+  if (f.hanmadi) body = body.split(HANMADI_SLOT).join(f.hanmadi);
+  for (let i = 1; i <= 10; i++) { progress("회사가 쓴 글 불러오는 중…", i * 10); await sleep(30); }
+  const alerts = (extra || []).concat(["회사가 미리 쓴 " + n.no + " 글이에요. AI를 쓰지 않아 돈이 들지 않아요. 카드는 글 맨 아래 【카드로 한눈에 정리】에 들어가요."]);
+  finish({ titles: p.titles.slice(0, 3), body, tags: String(p.tags || "").replace(/\s+/g, " ").trim(), checks: [], ok: true }, alerts, f);
+}
 async function runDemo() {
   const f = fields();
+  // 체험: 고른 노트에 회사 글이 없으면 회사 글이 있는 첫 노트(No.01)를 보여 준다 (그것도 없으면 demo.js 예시)
+  const pn = NOTES.find(hasPost);
+  if (pn) { await runPost(pn, ["체험 모드 — 고른 노트는 아직 회사 글이 없어서 " + pn.no + " 글을 예시로 보여 줘요."]); return; }
   const full = DEMO.replace("{한마디}", f.hanmadi || HANMADI_SLOT)
     .replace("{다음}", f.next || "No.02 장벽, 몸 안과 밖을 가르는 성벽")
     .replace("{출처}", f.source).replace("{고정태그}", f.tags);
@@ -731,7 +762,7 @@ renderPhotos(); refreshGen(); loadNotes();
     api("/api/check").then(async res => {
       const d = res.ok ? await res.json() : null;
       if (d && !d.ok) { if (d.error === "bad_code" || d.error === "no_codes") { ls.del(K.code); show("gate"); gateErr(d.message); } return; }
-      if (d) { left = d.left; paintMode(); if (!d.ai) fail({ error: "no_key", message: "AI 연결 열쇠가 아직 설정되지 않았어요. 회사에 알려 주세요. 그동안은 체험 모드로 둘러볼 수 있어요." }); }
+      if (d) { left = d.left; paintMode(); if (!d.ai) fail({ error: "no_key", message: "AI 연결 열쇠는 아직 없어서, 회사가 미리 쓴 노트(✓ 글·카드 있음)만 [글 불러오기]로 쓸 수 있어요." }); }
     }).catch(() => {});
     return;
   }

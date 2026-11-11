@@ -9,7 +9,13 @@
 //   - 표 전체는 품질관리팀이 식약처 원문(건강기능식품 기능성 원료 고시)과 한 번 대조해야 해요.
 //   - 표에 없는 영양소는 글에 쓰면 "확인 필요"로 빨갛게 표시돼요.
 
-export const RULES_VERSION = "1.0 (2026-11-11)";
+export const RULES_VERSION = "1.1 (2026-11-11, 깊은 글 3,000~4,000자)";
+
+// 본문 길이 (띄어쓰기 포함, "📷 사진 n" 줄 뺌). 이 범위를 벗어나면 "한 번 더 볼 것"(노란 안내)
+export const LEN_MIN = 3000, LEN_GOOD_MAX = 4000, LEN_WARN_MAX = 4200;
+export const LEN_HINT = "3,000~4,000자가 좋아요";
+const PHOTO_LINE_RE = /^\s*📷\s*사진\s*\d+\s*$/;
+export function bodyLength(body) { return String(body || "").split("\n").filter(l => !PHOTO_LINE_RE.test(l)).join("\n").replace(/\n{3,}/g, "\n\n").trim().length; }
 
 export const DISCLAIMER = "진단·치료를 대신하지 않아요. 치료 중이면 담당 의사와 먼저.";
 export const FOOD_FIRST = "음식으로 골고루 먼저 챙겨요. 개인차가 있어요. 약을 드시는 중이면 의사·약사와 먼저 상담해요.";
@@ -164,7 +170,7 @@ export function checkPost(post, opt) {
         if (n) red.push("\"" + line.slice(0, 40) + "\" — 영양소 줄 모양이 달라 식약처 문장인지 확인 못 했어요. \"번호. 이름 — 식약처 문장\" 모양으로 써 주세요");
         return;
       }
-      const name = m[1], said = m[2];
+      const name = m[1], said = m[2].replace(/\s*(\/\s*)?많은 음식\s*[:：].*$/, "");   // 같은 줄에 "많은 음식: …"을 붙여 써도 됨
       if (/확인 필요/.test(said)) { red.push("\"" + name + "\" — 식약처 문장 표에 없어 확인 필요라고 나왔어요. 확인 전에는 빼 주세요"); return; }
       const n = findNutrient(name);
       if (!n || UNLISTED.some(u => name.replace(/\s/g, "").includes(u.replace(/\s/g, "")))) { red.push("\"" + name + "\" — 앱의 식약처 문장 표에 없는 이름이에요. 확인 필요"); return; }
@@ -193,8 +199,9 @@ export function checkPost(post, opt) {
 
   // 모양
   if (body.includes(HANMADI_SLOT)) check.push("\"" + HANMADI_SLOT + "\" 자리에 회장님 문장을 한 줄 넣어 주세요 (꾸며 쓰지 않으려고 비워 뒀어요)");
-  const n = body.replace(/\s+$/, "").length;
-  if (n && (n < 1500 || n > 2400)) check.push("본문이 " + n.toLocaleString("ko-KR") + "자예요 (1,500~2,200자가 좋아요)");
+  // 길이: 본문만 ("📷 사진 n" 줄은 빼고 셈). 1.3.0(11/11 회장님 승인 "강의북으로 깊게") 3,000~4,000자, 4,200자까지는 괜찮음
+  const n = bodyLength(body);
+  if (n && (n < LEN_MIN || n > LEN_WARN_MAX)) check.push("본문이 " + n.toLocaleString("ko-KR") + "자예요 (" + LEN_HINT + ")");
   const long = titles.filter(t => t.length > 30).length;
   if (long) check.push("30자가 넘는 제목이 " + long + "개 있어요 (검색에서 뒤가 잘려요)");
   if (/#비타민\s?B(군|\b|(?![0-9]))/i.test(tags) || /비타민\s?B군/.test(tags)) red.push("태그에 \"비타민B·비타민B군\" 묶음이 있어요. #비타민B1처럼 낱개로 써 주세요");
