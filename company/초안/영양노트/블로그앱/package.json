@@ -1,8 +1,8 @@
 {
-  "name": "artplay-blog-app",
+  "name": "nutri-note-blog-app",
   "private": true,
   "version": "1.0.0",
-  "description": "ARTPLAY 인테리어 블로그 글쓰기 앱 (독립판). 화면 public/, 서버 함수 netlify/functions/",
+  "description": "엄마의 영양 노트 네이버 블로그 글쓰기 앱. 화면 public/, 서버 함수 netlify/functions/",
   "type": "module",
   "scripts": {
     "dev": "node dev-server.mjs"

@@ -1,14 +1,14 @@
 // 내 컴퓨터에서 Netlify를 흉내 내어 시험하는 작은 서버 (배포에는 쓰이지 않음)
 //   node dev-server.mjs            → http://localhost:8888
 // 환경 변수는 실행할 때 앞에 붙여 넣는다. 키를 이 파일이나 저장소에 적지 않는다.
-//   SHOP_CODES=artplay:시험코드-1234 node dev-server.mjs
+//   ACCESS_CODES=mom:시험코드-1234 node dev-server.mjs
 // 하루 한도·잠금 기록은 메모리에만 남고 서버를 끄면 사라진다.
 import http from "node:http";
 import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 
-process.env.ARTPLAY_LOCAL_DEV = "1"; // 하루 한도·잠금 기록을 메모리에 (이 시험 서버에서만)
+process.env.NUTRI_LOCAL_DEV = "1"; // 하루 한도·잠금 기록을 메모리에 (이 시험 서버에서만)
 const here = fileURLToPath(new URL(".", import.meta.url));
 const pub = join(here, "public");
 const PORT = Number(process.env.PORT || 8888);
@@ -43,4 +43,4 @@ http.createServer(async (req, res) => {
     res.writeHead(200, { "content-type": TYPES[extname(file)] || "application/octet-stream" });
     res.end(data);
   } catch (_) { res.writeHead(404); res.end("not found"); }
-}).listen(PORT, () => console.log("ARTPLAY 앱 시험 서버: http://localhost:" + PORT));
+}).listen(PORT, () => console.log("영양 노트 블로그 앱 시험 서버: http://localhost:" + PORT));

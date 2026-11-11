@@ -3,38 +3,33 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>ARTPLAY 블로그 글쓰기</title>
-<meta name="description" content="시공 사진과 한 줄 메모로 네이버 블로그 글 초안을 만들어요.">
-<meta name="theme-color" content="#e9e7e3" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#1c1c1b" media="(prefers-color-scheme: dark)">
+<title>영양 노트 블로그 글쓰기</title>
+<meta name="description" content="영양 노트 카드와 한마디로 네이버 블로그 글을 만들어요.">
+<meta name="theme-color" content="#EEF2EA">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="ART.PLAY 글쓰기">
+<meta name="apple-mobile-web-app-title" content="영양노트 글쓰기">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="format-detection" content="telephone=no">
 <meta name="robots" content="noindex">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" href="icons/icon-192.png" type="image/png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat+Brush&family=IBM+Plex+Sans+KR:wght@400;600;700&family=Nanum+Pen+Script&display=swap">
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
 <header class="top"><div class="top-in">
-  <div><div class="logo">ART. PLAY</div><div class="logo-sub">블로그 글 만들기</div></div>
+  <div><div class="logo">엄마의 <mark>영양 노트</mark></div><div class="logo-sub">블로그 글 만들기</div></div>
   <div class="top-btns" id="topBtns" hidden>
     <button class="ghost" id="histBtn" type="button">지난 글</button>
-    <button class="ghost" id="setBtn" type="button" aria-label="설정">설정</button>
+    <button class="ghost" id="setBtn" type="button">설정</button>
   </div>
 </div></header>
 
 <!-- 시작 화면: 접속 코드 -->
 <main class="wrap" id="gate" hidden>
-  <section class="box gate">
-    <p class="hero" aria-hidden="true">Hello.</p>
-    <p class="lead">시공 사진 넣고 버튼 몇 개만 누르면, 네이버 블로그 글 초안이 나와요.</p>
+  <section class="box">
+    <p class="lead">노트를 고르고 한마디만 말하면, 네이버 블로그 글이 나와요.</p>
     <div class="field">
       <label class="lbl" for="codeIn">접속 코드</label>
       <input type="password" id="codeIn" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" placeholder="회사에서 받은 코드">
@@ -56,68 +51,39 @@
 <main class="wrap" id="app" hidden>
   <div class="modebar" id="modeBar" aria-live="polite"></div>
 
-  <section class="box" id="secPhoto">
-    <h2 class="hand">① 사진 넣기</h2>
-    <p class="note">⚠ 고객 집 주소·얼굴·차량 번호가 보이는 사진은 빼 주세요.</p>
-    <div class="prow"><div class="tag">전</div><div class="strip" id="strip-before"></div></div>
-    <div class="prow"><div class="tag tag2">공사<br>중</div><div class="strip" id="strip-during"></div></div>
-    <div class="prow"><div class="tag">후</div><div class="strip" id="strip-after"></div></div>
-    <p class="small" id="photoMsg" role="status" hidden></p>
-    <p class="small">전·후 각 6장, 공사 중 3장까지. 공사 중 사진이 있으면 믿음을 주는 글이 돼요. 사진은 휴대폰에서 줄여 글 만들 때만 보내고, 어디에도 저장하지 않아요.</p>
+  <section class="box">
+    <h2>① 노트 고르기</h2>
+    <select id="noteSel" aria-label="노트 고르기"></select>
+    <p class="loaded" id="noteInfo" role="status"></p>
+    <input type="text" id="freeTopic" maxlength="100" placeholder="주제 한 줄 (예: 아침 공복에 물 한 잔)" hidden aria-label="자유 주제">
   </section>
 
   <section class="box">
-    <h2 class="hand">② 꼭 고르기</h2>
-    <div class="group" id="gType"><p class="lbl">어떤 인테리어인가요?</p><div class="chips chips-big" data-g="type"></div>
-      <p class="warnmsg" id="typeWarn" hidden>집인지 상점인지 먼저 골라 주세요.</p></div>
-    <p class="small" id="typeHint">집을 고르면 공간(주방·거실…), 상점을 고르면 업종(카페·음식점…) 버튼이 나와요.</p>
-    <div id="typeDeps" class="group" hidden>
-    <div class="group" id="gSpace"><p class="lbl"><span id="spaceLbl">공간</span> <span class="small">(여러 개 가능)</span></p><div class="chips" data-g="space"></div>
-      <input type="text" id="spaceEtc" placeholder="예: 다용도실, 드레스룸" maxlength="30" hidden aria-label="기타">
-      <p class="warnmsg" id="spaceWarn" hidden>공간을 하나 골라 주세요.</p></div>
-    <div class="group" id="gSize"><p class="lbl">평수</p><div class="chips" data-g="size"></div>
-      <p class="warnmsg" id="sizeWarn" hidden>평수를 골라 주세요. 모르면 "모름"을 눌러 주세요.</p></div>
-    </div>
-    <div class="group" id="gConsent"><p class="lbl">고객 게시 동의</p><div class="chips" data-g="consent"></div>
-      <p class="warnmsg" id="consentWarn" hidden>고객이 게시에 어디까지 동의했는지 골라 주세요.</p>
-      <input type="text" id="region" maxlength="30" placeholder="지역 (예: 수원 영통) — 동·호수, 단지명은 빼고" hidden aria-label="지역">
-      <p class="small" id="consentHelp"></p></div>
+    <h2>② 회장님 한마디</h2>
+    <textarea id="hanmadi" maxlength="400" rows="3" placeholder="예: 가족 밥상을 차리다 보니 먹은 게 어디로 가는지 궁금해졌어요"></textarea>
+    <p class="small">키보드의 <b>마이크</b>를 누르고 말로 해도 돼요. 경험·느낌 한두 줄. 비워 두면 글에 "[회장님 한 줄]" 자리가 남아요.</p>
   </section>
-
-  <section class="box">
-    <h2 class="hand">③ 넣으면 좋은 것 <span class="opt">(안 해도 돼요)</span></h2>
-    <div class="group"><p class="lbl">공사 기간</p><div class="chips" data-g="period"></div></div>
-    <div class="field"><label class="lbl" for="memo">한 줄 메모</label>
-      <textarea id="memo" maxlength="400" rows="3" placeholder="예: 상부장 답답하다고 하심. 화이트오크 하부장, 세라믹 상판. 방수 두 번 함"></textarea>
-      <p class="small">고민 + 쓴 자재 + 신경 쓴 것. 키보드의 마이크를 누르고 말로 해도 돼요. 고객 이름·전화번호·동호수는 빼 주세요.</p></div>
-  </section>
-
-  <details class="more" id="more">
-    <summary><span class="hand">④ 더 자세히</span><span class="small">(선택 · 협찬·할인은 꼭 여기서)</span></summary>
-    <div class="in">
-      <div class="group"><p class="lbl">협찬·할인</p><div class="chips" data-g="perk"></div>
-        <p class="small">있으면 법에 따라 제목 맨 앞과 본문 첫 줄에 표시돼요.</p></div>
-      <div class="group"><p class="lbl">글 종류</p><div class="chips" data-g="kind"></div></div>
-      <div class="group"><p class="lbl">공사 <span class="small">(여러 개 가능)</span></p><div class="chips" data-g="work"></div></div>
-      <div class="group"><p class="lbl" id="liveLbl">살면서 공사했나요?</p><div class="chips" data-g="live"></div></div>
-      <div class="group" id="shopOnly" hidden>
-        <div class="field"><label class="lbl" for="seats">좌석 수</label>
-          <input type="text" id="seats" maxlength="20" inputmode="numeric" placeholder="예: 24석"></div>
-        <div class="group"><p class="lbl">가게 이름 공개 <span class="small">(사장님이 동의할 때만 글에 넣어요)</span></p><div class="chips" data-g="nameok"></div>
-          <input type="text" id="shopName" maxlength="40" placeholder="가게 이름" hidden aria-label="가게 이름"></div>
-      </div>
-      <div class="field"><label class="lbl" for="cost">비용 범위 <span class="small">(고객이 공개에 동의한 경우만)</span></label>
-        <input type="text" id="cost" maxlength="40" placeholder="예: 1,000만 원대"></div>
-      <div class="field"><label class="lbl" for="quote" id="quoteLbl">고객이 실제로 한 말 한 줄</label>
-        <input type="text" id="quote" maxlength="160" placeholder="예: 주방에 서면 늘 답답했어요"></div>
-    </div>
-  </details>
 
   <div class="field">
-    <p class="small" id="beforeWarn" hidden>전후 비교 글은 전 사진을 1장 이상 넣어 주세요.</p>
     <button class="big" id="genBtn" type="button">글 만들기</button>
     <div class="progress" id="prog" hidden aria-live="polite"><p id="progText">준비 중…</p><div class="bar"><i id="progBar"></i></div><p class="small">30초~1분 걸려요. 화면을 켠 채로 기다려 주세요.</p></div>
   </div>
+
+  <details class="more" id="more">
+    <summary>더 넣기 <span class="small">(사진·원고·다음 노트, 안 해도 돼요)</span></summary>
+    <div class="in">
+      <div class="field">
+        <p class="lbl">사진·카드 <span class="small">(최대 10장, 넣은 순서대로 글 위에 올라가요)</span></p>
+        <div class="strip" id="strip"></div>
+        <p class="small" id="photoMsg" role="status" hidden></p>
+        <p class="small">얼굴·아이·제품 상표가 보이는 사진은 빼 주세요. 사진은 줄여서 글 만들 때만 보내고 어디에도 저장하지 않아요.</p>
+      </div>
+      <div class="field"><label class="lbl" for="manuscript">원고 붙여 넣기</label>
+        <textarea id="manuscript" maxlength="8000" rows="5" placeholder="회사가 만든 카드 원고·노트 글을 붙이면 그걸 바탕으로 써요"></textarea></div>
+      <div class="field"><label class="lbl" for="nextNote">다음 노트 예고</label>
+        <input type="text" id="nextNote" maxlength="100" placeholder="예: No.02 장벽, 몸 안과 밖을 가르는 성벽"></div>
+    </div>
+  </details>
 
   <div class="fail" id="failBox" role="alert" hidden>
     <p id="failMsg">글을 못 만들었어요.</p>
@@ -127,30 +93,38 @@
   </div>
 
   <section class="box" id="result" hidden>
-    <h2 class="hand">⑤ 결과</h2>
+    <h2>③ 다 됐어요</h2>
     <div id="rAlerts" class="field"></div>
-    <div class="field"><p class="lbl">제목 고르기 <span class="small">(눌러서 고르세요)</span></p><div class="titles" id="rTitles" role="radiogroup" aria-label="제목 후보"></div></div>
-    <div class="field" id="pasteBox"><p class="lbl">붙여 넣는 방식</p>
-      <div class="pchips" id="pasteMode" role="radiogroup" aria-label="붙여 넣는 방식">
-        <button class="chip" type="button" data-v="marks">(나) 사진 자리 표시 넣기</button>
-        <button class="chip" type="button" data-v="bundle">(가) 사진 한 묶음 + 글</button>
-      </div>
-      <p class="small" id="pasteHelp"></p></div>
-    <div class="field" id="rOrderBox"><p class="lbl">📷 사진 넣는 순서</p><ul class="olist" id="rOrder"></ul>
-      <button class="mid" id="saveBtn" type="button">사진 순서대로 저장</button>
-      <p class="small" id="saveNote"></p></div>
-    <div class="field"><label class="lbl" for="rSummary">맨 위 요약 칸</label><textarea class="paper" id="rSummary" rows="4"></textarea></div>
+
+    <div class="send" id="sendBox">
+      <button class="big send-btn" id="sendBtn" type="button">네이버 블로그로 보내기</button>
+      <ol class="steps" id="sendSteps">
+        <li>위 버튼 → 뜨는 창에서 <b>블로그</b>(네이버 블로그)를 눌러요. 사진이 들어간 글쓰기 화면이 열려요.</li>
+        <li>글 쓰는 칸을 <b>길게 눌러 [붙여넣기]</b>. 글과 태그가 한 번에 들어가요.</li>
+        <li>이 앱으로 돌아와 <b>[제목 복사]</b> → 블로그 제목 칸에 붙여 넣고 <b>[발행]</b>.</li>
+      </ol>
+      <p class="small" id="sendNote"></p>
+    </div>
+
+    <div class="field"><p class="lbl">제목 고르기 <span class="small">(눌러서 고르세요)</span></p><div class="titles" id="rTitles" role="radiogroup" aria-label="제목 후보"></div>
+      <button class="mid" id="cpTitle" type="button">제목 복사</button></div>
+
+    <div class="field"><p class="lbl">올리기 전에 확인할 점</p><div id="rChecks"></div></div>
+
     <div class="field"><label class="lbl" for="rBody">본문 <span class="small">(바로 고칠 수 있어요)</span></label><textarea class="paper" id="rBody"></textarea><p class="stat" id="rStat"></p></div>
-    <div class="field"><label class="lbl" for="rTags">해시태그</label><textarea class="paper" id="rTags" rows="3"></textarea></div>
-    <div class="field"><p class="lbl">올리기 전에 확인할 점</p><ul class="checks" id="rChecks"></ul></div>
-    <button class="big" id="cpAll" type="button">전체 복사</button>
-    <div class="copy3">
-      <button class="mid" id="cpTitle" type="button">제목만</button>
-      <button class="mid" id="cpBody" type="button">본문만</button>
-      <button class="mid" id="cpTags" type="button">해시태그</button>
+    <div class="field"><label class="lbl" for="rTags">태그</label><textarea class="paper" id="rTags" rows="3"></textarea></div>
+
+    <div class="field" id="fallBox">
+      <p class="lbl">다른 방법 <span class="small">(바로 보내기가 안 될 때)</span></p>
+      <button class="mid" id="saveBtn" type="button">사진 순서대로 저장</button>
+      <p class="small" id="saveNote"></p>
+      <button class="mid" id="cpAll" type="button">전체 복사 (제목·본문·태그)</button>
+      <div class="copy2">
+        <button class="mid" id="cpBody" type="button">본문 복사</button>
+        <button class="mid" id="cpTags" type="button">태그 복사</button>
+      </div>
     </div>
     <div class="field" id="fbBox" hidden><p class="small">복사가 안 됐어요. 아래 글을 길게 눌러 복사해 주세요.</p><textarea class="paper" id="fbText" rows="6" readonly></textarea></div>
-    <div class="field"><p class="lbl">네이버 블로그 앱에서</p><ol class="howto" id="howTo"></ol></div>
     <button class="mid" id="regenBtn" type="button">다시 만들기</button>
     <button class="mid" id="newBtn" type="button">새 글 쓰기 (입력 지우기)</button>
   </section>
@@ -159,24 +133,17 @@
 <div class="shade" id="shade" hidden></div>
 <div class="sheet" id="histSheet" hidden role="dialog" aria-modal="true" aria-label="지난 글">
   <div class="sheet-in">
-    <div class="sheet-head"><h2 class="hand">지난 글</h2><button class="ghost" data-close type="button">닫기</button></div>
+    <div class="sheet-head"><h2>지난 글</h2><button class="ghost" data-close type="button">닫기</button></div>
     <div id="hList" class="field"></div>
     <p class="small">이 휴대폰에만 저장돼요. 최근 10개까지. 사진은 저장하지 않아요.</p>
   </div>
 </div>
 <div class="sheet" id="setSheet" hidden role="dialog" aria-modal="true" aria-label="설정">
   <div class="sheet-in">
-    <div class="sheet-head"><h2 class="hand">설정</h2><button class="ghost" data-close type="button">닫기</button></div>
-    <p class="small">처음 한 번만 넣어 두면 글마다 자동으로 들어가요. 이 휴대폰에만 저장돼요.</p>
-    <div class="field"><label class="lbl" for="contactIn">상담 연락처 <span class="small">(글 끝 {연락처} 자리)</span></label>
-      <input type="text" id="contactIn" maxlength="60" placeholder="예: 010-0000-0000 / 네이버 톡톡"></div>
-    <p class="lbl">ARTPLAY 안내 <span class="small">(사실인 것만. 비워 두면 그 줄은 빠져요)</span></p>
-    <div class="field"><label class="small" for="sArea">상담 지역</label><input type="text" id="sArea" maxlength="60" placeholder="예: 수원·용인·화성"></div>
-    <div class="field"><label class="small" for="sDirect">시공 방식</label><input type="text" id="sDirect" maxlength="60" placeholder="예: 상담부터 마감까지 ARTPLAY가 직접 시공해요"></div>
-    <div class="field"><label class="small" for="sWarranty">하자보수 기간</label><input type="text" id="sWarranty" maxlength="60" placeholder="예: 마감 공사 1년 (실제 약속한 기간 그대로)"></div>
-    <div class="field"><label class="small" for="sLicense">업체 등록</label><input type="text" id="sLicense" maxlength="60" placeholder="예: 실내건축공사업 등록 업체 (등록된 경우만)"></div>
-    <div class="field"><label class="small" for="sPrep">상담 때 준비할 것</label><input type="text" id="sPrep" maxlength="80" placeholder="예: 평수, 지금 집 사진 한 장, 원하는 시기"></div>
-    <div class="field"><label class="small" for="sTags">고정 해시태그</label><input type="text" id="sTags" maxlength="120" placeholder="#아트플레이 #ARTPLAY인테리어"></div>
+    <div class="sheet-head"><h2>설정</h2><button class="ghost" data-close type="button">닫기</button></div>
+    <p class="small">처음 한 번만 넣어 두면 글마다 들어가요. 이 휴대폰에만 저장돼요.</p>
+    <div class="field"><label class="lbl" for="sTags">고정 태그</label><input type="text" id="sTags" maxlength="120" placeholder="#엄마의영양노트 #영양노트"></div>
+    <div class="field"><label class="lbl" for="sSource">기본 출처</label><input type="text" id="sSource" maxlength="100" placeholder="건강 강의를 공부하며 정리한 노트"></div>
     <button class="big" id="setSave" type="button">저장</button>
     <p class="small" id="setInfo" role="status"></p>
     <button class="mid" id="modeSwitch" type="button">체험 모드 끝내기</button>
@@ -185,7 +152,6 @@
   </div>
 </div>
 
-<script src="demo.js"></script>
-<script src="app.js"></script>
+<script type="module" src="app.js"></script>
 </body>
 </html>

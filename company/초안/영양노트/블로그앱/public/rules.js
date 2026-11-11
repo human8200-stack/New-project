@@ -75,10 +75,12 @@ const RED = [
   { re: /최고|최상|1위|No\.1|넘버원|100%|무조건|완벽|놀라운|반드시 드/g, why: "과장 표현이에요" },
   { re: /알아보겠습니다|알아볼게요|살펴보겠습니다|살펴볼게요|결론적으로|요약하자면|다양한|에\s?대해|에\s?대한|다음과 같습니다|중요합니다|라고 할 수 있습니다|효과적인|최적의|소개해 드리려고|소개해드리려고/g, why: "AI가 쓴 티가 나는 말이에요" }
 ];
+// 병 이름 (본문은 확인, 제목·태그는 빨간 글)
+const DISEASE_RE = /당뇨|고혈압|위암|대장암|유방암|아토피|비염|장누수|과민성|크론|우울증|치매|골다공증|관절염|역류성|위염|장염|변비|비만|지방간|갑상선\s?질환|고지혈|빈혈/g;
 // 검은 글: 한 번 더 확인할 것
 const CHECK = [
   { re: /좋아져|좋아집|좋아지|개선|강화|높여|높이는|해독|디톡스|정화|나아지/g, why: "몸이 좋아진다는 말처럼 읽힐 수 있어요. 단정이 아닌지 확인해 주세요" },
-  { re: /당뇨|고혈압|위암|대장암|유방암|아토피|비염|장누수|과민성|크론|우울증|치매|골다공증|관절염|역류성|위염|장염|변비|비만|지방간|갑상선\s?질환|고지혈|빈혈/g, why: "병 이름이 있어요. 병이 낫는다·막는다는 뜻으로 읽히지 않는지 확인해 주세요 (태그에는 병 이름을 넣지 않아요)" }
+  { re: DISEASE_RE, why: "병 이름이 있어요. 병이 낫는다·막는다는 뜻으로 읽히지 않는지 확인해 주세요" }
 ];
 
 const SAFE_SENTENCES = [DISCLAIMER, FOOD_FIRST, BETA, SMOKER, WARFARIN, OMEGA_NOTE, SAVE_LINE];
@@ -136,6 +138,8 @@ export function checkPost(post, opt) {
   scan = scan.replace(/진단·치료를 대신하지 않아요\.?/g, " ").replace(/치료 중이면 담당 의사와 먼저[^\n]*/g, " ");
   NUTRIENTS.forEach(n => n.say.forEach(s => { scan = scan.split(s).join(" "); }));
   red.push(...hits(scan, RED));
+  const tt = (titles.join(" ") + " " + tags).match(DISEASE_RE);
+  if (tt) red.push("\"" + [...new Set(tt)].join("\", \"") + "\" — 제목·태그에는 병 이름을 넣지 않아요");
   check.push(...hits(scan, CHECK));
 
   // 꼭 들어갈 것

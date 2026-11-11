@@ -1,10 +1,10 @@
-# ARTPLAY 블로그 글쓰기 앱 (독립판) — Netlify 설정
+# 엄마의 영양 노트 블로그 글쓰기 앱 — Netlify 설정
 # Netlify에서 새 사이트를 만들 때 "Base directory"를 이 폴더로 지정한다:
-#   company/초안/ARTPLAY-블로그/앱
-# 화면은 public/, 서버 함수는 netlify/functions/ (글 지시문은 netlify/lib/prompt.mjs)
+#   company/초안/영양노트/블로그앱
+# 화면은 public/, 서버 함수는 netlify/functions/ (글 지시문은 netlify/lib/prompt.mjs, 영양소 표·금지어는 public/rules.js)
 [build]
   publish = "public"
-  command = "echo ARTPLAY 블로그 앱"
+  command = "echo 영양 노트 블로그 앱"
 
 [functions]
   directory = "netlify/functions"
