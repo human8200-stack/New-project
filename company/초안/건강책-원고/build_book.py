@@ -268,8 +268,7 @@ def render_article(path, toc_item, seq_label):
     while lines and lines[0].strip() == "":
         lines = lines[1:]
     if lines and lines[0].strip().startswith("(") and lines[0].strip().endswith(")"):
-        blocks.append('<p class="meta">%s</p>' % inline(lines[0].strip()[1:-1]))
-        lines = lines[1:]
+        lines = lines[1:]  # 편집용 괄호 줄은 책에 넣지 않음
 
     # '## ' 로 나뉜 구역
     sections = []  # (h2 text or None, lines)
@@ -317,7 +316,7 @@ def cover_html(info):
     ch_no = "2장"
     return """
 <div class="cover">
-  <div class="pill">1차 원고 · 미리 보기</div>
+  <div class="pill">원고 미리 보기</div>
   <div class="c-title">『%s』</div>
   <div class="c-sub">%s</div>
   <div class="c-rule"></div>
