@@ -104,6 +104,8 @@ details.more .in{padding:0 16px 16px;display:flex;flex-direction:column;gap:14px
 .mid{width:100%;min-height:48px;border:1px solid var(--text);border-radius:var(--r);background:var(--card);font-size:16px}
 .mid:disabled{opacity:.5}
 .copy3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pieces{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.piece.done{background:var(--note)}
 .copy3 .mid{padding:0 4px}
 .fail{display:flex;flex-direction:column;gap:10px;border:2px solid var(--text);border-radius:var(--r);padding:14px;background:var(--card)}
 .fail p{font-weight:700}

@@ -143,6 +143,12 @@
     <div class="field"><label class="lbl" for="rBody">본문 <span class="small">(바로 고칠 수 있어요)</span></label><textarea class="paper" id="rBody"></textarea><p class="stat" id="rStat"></p></div>
     <div class="field"><label class="lbl" for="rTags">해시태그</label><textarea class="paper" id="rTags" rows="3"></textarea></div>
     <div class="field"><p class="lbl">올리기 전에 확인할 점</p><ul class="checks" id="rChecks"></ul></div>
+    <div class="field" id="pcBox" hidden>
+      <button class="big" id="pcAll" type="button">그림과 글 함께 복사</button>
+      <p class="small" id="pcNote"></p>
+      <p class="small">제목은 [제목만]으로 따로 복사해 제목 칸에 넣고, 본문 칸을 누른 뒤 붙여넣기(Ctrl+V) 하세요.</p>
+      <div class="field" id="pcPieces" hidden><p class="lbl">한 칸씩 복사 <span class="small">(함께 복사가 잘 안 될 때, 위에서부터 차례로)</span></p><div class="pieces" id="pcList"></div></div>
+    </div>
     <button class="big" id="cpAll" type="button">전체 복사</button>
     <div class="copy3">
       <button class="mid" id="cpTitle" type="button">제목만</button>
@@ -150,7 +156,7 @@
       <button class="mid" id="cpTags" type="button">해시태그</button>
     </div>
     <div class="field" id="fbBox" hidden><p class="small">복사가 안 됐어요. 아래 글을 길게 눌러 복사해 주세요.</p><textarea class="paper" id="fbText" rows="6" readonly></textarea></div>
-    <div class="field"><p class="lbl">네이버 블로그 앱에서</p><ol class="howto" id="howTo"></ol></div>
+    <div class="field"><p class="lbl" id="howLbl">네이버 블로그 앱에서</p><ol class="howto" id="howTo"></ol></div>
     <button class="mid" id="regenBtn" type="button">다시 만들기</button>
     <button class="mid" id="newBtn" type="button">새 글 쓰기 (입력 지우기)</button>
   </section>
