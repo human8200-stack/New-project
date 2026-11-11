@@ -59,6 +59,12 @@
   <section class="box" id="secPhoto">
     <h2 class="hand">① 사진 넣기</h2>
     <p class="note">⚠ 고객 집 주소·얼굴·차량 번호가 보이는 사진은 빼 주세요.</p>
+    <p class="small dropHint" id="pcDropHint" hidden>노트북 폴더의 사진을 여기로 끌어다 놓아도 돼요 · [+]로 여러 장 한 번에 고르기(Ctrl 누르고 클릭)</p>
+    <div class="fldBox" id="fldBox" hidden>
+      <button class="mid" id="fldGet" type="button">사진 폴더 연결하기</button>
+      <button class="ghost" id="fldPick" type="button" hidden>폴더 바꾸기</button>
+      <p class="small" id="fldInfo" role="status"></p>
+    </div>
     <div class="prow"><div class="tag">전</div><div class="strip" id="strip-before"></div></div>
     <div class="prow"><div class="tag tag2">공사<br>중</div><div class="strip" id="strip-during"></div></div>
     <div class="prow"><div class="tag">후</div><div class="strip" id="strip-after"></div></div>
@@ -190,6 +196,18 @@
     <button class="mid" id="modeSwitch" type="button">체험 모드 끝내기</button>
     <button class="mid" id="codeReset" type="button">접속 코드 바꾸기</button>
     <p class="small" id="verInfo"></p>
+  </div>
+</div>
+
+<div class="sheet" id="fldSheet" hidden role="dialog" aria-modal="true" aria-label="폴더의 새 사진">
+  <div class="sheet-in">
+    <div class="sheet-head"><h2 class="hand">폴더의 새 사진</h2><button class="ghost" data-close type="button">닫기</button></div>
+    <p class="lbl" id="fldHow"></p>
+    <p class="small" id="fldHead"></p>
+    <div class="fldAll"><button class="ghost" id="fldAllOn" type="button">모두 고르기</button><button class="ghost" id="fldAllOff" type="button">모두 빼기</button></div>
+    <div id="fldList" class="fldList"></div>
+    <button class="big" id="fldPut" type="button">고른 사진 넣기</button>
+    <p class="small">폴더의 사진은 그대로 둬요. 넣는 사진은 이 노트북에서 줄여서 써요. (접속 코드로 쓸 때는 나누기를 위해 작게 줄인 사진을 AI에게 잠깐 보여 주고, 저장하지 않아요)</p>
   </div>
 </div>
 

@@ -1,5 +1,5 @@
-// 사진 읽기: POST /api/photos  { type: "home"|"shop", photos: [{ side: "전"|"공사 중"|"후", data: base64 JPEG }] }
-// 사진마다 짧은 설명과 가려야 할 것을 돌려준다. 사진은 저장하지 않는다 (메모리에서만 쓰고 버림).
+// 사진 읽기: POST /api/photos  { type: "home"|"shop", photos: [{ side: "전"|"공사 중"|"후"|"모름", data: base64 JPEG }] }
+// 사진마다 짧은 설명과 가려야 할 것, 사진으로 본 단계(kind: 전·공사 중·후)를 돌려준다. ("모름" = 노트북 폴더 가져오기에서 나누기용) 사진은 저장하지 않는다 (메모리에서만 쓰고 버림).
 import { checkCode, take, giveBack, NO_STORE } from "../lib/guard.mjs";
 import { json, clientIp, hasKey, NO_KEY, callOnce, MODEL } from "../lib/claude.mjs";
 import { photoPrompt } from "../lib/prompt.mjs";
@@ -29,14 +29,14 @@ async function handle(req, context) {
       return json(400, { error: "bad_input", message: "사진 하나를 읽지 못했어요. 그 사진을 빼고 다시 해 주세요." });
     }
   }
-  const photos = list.map(p => ({ side: p.side === "후" ? "후" : p.side === "공사 중" ? "공사 중" : "전", data: p.data }));
+  const photos = list.map(p => ({ side: ["후", "공사 중", "모름"].includes(p.side) ? p.side : "전", data: p.data }));
 
   const t = await take(c.shop, "photos");
   if (!t.ok) return json(t.status, { error: t.error, message: t.message });
 
   const content = [];
   photos.forEach((p, i) => {
-    content.push({ type: "text", text: "이미지 " + (i + 1) + " (" + p.side + " 사진)" });
+    content.push({ type: "text", text: "이미지 " + (i + 1) + (p.side === "모름" ? "" : " (" + p.side + " 사진)") });
     content.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: p.data } });
   });
   content.push({ type: "text", text: photoPrompt(photos, body.type === "shop" ? "shop" : "home") });
@@ -60,6 +60,7 @@ async function handle(req, context) {
       if (x.desc) o.desc = String(x.desc).slice(0, 60);
       if (x.seen) o.seen = String(x.seen).slice(0, 120);
       if (Array.isArray(x.privacy)) o.privacy = x.privacy.map(String).filter(Boolean).slice(0, 5);
+      if (["전", "공사 중", "후"].includes(x.kind)) o.kind = x.kind;
     });
     console.log("[photos]", c.shop, photos.length + "장", JSON.stringify(r.usage || {}));
     return json(200, { ok: true, photos: out, read: Array.isArray(parsed) });

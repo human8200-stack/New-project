@@ -3,7 +3,7 @@
    글 규칙은 서버의 netlify/lib/prompt.mjs 한 곳에 있어요. 여기에는 화면과 마지막 안전 점검만 있어요. */
 (function () {
 "use strict";
-const APP_VERSION = "1.4.1 (2026-11-11, 사진 올리기는 접속 코드 있을 때만)";
+const APP_VERSION = "1.4.2 (2026-11-11, 노트북에서 사진 끌어다 놓기·사진 폴더 연결)";
 // 마우스가 있는 컴퓨터인지 (컴퓨터에서만 [그림과 글 함께 복사]가 보여요. 휴대폰은 그대로)
 const IS_PC = (() => { try { return matchMedia("(pointer: fine) and (hover: hover)").matches; } catch (_) { return false; } })();
 const $ = s => document.querySelector(s);
@@ -196,7 +196,202 @@ function renderPhotos() {
       a.appendChild(inp); strip.appendChild(a);
     }
   });
+  if (FLD_OK && !$("#fldBox").hidden) fldPaint();
   onChoice();
+}
+
+// 노트북: 폴더의 사진을 전·공사 중·후 줄에 끌어다 놓기. 놓으면 [+]와 같은 addFiles를 쓴다. 이미지 아닌 파일은 무시.
+function hasFiles(e) { const t = e.dataTransfer && e.dataTransfer.types; return !!t && Array.from(t).indexOf("Files") >= 0; }
+function setupDrop() {
+  SIDES.forEach(S => {
+    const row = $("#strip-" + S.key).closest(".prow"); let depth = 0;
+    const off = () => { depth = 0; row.classList.remove("drop"); };
+    row.addEventListener("dragenter", e => { if (!hasFiles(e)) return; e.preventDefault(); depth++; row.classList.add("drop"); });
+    row.addEventListener("dragover", e => { if (!hasFiles(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = (shrinking > 0 || busy) ? "none" : "copy"; });
+    row.addEventListener("dragleave", () => { if (--depth <= 0) off(); });
+    row.addEventListener("drop", e => {
+      if (!hasFiles(e)) return; e.preventDefault(); off();
+      if (shrinking > 0 || busy) { msg("지금은 사진을 줄이는 중이에요. 잠시 뒤 다시 놓아 주세요."); return; }
+      const all = Array.from(e.dataTransfer.files || []);
+      const imgs = all.filter(f => /^image\//.test(f.type) || (!f.type && /\.(jpe?g|png|gif|webp|heic|heif|bmp)$/i.test(f.name)));
+      if (!imgs.length) { msg("사진 파일만 넣을 수 있어요."); return; }
+      const a = row.querySelector("label.add");
+      if (!a) { msg(S.label + " 사진은 " + S.max + "장까지 넣을 수 있어요."); return; }
+      addFiles(S.key, S.max, imgs, a);
+    });
+  });
+  // 줄 밖에 잘못 놓아도 브라우저가 사진을 열어 버려 쓰던 내용이 사라지지 않게
+  window.addEventListener("dragover", e => { if (hasFiles(e)) e.preventDefault(); });
+  window.addEventListener("drop", e => { if (hasFiles(e)) e.preventDefault(); });
+  if (IS_PC) $("#pcDropHint").hidden = false;
+}
+
+/* ---------- 노트북: 사진 폴더 연결 (크롬·엣지만) ----------
+   폴더를 한 번 고르면 그 손잡이(handle)를 이 노트북 IndexedDB에 둔다. 다음부터 [폴더에서 새 사진 가져오기] 한 번.
+   지난 가져오기 뒤 새로 생긴 사진(파일 수정 시각 기준)만 보여 주고, 고른 사진은 [+]와 같은 addFiles로 줄여 넣는다.
+   전·공사 중·후 나누기는 '제안': ① 접속 코드로 쓸 때는 작게 줄인 사진(512px)을 /api/photos에 보내 AI가 kind로 나눔(저장 안 함, 30장까지)
+   ② 체험·열쇠 없음·실패면 찍은 시각 순 간격으로 나눔(fldByTime). 사진마다 [전][공사 중][후]로 바꾼다.
+   사파리·파이어폭스·휴대폰은 버튼을 숨긴다. */
+const FLD_OK = IS_PC && typeof window.showDirectoryPicker === "function" && window.isSecureContext !== false;
+const FLD_EXT = /\.(jpe?g|png|heic|heif|webp)$/i, FLD_MAX = 60;
+const FLD_AI_MAX = 30, FLD_GAP = 6 * 3600e3; // AI로 나누는 최대 장수, 다른 날 묶음으로 보는 간격(6시간)
+let fldDir = null, fldLast = 0, fldItems = [], fldUrls = [], fldBusy = false, fldHow = "time";
+function idb(op, key, val) {
+  return new Promise((res, rej) => {
+    let rq; try { rq = indexedDB.open("artplay-folder", 1); } catch (e) { rej(e); return; }
+    rq.onupgradeneeded = () => rq.result.createObjectStore("kv");
+    rq.onerror = () => rej(rq.error);
+    rq.onsuccess = () => {
+      const db = rq.result; let r;
+      try { const st = db.transaction("kv", op === "get" ? "readonly" : "readwrite").objectStore("kv"); r = op === "get" ? st.get(key) : st.put(val, key); }
+      catch (e) { db.close(); rej(e); return; }
+      r.onsuccess = () => { res(r.result); db.close(); }; r.onerror = () => { rej(r.error); db.close(); };
+    };
+  });
+}
+async function idbGet(k) { try { return await idb("get", k); } catch (_) { return undefined; } }
+async function idbSet(k, v) { try { await idb("put", k, v); } catch (_) {} }
+function fldInfo(t) { $("#fldInfo").textContent = t || ""; }
+function fldPaint() {
+  $("#fldGet").textContent = fldDir ? "폴더에서 새 사진 가져오기" : "사진 폴더 연결하기";
+  $("#fldPick").hidden = !fldDir;
+  const off = shrinking > 0 || busy || fldBusy; $("#fldGet").disabled = off; $("#fldPick").disabled = off;
+  if (!$("#fldInfo").textContent) fldInfo(fldDir ? "연결된 폴더: " + fldDir.name + (fldLast ? " · 지난번에 가져온 뒤 새로 들어온 사진만 보여요." : "")
+    : "현장 사진을 모아 두는 폴더를 한 번 정해 두면, 다음부터 새 사진만 골라 가져와요.");
+}
+async function fldChoose() {
+  try { fldDir = await window.showDirectoryPicker({ id: "artplay-photos", mode: "read" }); }
+  catch (e) { if (e && e.name !== "AbortError") fldInfo("폴더를 열 수 없었어요. 다른 폴더를 골라 주세요."); return false; }
+  fldLast = 0; await idbSet("dir", fldDir); await idbSet("last", 0); fldInfo(""); fldPaint(); return true;
+}
+async function fldAllowed() {
+  const o = { mode: "read" };
+  try {
+    if (!fldDir.queryPermission || (await fldDir.queryPermission(o)) === "granted") return true;
+    return (await fldDir.requestPermission(o)) === "granted";
+  } catch (_) { return false; }
+}
+async function fldScan() {
+  const out = [];
+  const walk = async (dir, path, depth) => {
+    for await (const h of dir.values()) {
+      if (h.kind === "file" && FLD_EXT.test(h.name)) {
+        try { const f = await h.getFile(); if (f.lastModified > fldLast) out.push({ f, path: path + h.name }); } catch (_) {}
+      } else if (h.kind === "directory" && depth < 1 && !h.name.startsWith(".")) await walk(h, path + h.name + "/", depth + 1);
+    }
+  };
+  await walk(fldDir, "", 0);
+  out.sort((a, b) => a.f.lastModified - b.f.lastModified);
+  return out;
+}
+// 찍은 시각으로 나누기: 6시간 넘게 떨어지면 다른 묶음. 묶음이 3개 이상이면 첫 묶음 전, 끝 묶음 후, 가운데 공사 중.
+// 묶음이 1~2개면 가장 긴 간격(보통 공사 기간)을 기준으로 앞 = 전, 뒤 = 후. (규칙을 바꾸려면 이 함수만 고친다)
+function fldByTime(list) {
+  const n = list.length, t = list.map(x => x.f.lastModified); if (!n) return [];
+  const groups = [0]; for (let i = 1; i < n; i++) groups.push(groups[i - 1] + (t[i] - t[i - 1] > FLD_GAP ? 1 : 0));
+  const last = groups[n - 1];
+  if (last >= 2) return groups.map(g => g === 0 ? "before" : g === last ? "after" : "during");
+  if (n === 1) return ["before"];
+  let k = 0; for (let i = 1; i < n; i++) if (t[i] - t[i - 1] > t[k + 1] - t[k]) k = i - 1;
+  return list.map((_, i) => i <= k ? "before" : "after");
+}
+const FLD_KIND = { "전": "before", "공사 중": "during", "후": "after" };
+// AI로 나누기: 성공하면 [side...] (못 읽은 사진은 null), 안 되면 null
+async function fldByAI(list) {
+  if (mode !== "live" || !code || list.length > FLD_AI_MAX) return null;
+  const small = [];
+  for (const x of list) { try { small.push(await b64(await shrink(x.f, 512, 0.6))); } catch (_) { small.push(null); } }
+  const idx = small.map((d, i) => d ? i : -1).filter(i => i >= 0); if (!idx.length) return null;
+  const packs = []; for (let i = 0; i < idx.length; i += 15) packs.push(idx.slice(i, i + 15));
+  let type = "home"; try { type = fields().type === "shop" ? "shop" : "home"; } catch (_) {}
+  const out = list.map(() => null); let ok = false;
+  for (const pk of packs) {
+    try {
+      const res = await api("/api/photos", { type, photos: pk.map(i => ({ side: "모름", data: small[i] })) });
+      if (!res.ok) { const e = await readErr(res); if (["daily_limit", "all_limit", "no_key", "bad_code", "locked", "no_codes", "key_bad", "billing", "no_store"].includes(e.error)) break; continue; }
+      const d = await res.json();
+      (d.photos || []).forEach((x, k) => { const s2 = FLD_KIND[x && x.kind]; if (s2 && pk[k] != null) { out[pk[k]] = s2; ok = true; } });
+    } catch (_) {}
+  }
+  return ok ? out : null;
+}
+function fldRelease() { fldUrls.forEach(u => URL.revokeObjectURL(u)); fldUrls = []; }
+function fldRender() {
+  const box = $("#fldList"); box.textContent = ""; fldRelease();
+  fldItems.forEach(it => {
+    const row = document.createElement("label"); row.className = "frow" + (it.on ? "" : " offrow");
+    const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = it.on;
+    cb.addEventListener("change", () => { it.on = cb.checked; row.classList.toggle("offrow", !it.on); fldCount(); });
+    let th;
+    if (/\.(heic|heif)$/i.test(it.f.name)) { th = document.createElement("div"); th.className = "noimg"; th.textContent = "HEIC"; }
+    else { th = document.createElement("img"); const u = URL.createObjectURL(it.f); fldUrls.push(u); th.src = u; th.alt = ""; th.loading = "lazy"; }
+    const meta = document.createElement("div"); meta.className = "fmeta";
+    const b = document.createElement("b"); b.textContent = it.path;
+    const sp = document.createElement("span"); sp.className = "small"; sp.textContent = new Date(it.f.lastModified).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" });
+    meta.append(b, sp);
+    const sw = document.createElement("div"); sw.className = "fside"; sw.setAttribute("role", "group"); sw.setAttribute("aria-label", it.path + " 넣을 줄");
+    SIDES.forEach(S => {
+      const bt = document.createElement("button"); bt.type = "button"; bt.className = "chip"; bt.textContent = S.label; bt.dataset.side = S.key;
+      bt.setAttribute("aria-pressed", String(it.side === S.key));
+      bt.addEventListener("click", e => { e.preventDefault(); it.side = S.key; sw.querySelectorAll("button").forEach(z => z.setAttribute("aria-pressed", String(z.dataset.side === S.key))); fldCount(); });
+      sw.appendChild(bt);
+    });
+    meta.appendChild(sw);
+    row.append(cb, th, meta); box.appendChild(row);
+  });
+  fldCount();
+}
+function fldCount() {
+  const on = fldItems.filter(x => x.on);
+  const c = {}; SIDES.forEach(S => { c[S.key] = on.filter(x => x.side === S.key).length; });
+  const over = SIDES.filter(S => c[S.key] > S.max - photos[S.key].length).map(S => S.label + " " + (S.max - photos[S.key].length) + "장");
+  $("#fldPut").disabled = !on.length;
+  $("#fldPut").textContent = on.length ? "고른 사진 " + on.length + "장 넣기 (" + SIDES.map(S => S.label + " " + c[S.key]).join(" · ") + ")" : "넣을 사진을 골라 주세요";
+  $("#fldHow").textContent = fldHow === "ai" ? "AI가 나눴어요 — 틀린 것만 눌러 바꿔 주세요" : "찍은 날짜로 나눴어요 — 틀린 것만 바꿔 주세요";
+  $("#fldHead").textContent = over.length ? "남은 자리: " + over.join(", ") + ". 넘치는 사진은 빠져요." : "";
+}
+async function fldOpen() {
+  if (shrinking > 0 || busy || fldBusy) return;
+  if (!fldDir) { if (!(await fldChoose())) return; }
+  else if (!(await fldAllowed())) { fldInfo("폴더를 볼 수 있게 허용해 주세요. (주소창 옆 창에서 [허용]) 안 되면 [폴더 바꾸기]로 다시 골라 주세요."); return; }
+  fldInfo("폴더를 살펴보는 중…");
+  let list;
+  try { list = await fldScan(); } catch (_) { fldInfo("폴더를 읽지 못했어요. [폴더 바꾸기]로 다시 골라 주세요."); return; }
+  if (!list.length) { fldInfo("새 사진이 없어요. (지난 가져오기 뒤 폴더에 들어온 사진만 보여요)"); return; }
+  const more = list.length > FLD_MAX; if (more) list = list.slice(-FLD_MAX);
+  const byTime = fldByTime(list); let ai = null;
+  if (mode === "live" && code && list.length <= FLD_AI_MAX) {
+    fldBusy = true; fldPaint(); fldInfo("AI가 전·공사 중·후를 나누는 중… (10~20초)");
+    try { ai = await fldByAI(list); } finally { fldBusy = false; }
+  }
+  fldHow = ai ? "ai" : "time";
+  fldItems = list.map((x, i) => ({ ...x, on: true, side: (ai && ai[i]) || byTime[i] }));
+  fldInfo(more ? "새 사진이 많아서 가장 최근 " + FLD_MAX + "장만 보여요." : ""); fldPaint();
+  fldRender(); openSheet("#fldSheet");
+}
+async function fldPut() {
+  const on = fldItems.filter(x => x.on); if (!on.length) return;
+  const newest = Math.max(fldLast, ...fldItems.map(x => x.f.lastModified));
+  closeSheets();
+  for (const S of SIDES) {
+    const files = on.filter(x => x.side === S.key).map(x => x.f); if (!files.length) continue;
+    const a = $("#strip-" + S.key + " label.add");
+    if (!a) { msg(S.label + " 사진은 " + S.max + "장까지 넣을 수 있어요."); continue; }
+    await addFiles(S.key, S.max, files, a);
+  }
+  fldLast = newest; await idbSet("last", fldLast); fldItems = [];
+  fldInfo(""); fldPaint();
+}
+async function setupFolder() {
+  if (!FLD_OK) return;
+  $("#fldBox").hidden = false;
+  const d = await idbGet("dir"); if (d && d.kind === "directory") { fldDir = d; fldLast = Number(await idbGet("last")) || 0; }
+  fldPaint();
+  $("#fldGet").addEventListener("click", fldOpen);
+  $("#fldPick").addEventListener("click", async () => { if (await fldChoose()) fldOpen(); });
+  $("#fldPut").addEventListener("click", fldPut);
+  $("#fldAllOn").addEventListener("click", () => { fldItems.forEach(x => { x.on = true; }); fldRender(); });
+  $("#fldAllOff").addEventListener("click", () => { fldItems.forEach(x => { x.on = false; }); fldRender(); });
 }
 
 /* ---------- 화면 바꾸기 ---------- */
@@ -999,7 +1194,7 @@ function renderHist() {
 
 /* ---------- 판 열고 닫기 ---------- */
 function openSheet(id) { $("#shade").hidden = false; $(id).hidden = false; const c = $(id).querySelector("[data-close]"); if (c) c.focus(); }
-function closeSheets() { $("#shade").hidden = true; $("#histSheet").hidden = true; $("#setSheet").hidden = true; }
+function closeSheets() { $("#shade").hidden = true; $("#histSheet").hidden = true; $("#setSheet").hidden = true; $("#fldSheet").hidden = true; fldRelease(); }
 function openSet() {
   const s = settings();
   $("#contactIn").value = s.contact || ""; $("#sArea").value = s.area || ""; $("#sDirect").value = s.direct || "";
@@ -1030,7 +1225,7 @@ $("#verInfo").textContent = "앱 버전 " + APP_VERSION;
 
 /* ---------- 시작 ---------- */
 document.querySelectorAll(".chips").forEach(buildChips); setType();
-paintChips(); renderPhotos(); refreshGen();
+paintChips(); renderPhotos(); refreshGen(); setupDrop(); setupFolder();
 (function start() {
   const m = ls.get(K.mode, ""), c = ls.get(K.code, "");
   if (m === "demo") { enterDemo(); return; }
