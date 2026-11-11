@@ -1,6 +1,6 @@
 // 엄마의 영양 노트 블로그 글쓰기 — 오프라인용 화면 저장 (글 만들기 /api/ 는 저장하지 않음)
 // 화면 파일(노트 목록 포함)을 고치면 CACHE 버전을 하나 올린다.
-const CACHE = "nutri-blog-v3";
+const CACHE = "nutri-blog-v4";
 const SHELL = ["./", "index.html", "app.css", "app.js", "rules.js", "demo.js", "notes/notes.json", "manifest.webmanifest", "icons/icon-192.png", "icons/apple-touch-icon.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => {

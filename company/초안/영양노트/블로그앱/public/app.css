@@ -100,3 +100,6 @@ details.more .in{padding:0 18px 18px;display:flex;flex-direction:column;gap:16px
 .hopen span{font-size:15px;color:var(--muted)}
 .hdel{flex:0 0 auto;min-width:70px;min-height:60px;border:1px solid var(--line);border-radius:12px;background:var(--card);font-size:17px}
 @media (prefers-reduced-motion: reduce){*{scroll-behavior:auto!important;transition:none!important}}
+p.steps{padding-left:0;display:block}
+.pieces{display:flex;flex-direction:column;gap:8px}
+.piece.done{background:#e6efe6;color:#2e4a3a}

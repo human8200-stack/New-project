@@ -1,13 +1,14 @@
 /* 엄마의 영양 노트 블로그 글쓰기 — 화면 코드
    흐름: 접속 코드(또는 체험) → 노트 고르기(카드+원고 한 번에) + 회장님 한마디 → [글 만들기]
         → (회사 노트가 아닌 사진이 있을 때만) ① 사진 읽기 /api/photos → ② 글쓰기 /api/write(흘려 받기)
-        → 결과: [블로그에 붙여 넣을 글 복사(그림 포함)] = 문단 그대로 HTML + "📷 사진 n" 자리에 그림
-          (그림이 안 따라오면 아래 [사진 순서대로 보내기] = 글 복사 + 사진 공유 창, 안 되면 사진 저장)
+        → 결과: 휴대폰은 큰 버튼 하나 [사진 순서대로 보내기] = 글 복사(문단 그대로, 그림 없이) + 사진 공유 창
+          (공유 창이 안 되면 사진 01, 02… 저장, 사진 없는 글은 글만 복사)
+          컴퓨터(마우스)는 큰 버튼 [그림과 글 함께 복사] = 문단 HTML + "📷 사진 n" 자리에 그림
    글 규칙: AI 지시문은 netlify/lib/prompt.mjs, 영양소 표·금지어·규칙 검사기는 rules.js (서버와 같이 씀) */
 import { checkPost, HANMADI_SLOT, DEFAULT_SOURCE, DEFAULT_TAGS } from "./rules.js";
 import { DEMO } from "./demo.js";
 
-const APP_VERSION = "1.1.0 (2026-11-11, 블로그 붙여넣기: 문단 유지 + 그림을 글 사이에)";
+const APP_VERSION = "1.2.0 (2026-11-11, 보내기 버튼 하나: 사진 순서대로 보내기 + 문단 유지)";
 const $ = s => document.querySelector(s);
 const K = { code: "nutri-code", mode: "nutri-mode", hist: "nutri-history-v1", set: "nutri-settings-v1" };
 const MAX_PHOTOS = 10;
@@ -259,13 +260,17 @@ let ckT = null;
 }));
 
 /* ---------- 네이버 블로그로 보내기 ---------- */
-// 회장님 11/11 아이폰 시험: 글(text/plain)만 복사하면 네이버 블로그 앱이 줄바꿈을 버려 한 줄로 붙고, 사진은 맨 위 한 묶음이라 "그림 따로 글 따로".
-// → 맨 위 버튼은 HTML(문단마다 <p>, 빈 줄은 <p><br></p>, 소제목은 굵게)로 복사하고, 본문의 "📷 사진 n" 줄 자리에 그 그림 <img>를 끼운다.
-//   회사 노트 카드 = 이 사이트의 절대 주소(https://noma-note.netlify.app/notes/…png), 회장님이 직접 넣은 사진 = 작게 줄인 JPEG data 주소.
-//   글(text/plain)도 함께 넣는다 (HTML을 못 받는 곳은 글만 붙음, 이때 "📷 사진 n" 줄은 뺌).
+// 1.2.0 (11/11 회장님 아이폰 시험): HTML 속 그림(<img>)은 네이버 블로그 앱이 막아서 안 들어옴.
+// [사진 순서대로 보내기](글 복사 + 사진 공유 창)는 사진이 잘 올라감 → 휴대폰의 큰 버튼은 이것 하나로.
+// 컴퓨터(마우스가 있는 기기 = IS_PC)는 큰 버튼이 [그림과 글 함께 복사] (1.1.0 방식, "📷 사진 n" 자리에 <img>).
+//   PC 네이버 블로그 편집기에서 그림이 따라오는지는 회장님 노트북으로 시험 예정.
+// 글 복사는 HTML(문단마다 <p>, 빈 줄은 <p><br></p>, 소제목은 굵게, <img>는 넣지 않음) + 글(text/plain)을 같이 넣는다.
+// 사진은 글 위에 한 묶음으로 들어가므로 "📷 사진 n" 줄은 복사되는 글에서 뺀다.
+// 공유 창을 못 여는 기기 = 사진 01, 02… 저장. 사진이 없는 글(지난 글 등) = 글만 복사.
 // 제목은 따로 (블로그 제목 칸에 붙여 넣음). 네이버 블로그는 본문 속 #태그를 태그로 받아요.
 const MARK_RE = /^\s*📷\s*사진\s*(\d+)\s*$/;
-const USER_EDGE = 1080, USER_Q = 0.75;   // 직접 넣은 사진을 HTML에 data 주소로 넣을 때 크기 (한 장 약 100~250KB)
+const IS_PC = (() => { try { return matchMedia("(pointer: fine) and (hover: hover)").matches; } catch (_) { return false; } })();
+const USER_EDGE = 1080, USER_Q = 0.75;   // 컴퓨터 복사 때 직접 넣은 사진을 HTML에 data 주소로 넣을 크기 (한 장 약 100~250KB)
 function stripMarks(t) { return String(t || "").split("\n").filter(l => !MARK_RE.test(l)).join("\n").replace(/\n{3,}/g, "\n\n").trim(); }
 function sendText() { return [stripMarks($("#rBody").value), $("#rTags").value.trim()].filter(Boolean).join("\n\n"); }
 function photoKey() { return photos.map(p => p.id).join(","); }
@@ -276,14 +281,14 @@ function canShareFiles(files) {
   catch (_) { return false; }
 }
 const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-// 그림 n번의 주소 (없으면 ""): 회사 카드는 결과에 저장된 절대 주소, 직접 넣은 사진은 방금 만든 글에서만 data 주소
+// 그림 n번의 주소 (없으면 ""): 회사 카드는 결과에 저장된 절대 주소, 직접 넣은 사진은 방금 만든 글에서만 data 주소 (컴퓨터용)
 function imgSrc(n) {
   const im = current && current.imgs && current.imgs[n - 1];
   if (!im) return "";
   if (im.src) return im.src;
   return (hasLivePhotos() && userJob && userJob.key === current.photoKey && userJob.urls[n - 1]) || "";
 }
-// 붙여 넣을 HTML. withImgs=false면 글만 (사진을 공유 창으로 따로 보낼 때)
+// 붙여 넣을 HTML. withImgs=true(컴퓨터)면 "📷 사진 n" 자리에 그림, false(휴대폰)면 글만 (<img> 없음)
 function buildHtml(withImgs) {
   const lines = String($("#rBody").value || "").replace(/\r/g, "").split("\n");
   const out = [], used = new Set();
@@ -313,8 +318,7 @@ function buildHtml(withImgs) {
   return { html: out.join(""), imgs: used.size };
 }
 function imgCount() { let c = 0; const n = current && current.imgs ? current.imgs.length : 0; for (let k = 1; k <= n; k++) if (imgSrc(k)) c++; return c; }
-function userCount() { return current && current.imgs ? current.imgs.filter(x => !x.src).length : 0; }
-// 직접 넣은 사진을 data 주소로 미리 만들어 둔다 (아이폰은 누른 그 순간에 복사해야 해서, 누르기 전에 준비)
+// 직접 넣은 사진을 data 주소로 미리 만들어 둔다 (컴퓨터용. 누른 그 순간에 복사해야 해서, 누르기 전에 준비)
 function prepareUser() {
   const key = current.photoKey;
   if (userJob && userJob.key === key) return;
@@ -330,27 +334,102 @@ function prepareUser() {
     if (userJob === job) paintSend();
   })();
 }
+// 글 줄 → HTML 문단 (빈 줄은 <p><br></p>, 소제목은 굵게)
+function linesToHtml(lines) {
+  const out = []; let blank = false;
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) { if (out.length && !blank) { out.push("<p><br></p>"); blank = true; } continue; }
+    blank = false;
+    out.push(/^【.+】$/.test(line) ? "<p><b>" + esc(line) + "</b></p>" : "<p>" + esc(line) + "</p>");
+  }
+  while (out.length && out[out.length - 1] === "<p><br></p>") out.pop();
+  return out.join("");
+}
+// 컴퓨터 "한 칸씩 복사": 본문을 "📷 사진 n" 줄로 잘라 [글 1] [사진 1] [글 2]… 순서로. 자리 없는 사진은 맨 앞, 태그는 마지막 글에.
+function buildPieces() {
+  const n = (current && current.imgs) ? current.imgs.length : 0, used = new Set(), pieces = [];
+  let buf = [];
+  const flush = () => { const t = buf.join("\n").replace(/\n{3,}/g, "\n\n").trim(); if (t) pieces.push({ kind: "text", lines: buf.slice(), text: t }); buf = []; };
+  for (const raw of String($("#rBody").value || "").replace(/\r/g, "").split("\n")) {
+    const m = raw.trim().match(MARK_RE);
+    if (m) {
+      const k = Number(m[1]);
+      if (k >= 1 && k <= n && !used.has(k) && imgSrc(k)) { flush(); used.add(k); pieces.push({ kind: "img", k }); }
+      continue;
+    }
+    buf.push(raw);
+  }
+  const tags = $("#rTags").value.trim();
+  if (tags) buf.push("", tags);
+  flush();
+  const top = [];
+  for (let k = 1; k <= n; k++) if (!used.has(k) && imgSrc(k)) top.push({ kind: "img", k });
+  return top.concat(pieces);
+}
+// 그림을 PNG로 (크롬 클립보드는 image/png만 받음)
+async function pngBlob(src) {
+  const r = await fetch(src); const b = await r.blob();
+  if (b.type === "image/png") return b;
+  const bmp = await createImageBitmap(b);
+  const c = document.createElement("canvas"); c.width = bmp.width; c.height = bmp.height;
+  c.getContext("2d").drawImage(bmp, 0, 0);
+  return await new Promise((res, rej) => c.toBlob(x => x ? res(x) : rej(new Error("png")), "image/png"));
+}
+function copyImage(src) {
+  try {
+    if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
+      // 누른 그 순간에 write를 부르고, 그림은 Promise로 넘긴다 (크롬 지원)
+      return navigator.clipboard.write([new ClipboardItem({ "image/png": pngBlob(src) })]).then(() => true, () => false);
+    }
+  } catch (_) {}
+  return Promise.resolve(false);
+}
+let piecesKey = "";
+function paintPieces() {
+  const box = $("#pcPieces"), list = $("#pcList");
+  const pieces = IS_PC && current ? buildPieces() : [];
+  const key = JSON.stringify(pieces) + "|" + (current && current.id) + "|" + (userJob && userJob.ready);
+  if (key === piecesKey) return;   // 내용이 같으면 그대로 (누른 ✓ 표시 유지)
+  piecesKey = key;
+  box.hidden = pieces.length < 2;
+  list.textContent = "";
+  if (box.hidden) return;
+  let ti = 0, ii = 0;
+  pieces.forEach(pc => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "mid piece";
+    const label = pc.kind === "text" ? "글 " + (++ti) + " 복사" : "사진 " + (++ii) + " 복사";
+    b.textContent = label;
+    b.addEventListener("click", async () => {
+      const ok = pc.kind === "text" ? !!(await copyHtml(linesToHtml(pc.lines), pc.text)) : await copyImage(imgSrc(pc.k));
+      if (ok) { b.textContent = "✓ " + label; b.classList.add("done"); }
+      else { b.textContent = label + " — 안 됐어요, 다시 눌러 주세요"; if (pc.kind === "text") showFallback(pc.text); }
+    });
+    list.appendChild(b);
+  });
+}
+// 컴퓨터: 큰 버튼 [그림과 글 함께 복사]
+function paintPc() {
+  const live = hasLivePhotos();
+  if (live) prepareUser();
+  const b = $("#sendBtn"), waiting = live && userJob && !userJob.ready, n = imgCount();
+  b.disabled = !!waiting;
+  b.textContent = waiting ? "그림 준비 중…" : n ? "그림과 글 함께 복사" : "블로그에 붙여 넣을 글 복사";
+  $("#sendSteps").textContent = "버튼을 누르고 네이버 블로그 글쓰기 본문 칸에 붙여넣기(Ctrl+V) 하세요.";
+  $("#sendNote").textContent = n ? "그림 " + n + "장이 글 사이 제자리에 들어가요." : "";
+  paintPieces();
+}
 function paintSend() {
   if (!current) return;
-  const live = hasLivePhotos();
-  if (live) { prepareSave(); prepareUser(); } else saveJob = null;
-  const s = $("#sendBtn"), note = $("#sendNote");
-  const waiting = live && userJob && !userJob.ready;
-  const n = imgCount(), u = userCount();
-  s.disabled = !!waiting;
-  s.textContent = waiting ? "그림 준비 중…" : n ? "블로그에 붙여 넣을 글 복사 (그림 포함)" : "블로그에 붙여 넣을 글 복사";
-  const t = [];
-  t.push(n ? "그림 " + n + "장이 글 사이사이 제자리에 들어가요. 문단·줄 나눔도 그대로예요." : "문단·줄 나눔이 그대로 들어가요.");
-  if (u && !live) t.push("직접 넣은 사진은 방금 만든 글에서만 같이 복사돼요.");
-  t.push("그림이 안 들어오면 아래 [사진 순서대로 보내기]를 쓰세요.");
-  note.textContent = t.join(" ");
-  paintSaveBtn();
+  copiedForShare = false;
+  if (IS_PC) { paintPc(); return; }
+  if (hasLivePhotos()) prepareSave(); else { saveJob = null; paintSendBtn(); }
 }
 function prepareSave() {
   const key = current.photoKey;
-  if (saveJob && saveJob.key === key) { paintSaveBtn(); return; }
+  if (saveJob && saveJob.key === key) { paintSendBtn(); return; }
   saveJob = { key, files: null };
-  const job = saveJob; paintSaveBtn();
+  const job = saveJob; paintSendBtn();
   (async () => {
     const files = [];
     for (let i = 0; i < photos.length; i++) {
@@ -358,20 +437,22 @@ function prepareSave() {
       try { blob = await shrink(p.file, SAVE_EDGE, SAVE_Q); } catch (_) { blob = p.file; }
       files.push(new File([blob], "nutri_" + pad2(i + 1) + ".jpg", { type: "image/jpeg", lastModified: Date.now() + i }));
     }
-    if (saveJob === job) { job.files = files; paintSaveBtn(); }
+    if (saveJob === job) { job.files = files; paintSendBtn(); }
   })();
 }
-// [사진 순서대로 보내기] — 그림이 HTML로 안 따라올 때. 글(그림 없이)을 복사하면서 사진을 공유 창으로 (안 되면 01, 02… 저장)
-function paintSaveBtn() {
-  const b = $("#saveBtn"), live = hasLivePhotos(), ready = !!(saveJob && saveJob.files);
-  copiedForShare = false;
-  b.hidden = !live;
+// 큰 버튼 하나: 사진 있으면 [사진 순서대로 보내기](공유 안 되면 [사진 순서대로 저장]), 사진 없으면 [블로그에 붙여 넣을 글 복사]
+function paintSendBtn() {
+  const b = $("#sendBtn"), note = $("#sendNote"), live = hasLivePhotos(), ready = !!(saveJob && saveJob.files);
+  $("#sendSteps").textContent = live ? "버튼을 누르고 네이버 블로그를 고른 뒤, 사진 아래에 붙여넣기 하세요." : "버튼을 누르고 네이버 블로그 글쓰기 본문 칸에 붙여넣기 하세요.";
+  if (!live) {
+    b.disabled = false; b.textContent = "블로그에 붙여 넣을 글 복사";
+    note.textContent = current && current.imgs && current.imgs.length ? "사진 보내기는 방금 만든 글에서만 돼요. 사진은 블로그 앱에서 직접 넣어 주세요." : "";
+    return;
+  }
   b.disabled = !ready;
   const share = ready && canShareFiles(saveJob.files);
   b.textContent = !ready ? "사진 준비 중…" : share ? "사진 순서대로 보내기 (" + saveJob.files.length + "장)" : "사진 순서대로 저장 (" + saveJob.files.length + "장)";
-  $("#saveNote").textContent = !live ? "사진 보내기는 방금 만든 글에서만 돼요." : share
-    ? "누르면 글(그림 없이)이 복사되고 공유 창이 떠요 → 블로그(네이버 블로그)를 누르면 사진이 맨 위에 들어간 글쓰기가 열려요 → 글 칸을 길게 눌러 [붙여넣기]."
-    : "누르면 글(그림 없이)이 복사되고 사진이 01, 02… 순서로 저장돼요 → 블로그 앱 사진 버튼으로 01부터 넣고 글 칸에 붙여 넣으세요.";
+  note.textContent = ready && !share ? "이 휴대폰은 공유 창이 안 열려요. 사진이 01, 02… 순서로 저장돼요 → 블로그 앱 사진 버튼으로 01부터 넣고 글 칸에 붙여 넣으세요." : "";
 }
 function copyText(text) {
   // 누른 그 순간에 바로 부른다 (아이폰은 누른 직후에만 복사·공유를 허락함)
@@ -417,36 +498,45 @@ async function downloadFiles(files) {
 }
 $("#sendBtn").addEventListener("click", async () => {
   if (!current) return;
-  const b = $("#sendBtn"), text = sendText(), h = buildHtml(true);
-  const how = await copyHtml(h.html, text);
-  if (how === "html") { b.textContent = h.imgs ? "✓ 그림 " + h.imgs + "장과 글을 복사했어요" : "✓ 글을 복사했어요"; $("#fbBox").hidden = true; }
-  else if (how === "text") b.textContent = "✓ 글만 복사됐어요 (그림·줄 나눔은 아래 방법으로)";
-  else { b.textContent = "아래 글을 길게 눌러 복사해 주세요"; showFallback(text); }
-  setTimeout(paintSend, 5000);
-});
-$("#saveBtn").addEventListener("click", async () => {
-  if (!saveJob || !saveJob.files || !current) return;
-  const files = saveJob.files, b = $("#saveBtn"), text = sendText();
+  if (IS_PC) { pcCopy(); return; }
+  const b = $("#sendBtn"), text = sendText(), live = hasLivePhotos();
+  if (live && !(saveJob && saveJob.files)) return;
+  const files = live ? saveJob.files : null;
   // 1) 글 복사 (그림 없이 — 사진은 공유 창으로 따로 감). 두 번째 누를 때는 건너뜀
   const copyP = copiedForShare ? Promise.resolve("html") : copyHtml(buildHtml(false).html, text);
   // 2) 사진 공유 창 (복사와 같은 순간에 부른다)
   let shareP = null;
-  if (canShareFiles(files)) { try { shareP = navigator.share({ files }); } catch (e) { shareP = Promise.reject(e); } }
+  if (files && canShareFiles(files)) { try { shareP = navigator.share({ files }); } catch (e) { shareP = Promise.reject(e); } }
   const how = await copyP;
-  if (how) copiedForShare = true; else showFallback(text);
+  if (how) { copiedForShare = true; $("#fbBox").hidden = true; } else showFallback(text);
+  const again = () => setTimeout(() => { const keep = copiedForShare; paintSendBtn(); copiedForShare = keep; }, 5000);
   if (shareP) {
-    try { await shareP; b.textContent = "✓ 보냈어요. 블로그 글 칸에 붙여 넣으세요"; }
+    try { await shareP; b.textContent = "✓ 보냈어요. 사진 아래에 붙여넣기 하세요"; }
     catch (e) {
       if (e && e.name === "AbortError") b.textContent = how ? "✓ 글은 복사됐어요. 다시 누르면 사진 창이 떠요" : "다시 눌러 주세요";
       else b.textContent = "한 번 더 눌러 주세요 (사진 창 열기)";
     }
-    setTimeout(() => { const keep = copiedForShare; paintSaveBtn(); copiedForShare = keep; }, 5000);
-    return;
+    again(); return;
   }
-  await downloadFiles(files);
-  b.textContent = how ? "✓ 글 복사 + 사진 저장 시작" : "사진 저장 시작 (글은 아래에서 길게 눌러 복사)";
-  setTimeout(paintSaveBtn, 5000);
+  if (files) {
+    await downloadFiles(files);
+    b.textContent = how ? "✓ 글 복사 + 사진 저장 시작" : "사진 저장 시작 (글은 아래에서 길게 눌러 복사)";
+  } else {
+    b.textContent = how ? "✓ 글을 복사했어요" : "아래 글을 길게 눌러 복사해 주세요";
+    copiedForShare = false;
+  }
+  setTimeout(paintSendBtn, 5000);
 });
+
+// 컴퓨터: 그림과 글 함께 복사 (1.1.0 방식)
+async function pcCopy() {
+  const b = $("#sendBtn"), text = sendText(), h = buildHtml(true);
+  const how = await copyHtml(h.html, text);
+  if (how === "html") { b.textContent = h.imgs ? "✓ 그림 " + h.imgs + "장과 글을 복사했어요" : "✓ 글을 복사했어요"; $("#fbBox").hidden = true; }
+  else if (how === "text") b.textContent = "✓ 글만 복사됐어요 (그림·줄 나눔 없이)";
+  else { b.textContent = "아래 글을 길게 눌러 복사해 주세요"; showFallback(text); }
+  setTimeout(paintSend, 5000);
+}
 
 /* ---------- 복사 버튼 ---------- */
 const COPY = {
