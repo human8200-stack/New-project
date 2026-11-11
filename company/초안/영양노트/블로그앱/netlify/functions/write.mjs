@@ -1,9 +1,9 @@
-// 글쓰기: POST /api/write  { fields: {...화면 입력값}, photos: [{side, desc, seen}] }  ← 사진 파일은 안 보냄
+// 글쓰기: POST /api/write  { fields: { topic, hanmadi, manuscript, next, source, tags }, photos: [{ desc, text }] }  ← 사진 파일은 안 보냄
 // 글을 흘려 보낸다 (한 줄에 JSON 하나): {"t":"글 조각"} … 마지막 {"done":true,"stop":"end_turn","left":19}
 // 실패하면 {"error":"...","message":"..."} 한 줄.
 import { checkCode, take, giveBack, NO_STORE } from "../lib/guard.mjs";
 import { json, clientIp, hasKey, NO_KEY, callStream, MODEL, WRITE_EFFORT } from "../lib/claude.mjs";
-import { systemFor, buildInput } from "../lib/prompt.mjs";
+import { SYSTEM_PROMPT, buildInput } from "../lib/prompt.mjs";
 
 const TIME_CAP = 55e3; // Netlify 함수 60초 제한보다 조금 먼저 끊는다
 
@@ -14,19 +14,16 @@ export default async (req, context) => {
 
 async function handle(req, context) {
   if (req.method !== "POST") return json(405, { error: "method", message: "잘못된 요청이에요." });
-  const c = await checkCode(req.headers.get("x-shop-code"), clientIp(req, context));   // 코드 먼저
+  const c = await checkCode(req.headers.get("x-access-code"), clientIp(req, context));   // 코드 먼저
   if (!c.ok) return json(c.status, { error: c.error, message: c.message });
   if (!hasKey()) return json(503, NO_KEY);
 
   const raw = await req.text();
-  if (raw.length > 60e3) return json(413, { error: "too_big", message: "보낸 내용이 너무 길어요." });
+  if (raw.length > 60e3) return json(413, { error: "too_big", message: "보낸 내용이 너무 길어요. 원고를 조금 줄여 주세요." });
   let body; try { body = JSON.parse(raw); } catch (_) { return json(400, { error: "bad_input", message: "보낸 내용을 읽지 못했어요. 다시 해 주세요." }); }
   const f = (body && body.fields) || {};
-  if (f.type !== "home" && f.type !== "shop") return json(400, { error: "bad_input", message: "집인지 상점인지 골라 주세요." });
-  if (!Array.isArray(f.spaces) || !f.spaces.length) return json(400, { error: "bad_input", message: "공간을 하나 골라 주세요." });
-  if (f.consent !== "region" && f.consent !== "photo" && f.consent !== "none") return json(400, { error: "bad_input", message: "고객 게시 동의를 골라 주세요." });
-  if (f.consent === "none") return json(400, { error: "no_consent", message: "고객 게시 동의가 없어 글을 만들지 않았어요. 동의를 받은 뒤 다시 눌러 주세요." });
-  const photos = Array.isArray(body.photos) ? body.photos.slice(0, 15) : [];
+  if (!String(f.topic || "").trim()) return json(400, { error: "bad_input", message: "주제를 골라 주세요." });
+  const photos = Array.isArray(body.photos) ? body.photos.slice(0, 10) : [];
 
   const t = await take(c.shop, "posts");
   if (!t.ok) return json(t.status, { error: t.error, message: t.message });
@@ -43,9 +40,9 @@ async function handle(req, context) {
         send({ hello: true, left: t.left });
         const r = await callStream({
           model: MODEL,
-          max_tokens: 12000,
+          max_tokens: 10000,
           output_config: { effort: WRITE_EFFORT },
-          system: systemFor(f.type),
+          system: SYSTEM_PROMPT,
           messages: [{ role: "user", content: buildInput(f, photos) }]
         }, txt => { if (txt) { got += txt.length; send({ t: txt }); } }, ctrl.signal);
         console.log("[write]", c.shop, Math.round((Date.now() - started) / 1000) + "초", JSON.stringify(r.usage || {}));

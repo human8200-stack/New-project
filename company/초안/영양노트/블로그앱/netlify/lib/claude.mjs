@@ -25,7 +25,7 @@ export function clientIp(req, context) {
   return (context && context.ip) || req.headers.get("x-nf-client-connection-ip") || req.headers.get("x-forwarded-for") || "unknown";
 }
 
-// API 오류 → 사장님이 읽을 쉬운 말
+// API 오류 → 회장님이 읽을 쉬운 말
 export function friendlyApiError(status, type) {
   if (status === 401 || type === "authentication_error") return { error: "key_bad", message: "AI 연결 열쇠(API 키)가 맞지 않아요. 회사에 알려 주세요." };
   if (status === 402 || type === "billing_error") return { error: "billing", message: "AI 사용 요금 결제에 문제가 있어요. 회사에 알려 주세요." };
