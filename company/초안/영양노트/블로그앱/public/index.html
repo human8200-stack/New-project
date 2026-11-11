@@ -73,7 +73,7 @@
     <summary>더 넣기 <span class="small">(사진·원고·다음 노트, 안 해도 돼요)</span></summary>
     <div class="in">
       <div class="field">
-        <p class="lbl">사진·카드 <span class="small">(최대 10장, 넣은 순서대로 글 위에 올라가요)</span></p>
+        <p class="lbl">사진·카드 <span class="small">(최대 10장, 넣은 순서대로 글 사이 알맞은 자리에 들어가요)</span></p>
         <div class="strip" id="strip"></div>
         <p class="small" id="photoMsg" role="status" hidden></p>
         <p class="small">얼굴·아이·제품 상표가 보이는 사진은 빼 주세요. 사진은 줄여서 글 만들 때만 보내고 어디에도 저장하지 않아요.</p>
@@ -97,10 +97,10 @@
     <div id="rAlerts" class="field"></div>
 
     <div class="send" id="sendBox">
-      <button class="big send-btn" id="sendBtn" type="button">네이버 블로그로 보내기</button>
+      <button class="big send-btn" id="sendBtn" type="button">블로그에 붙여 넣을 글 복사 (그림 포함)</button>
       <ol class="steps" id="sendSteps">
-        <li>위 버튼 → 뜨는 창에서 <b>블로그</b>(네이버 블로그)를 눌러요. 사진이 들어간 글쓰기 화면이 열려요.</li>
-        <li>글 쓰는 칸을 <b>길게 눌러 [붙여넣기]</b>. 글과 태그가 한 번에 들어가요.</li>
+        <li>위 버튼을 눌러요. 글·그림·태그가 한 번에 복사돼요.</li>
+        <li><b>네이버 블로그 앱</b> → 글쓰기 → 본문 칸을 <b>길게 눌러 [붙여넣기]</b>.</li>
         <li>이 앱으로 돌아와 <b>[제목 복사]</b> → 블로그 제목 칸에 붙여 넣고 <b>[발행]</b>.</li>
       </ol>
       <p class="small" id="sendNote"></p>
@@ -111,12 +111,12 @@
 
     <div class="field"><p class="lbl">올리기 전에 확인할 점</p><div id="rChecks"></div></div>
 
-    <div class="field"><label class="lbl" for="rBody">본문 <span class="small">(바로 고칠 수 있어요)</span></label><textarea class="paper" id="rBody"></textarea><p class="stat" id="rStat"></p></div>
+    <div class="field"><label class="lbl" for="rBody">본문 <span class="small">(바로 고칠 수 있어요)</span></label><textarea class="paper" id="rBody"></textarea><p class="small">"📷 사진 3" 같은 줄은 그 자리에 그림이 들어간다는 표시예요. 줄을 옮기면 그림 자리도 바뀌어요.</p><p class="stat" id="rStat"></p></div>
     <div class="field"><label class="lbl" for="rTags">태그</label><textarea class="paper" id="rTags" rows="3"></textarea></div>
 
     <div class="field" id="fallBox">
-      <p class="lbl">다른 방법 <span class="small">(바로 보내기가 안 될 때)</span></p>
-      <button class="mid" id="saveBtn" type="button">사진 순서대로 저장</button>
+      <p class="lbl">그림이 안 따라오면 <span class="small">(붙여 넣었는데 글만 들어갈 때)</span></p>
+      <button class="mid" id="saveBtn" type="button">사진 순서대로 보내기</button>
       <p class="small" id="saveNote"></p>
       <button class="mid" id="cpAll" type="button">전체 복사 (제목·본문·태그)</button>
       <div class="copy2">

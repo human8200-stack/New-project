@@ -73,7 +73,7 @@ details.more .in{padding:0 18px 18px;display:flex;flex-direction:column;gap:16px
 .bar i{display:block;height:100%;width:0;background:var(--green);transition:width .4s}
 
 .send{display:flex;flex-direction:column;gap:12px;background:#fff8dc;border:2px solid var(--yellow);border-radius:var(--r);padding:16px}
-.send-btn{min-height:72px;font-size:23px}
+.send-btn{min-height:72px;font-size:23px;word-break:keep-all}
 .steps{margin:0;padding-left:26px;display:flex;flex-direction:column;gap:10px;font-size:20px;line-height:1.5}
 .titles{display:flex;flex-direction:column;gap:8px}
 .tcard{display:flex;gap:10px;align-items:flex-start;text-align:left;min-height:60px;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;background:#fff;font-size:19px;line-height:1.45;width:100%}
