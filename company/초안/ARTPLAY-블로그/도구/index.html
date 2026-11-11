@@ -109,6 +109,9 @@ textarea.paper{min-height:120px}
 #rBody{min-height:420px}
 .checks{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
 .fallback{display:flex;flex-direction:column;gap:6px}
+.pieces{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.piece.done{background:var(--note)}
+#pcBox[hidden],#pcPieces[hidden]{display:none}
 
 /* 예시 */
 details.ex{border:1px dashed var(--muted);border-radius:10px;padding:0 12px;background:var(--bg)}
@@ -205,6 +208,12 @@ details.ex[open] summary::after{content:"－"}
     <div class="field"><label class="lbl" for="rBody">본문 <span class="small">(바로 고칠 수 있어요)</span></label><textarea class="paper" id="rBody"></textarea></div>
     <div class="field"><label class="lbl" for="rTags">해시태그</label><textarea class="paper" id="rTags" rows="3"></textarea></div>
     <div class="field" id="rChecksBox"><p class="lbl">올리기 전에 확인할 점</p><ul class="checks" id="rChecks"></ul></div>
+    <div class="field" id="pcBox" hidden>
+      <button class="big" id="pcAll" type="button">그림과 글 함께 복사</button>
+      <p class="small" id="pcNote"></p>
+      <p class="small">제목은 [제목만]으로 따로 복사해 제목 칸에 넣고, 본문 칸을 누른 뒤 붙여넣기(Ctrl+V) 하세요.</p>
+      <div class="field" id="pcPieces" hidden><p class="lbl">한 칸씩 복사 <span class="small">(함께 복사가 잘 안 될 때, 위에서부터 차례로)</span></p><div class="pieces" id="pcList"></div></div>
+    </div>
     <button class="big" id="cpAll" type="button">전체 복사</button>
     <div class="copy3">
       <button class="mid" id="cpTitle" type="button">제목만</button>
@@ -212,7 +221,7 @@ details.ex[open] summary::after{content:"－"}
       <button class="mid" id="cpTags" type="button">해시태그</button>
     </div>
     <div class="fallback" id="fbBox" hidden><p class="small">복사가 안 됐어요. 아래 글을 길게 눌러 복사해 주세요.</p><textarea class="paper" id="fbText" rows="6" readonly></textarea></div>
-    <p class="small">네이버 블로그 앱 → 글쓰기 → 길게 눌러 붙여넣기</p>
+    <p class="small" id="pasteHint">네이버 블로그 앱 → 글쓰기 → 길게 눌러 붙여넣기</p>
     <button class="mid" id="regenBtn" type="button">다시 만들기</button>
   </section>
 </main>
@@ -370,15 +379,15 @@ function onChoice(){
 
 /* ---------- 사진 ---------- */
 function loadImg(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file);const i=new Image();i.onload=()=>res(i);i.onerror=()=>{URL.revokeObjectURL(u);rej(new Error("decode"));};i.src=u;});}
-async function shrink(file){
+async function shrink(file,edge,q){
   let src,w,h;
   try{src=await createImageBitmap(file,{imageOrientation:"from-image"});w=src.width;h=src.height;}
   catch(_){src=await loadImg(file);w=src.naturalWidth;h=src.naturalHeight;}
-  const s=Math.min(1,1024/Math.max(w,h));
+  const s=Math.min(1,(edge||1024)/Math.max(w,h));
   const c=document.createElement("canvas");c.width=Math.max(1,Math.round(w*s));c.height=Math.max(1,Math.round(h*s));
   c.getContext("2d").drawImage(src,0,0,c.width,c.height);
   if(src.close) try{src.close();}catch(_){}
-  return await new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error("blob")),"image/jpeg",0.85));
+  return await new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error("blob")),"image/jpeg",q||0.85));
 }
 function msg(t){const m=$("#photoMsg");m.textContent=t||"";m.hidden=!t;}
 async function addFiles(side,files,addBtn){
@@ -390,7 +399,7 @@ async function addFiles(side,files,addBtn){
   addBtn.classList.add("busy");addBtn.firstChild.textContent="줄이는 중";
   try{
     for(const f of arr.slice(0,Math.max(0,room))){
-      try{const blob=await shrink(f);list.push({id:++pid,blob,url:URL.createObjectURL(blob)});}
+      try{const blob=await shrink(f);list.push({id:++pid,blob,file:f,url:URL.createObjectURL(blob)});}
       catch(_){failed++;}
     }
   }finally{shrinking--;addBtn.classList.remove("busy");}
@@ -569,9 +578,10 @@ function renderResult(r){
   $("#fbBox").hidden=true;
   $("#result").hidden=false;
   requestAnimationFrame(()=>{fit($("#rBody"));fit($("#rSummary"));fit($("#rTags"));});
+  paintPc();
 }
 function fit(t){t.style.height="auto";t.style.height=(t.scrollHeight+4)+"px";}
-["#rBody","#rSummary","#rTags"].forEach(id=>$(id).addEventListener("input",e=>{fit(e.target);if(current){current.summary=$("#rSummary").value;current.body=$("#rBody").value;current.tags=$("#rTags").value;saveCurrentSoon();}}));
+["#rBody","#rSummary","#rTags"].forEach(id=>$(id).addEventListener("input",e=>{fit(e.target);if(current){current.summary=$("#rSummary").value;current.body=$("#rBody").value;current.tags=$("#rTags").value;saveCurrentSoon();paintPc();}}));
 
 /* ---------- 글 만들기 ---------- */
 function refreshGen(){
@@ -620,7 +630,7 @@ async function generate(){
     if(!p.ok) throw {code:"bad_format"};
     if(!p.titles.length&&!p.body){fail(p.checks.join(" ")||"글을 못 만들었어요.");return;}
     const r={id:Date.now(),date:new Date().toISOString(),space:spaceText(),sel:0,
-      titles:p.titles.length?p.titles:["(제목 없음)"],summary:p.summary,body:p.body,tags:p.tags,checks:p.checks,alerts,
+      photoKey:key,titles:p.titles.length?p.titles:["(제목 없음)"],summary:p.summary,body:p.body,tags:p.tags,checks:p.checks,alerts,
       order:list.map((ph,i)=>"사진 "+(i+1)+" — "+ph.side+": "+descs[i].desc)};
     renderResult(r);addHistory(r);
     $("#result").scrollIntoView({behavior:"smooth",block:"start"});
@@ -653,6 +663,168 @@ Object.keys(COPY).forEach(id=>{
     }catch(_){fallback();}
   });
 });
+
+/* ---------- 컴퓨터: 그림과 글 함께 복사 ---------- */
+// 마우스가 있는 컴퓨터에서만 보인다 (휴대폰은 위 복사 버튼 그대로).
+// 본문의 "📷 사진 n: …" 줄 자리에 사진 n(넣은 순서: 전 → 후)을 넣고, 바로 아래 설명 1문장이 이어진다.
+// 사진은 방금 만든 글에서만 들어간다 (지난 글에는 사진이 없어 글만 복사).
+const MARK_RE=/^\s*📷\s*사진\s*(\d+)(?!\d)/;
+const IS_PC=(()=>{try{return matchMedia("(pointer: fine) and (hover: hover)").matches;}catch(_){return false;}})();
+const PC_EDGE=1280, PC_Q=0.82;   // 붙여 넣을 사진 크기 (긴 변 1280px JPEG)
+const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+let pcJob=null, piecesKey="";
+function liveKey(){return allPhotos().map(p=>p.id).join(",");}
+function isLive(){return !!(current&&current.photoKey&&photos.before.length+photos.after.length&&current.photoKey===liveKey());}
+function imgOf(k){if(!isLive()||!pcJob||pcJob.key!==current.photoKey) return null;return pcJob.items[k-1]||null;}
+function toDataUrl(blob){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(r.error);r.readAsDataURL(blob);});}
+function preparePc(){
+  const key=current.photoKey;
+  if(pcJob&&pcJob.key===key) return;
+  const list=allPhotos(), job={key,items:[],ready:false};
+  pcJob=job;
+  (async()=>{
+    for(let i=0;i<list.length;i++){
+      const p=list[i];
+      try{let b;try{b=p.file?await shrink(p.file,PC_EDGE,PC_Q):p.blob;}catch(_){b=p.blob;}job.items[i]={blob:b,url:await toDataUrl(b),alt:p.side+" 사진 "+p.k};}catch(_){}
+    }
+    job.ready=true;
+    if(pcJob===job) paintPc();
+  })();
+}
+// 붙여 넣을 줄: 요약 칸(협찬 표시 줄 포함) → 본문 (태그는 따로 끝에)
+function pcLines(){
+  const s=$("#rSummary").value.replace(/\r/g,"").trim(), b=$("#rBody").value.replace(/\r/g,"");
+  return (s?s.split("\n").concat([""]):[]).concat(b.split("\n"));
+}
+function lineHtml(line){return /^【.+】$/.test(line)?"<p><b>"+esc(line)+"</b></p>":"<p>"+esc(line)+"</p>";}
+function linesToHtml(lines){
+  const out=[];let blank=false;
+  for(const raw of lines){
+    const line=raw.trim();
+    if(!line){if(out.length&&!blank){out.push("<p><br></p>");blank=true;}continue;}
+    blank=false;out.push(lineHtml(line));
+  }
+  while(out.length&&out[out.length-1]==="<p><br></p>") out.pop();
+  return out.join("");
+}
+// 글을 "📷 사진 n" 줄로 잘라 [글][사진][글]… 순서로. 사진이 없으면 그 줄은 글로 남긴다. 자리 없는 사진은 맨 앞.
+function buildPieces(){
+  const n=current&&current.photoKey?current.photoKey.split(",").filter(Boolean).length:0, used=new Set(), pieces=[];
+  let buf=[];
+  const flush=()=>{const t=buf.join("\n").replace(/\n{3,}/g,"\n\n").trim();if(t) pieces.push({kind:"text",lines:buf.slice(),text:t});buf=[];};
+  for(const raw of pcLines()){
+    const m=raw.trim().match(MARK_RE);
+    if(m){const k=Number(m[1]);if(k>=1&&k<=n&&!used.has(k)&&imgOf(k)){flush();used.add(k);pieces.push({kind:"img",k});continue;}}
+    buf.push(raw);
+  }
+  const tags=$("#rTags").value.trim();
+  if(tags) buf.push("",tags);
+  flush();
+  const top=[];
+  for(let k=1;k<=n;k++) if(!used.has(k)&&imgOf(k)) top.push({kind:"img",k});
+  return top.concat(pieces);
+}
+function imgHtml(k){const im=imgOf(k);return '<p><img src="'+esc(im.url)+'" alt="'+esc(im.alt)+'" style="max-width:100%;height:auto"></p>';}
+function buildHtml(){
+  // 사진 바로 아래에 설명 문장이 붙도록, 사진 뒤에는 빈 줄을 넣지 않는다
+  const out=[];let prev=null;
+  buildPieces().forEach(pc=>{
+    if(prev&&prev.kind!=="img") out.push("<p><br></p>");
+    out.push(pc.kind==="img"?imgHtml(pc.k):linesToHtml(pc.lines));
+    prev=pc;
+  });
+  return out.join("");
+}
+function plainText(){return [$("#rSummary").value.trim(),$("#rBody").value.trim(),$("#rTags").value.trim()].filter(Boolean).join("\n\n");}
+function copyText(text){try{if(navigator.clipboard&&navigator.clipboard.writeText) return navigator.clipboard.writeText(text).then(()=>true,()=>false);}catch(_){}return Promise.resolve(false);}
+function execCopyHtml(html,text){
+  const d=document.createElement("div");
+  d.contentEditable="true";d.setAttribute("aria-hidden","true");
+  d.style.cssText="position:fixed;left:0;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none;white-space:normal";
+  d.innerHTML=html;document.body.appendChild(d);
+  const onCopy=e=>{try{e.clipboardData.setData("text/html",html);e.clipboardData.setData("text/plain",text);e.preventDefault();}catch(_){}};
+  document.addEventListener("copy",onCopy);
+  let ok=false;
+  try{const s=window.getSelection(),r=document.createRange();r.selectNodeContents(d);s.removeAllRanges();s.addRange(r);ok=document.execCommand("copy");s.removeAllRanges();}catch(_){ok=false;}
+  document.removeEventListener("copy",onCopy);d.remove();
+  return ok;
+}
+// HTML + 글 함께: ① ClipboardItem ② 숨은 칸 + execCommand ③ 글만
+function copyHtml(html,text){
+  try{
+    if(window.ClipboardItem&&navigator.clipboard&&navigator.clipboard.write){
+      const item=new ClipboardItem({"text/html":new Blob([html],{type:"text/html"}),"text/plain":new Blob([text],{type:"text/plain"})});
+      return navigator.clipboard.write([item]).then(()=>"html",()=>execCopyHtml(html,text)?"html":copyText(text).then(ok=>ok?"text":""));
+    }
+  }catch(_){}
+  if(execCopyHtml(html,text)) return Promise.resolve("html");
+  return copyText(text).then(ok=>ok?"text":"");
+}
+// 크롬 클립보드는 그림을 image/png로만 받는다 → canvas로 PNG 변환
+async function pngBlob(blob){
+  const bmp=await createImageBitmap(blob);
+  const c=document.createElement("canvas");c.width=bmp.width;c.height=bmp.height;
+  c.getContext("2d").drawImage(bmp,0,0);
+  if(bmp.close) try{bmp.close();}catch(_){}
+  return await new Promise((res,rej)=>c.toBlob(x=>x?res(x):rej(new Error("png")),"image/png"));
+}
+function copyImage(blob){
+  try{
+    if(window.ClipboardItem&&navigator.clipboard&&navigator.clipboard.write)
+      return navigator.clipboard.write([new ClipboardItem({"image/png":pngBlob(blob)})]).then(()=>true,()=>false);
+  }catch(_){}
+  return Promise.resolve(false);
+}
+function showFb(text){const f=$("#fbText");f.value=text;$("#fbBox").hidden=false;fit(f);f.focus();f.select();try{f.setSelectionRange(0,text.length);}catch(_){}}
+function paintPieces(){
+  const box=$("#pcPieces"),list=$("#pcList");
+  const pieces=buildPieces();
+  const key=JSON.stringify(pieces)+"|"+current.id+"|"+(pcJob&&pcJob.ready);
+  if(key===piecesKey) return;   // 내용이 같으면 그대로 (누른 ✓ 유지)
+  piecesKey=key;
+  box.hidden=pieces.length<2;list.textContent="";
+  if(box.hidden) return;
+  let ti=0,ii=0;
+  pieces.forEach(pc=>{
+    const b=document.createElement("button");b.type="button";b.className="mid piece";
+    const label=pc.kind==="text"?"글 "+(++ti)+" 복사":"사진 "+(++ii)+" 복사";
+    b.textContent=label;
+    b.addEventListener("click",async()=>{
+      const im=pc.kind==="img"?imgOf(pc.k):null;
+      const ok=pc.kind==="text"?!!(await copyHtml(linesToHtml(pc.lines),pc.text)):(im?await copyImage(im.blob):false);
+      if(ok){b.textContent="✓ "+label;b.classList.add("done");}
+      else{b.textContent=label+" — 다시 눌러 주세요";if(pc.kind==="text") showFb(pc.text);}
+    });
+    list.appendChild(b);
+  });
+}
+function paintPc(){
+  if(!IS_PC||!current) return;
+  $("#pcBox").hidden=false;
+  $("#cpAll").className="mid";
+  $("#pasteHint").textContent="네이버 블로그 PC 글쓰기 → 본문 칸 → 붙여넣기(Ctrl+V)";
+  const live=isLive();
+  if(live) preparePc();
+  const waiting=live&&pcJob&&!pcJob.ready;
+  const n=buildPieces().filter(p=>p.kind==="img").length;
+  const b=$("#pcAll");
+  b.disabled=!!waiting;
+  b.textContent=waiting?"그림 준비 중…":n?"그림과 글 함께 복사":"블로그에 붙여 넣을 글 복사";
+  $("#pcNote").textContent=waiting?"":n?"사진 "+n+"장이 글 사이 제자리에 들어가요. 설명 문장은 사진 바로 아래에 붙어요.":"사진은 방금 만든 글에서만 함께 복사돼요. 지금은 글만 복사돼요.";
+  paintPieces();
+}
+(function(){
+  const b=$("#pcAll");
+  b.addEventListener("click",async()=>{
+    if(!current||b.disabled) return;
+    const text=plainText(), n=buildPieces().filter(p=>p.kind==="img").length;
+    const how=await copyHtml(buildHtml(),text);
+    if(how==="html"){b.textContent=n?"✓ 그림 "+n+"장과 글 복사됨":"✓ 복사됨";$("#fbBox").hidden=true;}
+    else if(how==="text"){b.textContent="✓ 글만 복사됨 (사진은 한 칸씩 복사로)";}
+    else{b.textContent="복사가 안 됐어요";showFb(text);}
+    setTimeout(()=>paintPc(),2500);
+  });
+})();
 
 /* ---------- 지난 글 (이 기기에만) ---------- */
 function loadHist(){try{const v=JSON.parse(localStorage.getItem(HKEY)||"[]");return Array.isArray(v)?v:[];}catch(_){return [];}}
