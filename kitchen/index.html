@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow"><!-- 공개(결재) 전까지 검색에 안 나오게. 공개할 때 이 줄과 _headers 의 noindex 를 지운다 -->
+<meta name="theme-color" content="#f3e9d6">
+<title>밥 짓는 집</title>
+<meta name="description" content="링크로 들어와 같이 밥 짓는 온라인 부엌">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f3e9d6'/%3E%3Cpath d='M12 30h40l-4 18a6 6 0 0 1-6 5H22a6 6 0 0 1-6-5z' fill='%23a0703f'/%3E%3Crect x='8' y='26' width='48' height='6' rx='3' fill='%238a5e3a'/%3E%3Cpath d='M26 20c0-4 4-4 4-8M36 20c0-4 4-4 4-8' stroke='%23c9b79a' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="modulepreload" href="./vendor/three.module.min.js">
+<link rel="modulepreload" href="./kitchen.js">
+<style>
+  :root{ --cream:#f7f1e6; --ink:#3b2f25; --wood:#8a5e3a; --accent:#c9783e;
+    --st:env(safe-area-inset-top,0px); --sb:env(safe-area-inset-bottom,0px); --sl:env(safe-area-inset-left,0px); --sr:env(safe-area-inset-right,0px); }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;overflow:hidden;color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;
+    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overscroll-behavior:none;
+    background:radial-gradient(120% 90% at 50% 10%,#fffaf1 0%,#f1e5d1 60%,#dcc6a6 100%);transition:background 2s}
+  body[data-sky=dusk]{background:radial-gradient(120% 90% at 50% 10%,#fbe6d2 0%,#e8cfb4 60%,#b9977a 100%)}
+  body[data-sky=night]{background:radial-gradient(120% 90% at 50% 10%,#3a3550 0%,#25233a 60%,#16152a 100%)}
+  button,a{font:inherit;color:inherit;touch-action:manipulation;cursor:pointer}
+  #stage{position:fixed;inset:0;touch-action:none}
+  #stage canvas{display:block;width:100%;height:100%;touch-action:none;opacity:0;transition:opacity .5s}
+  body.ready #stage canvas{opacity:1}
+  #veil{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-size:15px;color:#8a6a4f;pointer-events:none;transition:opacity .5s}
+  body.ready #veil{opacity:0}
+  .ui{position:fixed;z-index:5}
+
+  /* 위쪽: 장소·현지 시각·날씨 · 문패 · 소리 · 냄비 시간 · 함께 숫자 · 알림 */
+  #topL{top:calc(10px + var(--st));left:calc(10px + var(--sl));display:flex;flex-direction:column;align-items:flex-start;gap:6px;max-width:62vw}
+  #placeChip{padding:7px 11px;border-radius:12px;background:rgba(255,252,246,.9);box-shadow:0 2px 8px rgba(70,40,15,.14);line-height:1.3}
+  #placeName{display:block;font-size:13px;font-weight:800}
+  #placeLocal{display:block;font-size:12px;color:#7a6654}
+  #plate{display:block;text-decoration:none;padding:6px 11px 7px;border-radius:9px;
+    background:linear-gradient(180deg,#b17a4b,#8a5a33);color:#fff7ea;font-size:12px;font-weight:700;line-height:1.2;
+    box-shadow:0 3px 0 #6b4425,0 6px 14px rgba(70,40,15,.25);border:1px solid #6b4425}
+  #plate small{display:block;font-size:10px;font-weight:600;opacity:.85;margin-top:2px;letter-spacing:0}
+  #plate{letter-spacing:.04em}
+  #soundBtn{top:calc(10px + var(--st));right:calc(10px + var(--sr));border:0;border-radius:999px;padding:9px 13px;font-size:13px;font-weight:700;
+    background:rgba(255,252,246,.92);box-shadow:0 3px 10px rgba(70,40,15,.18)}
+  #soundBtn.off{color:#9a8878}
+  #top{top:calc(118px + var(--st));left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
+  #potPill,#together,#bowls{padding:6px 13px;border-radius:999px;background:rgba(255,252,246,.88);font-size:13px;font-weight:600;box-shadow:0 2px 8px rgba(70,40,15,.12)}
+  #together[hidden],#bowls[hidden]{display:none}
+  #notice{padding:7px 14px;border-radius:999px;background:rgba(59,47,37,.86);color:#fff;font-size:13px;opacity:0;transform:translateY(-6px);transition:.3s;max-width:92vw;text-align:center}
+  #notice.on{opacity:1;transform:none}
+  @media (min-width:700px){ #top{top:calc(14px + var(--st))} }
+
+  /* 아래쪽: 내 이름표 · 버튼 줄 (인사 · 도마 톡 · 앉기 · 한마디 · 도장 · 더 보기) */
+  #bottom{left:0;right:0;bottom:calc(8px + var(--sb));display:flex;flex-direction:column;align-items:center;gap:8px;padding:0 8px}
+  #nameChip{padding:5px 11px;border-radius:999px;background:rgba(255,252,246,.9);font-size:12px;box-shadow:0 2px 8px rgba(70,40,15,.12)}
+  #nameChip b{color:#8a4f25}
+  #greetPop{display:flex;gap:6px;width:100%;max-width:460px}
+  #greetPop[hidden]{display:none}
+  #greetPop button{flex:1;min-height:46px;border:0;border-radius:14px;padding:8px 4px;font-size:14px;font-weight:700;background:#fffaf0;box-shadow:0 3px 10px rgba(70,40,15,.2)}
+  #bar{display:flex;gap:4px;width:100%;max-width:460px;padding:6px;border-radius:20px;background:rgba(255,252,246,.94);box-shadow:0 4px 16px rgba(70,40,15,.18)}
+  #bar button{flex:1;min-width:0;border:0;background:none;border-radius:14px;padding:6px 0 5px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:700;color:#5a4636}
+  #bar button i{font-style:normal;font-size:21px;line-height:1.1}
+  #bar button.on{background:#f3e6d2}
+  #bar #tokBtn{background:radial-gradient(circle at 35% 30%,#e7a36c,#b9703f);color:#fff;box-shadow:0 3px 0 #8a4f25}
+  #bar #tokBtn:active{transform:translateY(2px);box-shadow:0 1px 0 #8a4f25}
+  #bar button:disabled{opacity:.5}
+  #bar button[hidden]{display:none}
+  @media (max-width:400px){ #bar{gap:2px;padding:5px} #bar button{font-size:10px} #bar button i{font-size:19px} }
+  .pop{left:50%;bottom:calc(150px + var(--sb));transform:translateX(-50%);width:min(320px,88vw);background:#fffaf0;border-radius:18px;padding:12px 14px;text-align:center;
+    box-shadow:0 10px 30px rgba(70,40,15,.3);border:2px solid #efd9b4;display:flex;flex-direction:column;gap:6px;animation:popIn .35s ease}
+  .pop[hidden]{display:none}
+  .pop b{font-size:18px} .pop span{font-size:13px;color:#8a7461}
+  .pop button{border:0;border-radius:12px;padding:12px;font-size:16px;font-weight:800;background:#b9703f;color:#fff}
+  @keyframes popIn{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+  .jobList{display:flex;flex-direction:column;gap:8px}
+  .jobList .job{display:grid;grid-template-columns:34px 1fr;grid-template-rows:auto auto;align-items:center;text-align:left;border:0;border-radius:14px;padding:10px 12px;background:#fff;box-shadow:0 2px 8px rgba(70,40,15,.08)}
+  .jobList .job i{grid-row:1/3;font-style:normal;font-size:24px}
+  .jobList .job span{font-size:15px;font-weight:800} .jobList .job small{font-size:12px;color:#8a7461}
+  .jobList .job.here{background:#f3e6d2;outline:2px solid #d6935e}
+
+  /* 잘 먹겠습니다 */
+  #banner{top:30%;left:0;right:0;text-align:center;font-size:30px;font-weight:800;color:#fff;text-shadow:0 2px 0 #8a4f25,0 4px 18px rgba(90,40,10,.45);opacity:0;pointer-events:none}
+  #banner.on{animation:ban 4s ease forwards}
+  @keyframes ban{0%{opacity:0;transform:scale(.8)}12%{opacity:1;transform:scale(1.06)}20%{transform:scale(1)}80%{opacity:1}100%{opacity:0}}
+
+  /* 오늘의 한 그릇 카드 (요리 이름만) */
+  #card{top:calc(100px + var(--st));left:50%;width:min(300px,86vw);transform:translate(-50%,-12px);opacity:0;pointer-events:none;transition:.35s;
+    background:#fffaf0;border-radius:20px;padding:16px 16px 14px;text-align:center;box-shadow:0 14px 40px rgba(70,40,15,.28);border:2px solid #efe0c6}
+  #card.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+  #card .k{font-size:12px;letter-spacing:.2em;color:var(--accent);font-weight:700}
+  #card .bowlart{width:64px;height:38px;margin:10px auto 6px;border-radius:0 0 40px 40px;background:linear-gradient(180deg,#c9a45a,#a8833f);position:relative}
+  #card .bowlart:before{content:"";position:absolute;left:6px;right:6px;top:-12px;height:20px;border-radius:50%;background:#fbf6ea;box-shadow:inset 0 -3px 0 #efe6d2}
+  #cardName{margin:4px 0 12px;font-size:22px;font-weight:800}
+  #card .btns{display:flex;gap:8px}
+  #card .btns button{flex:1;border:0;border-radius:12px;padding:11px 6px;font-size:14px;font-weight:700}
+  #cardEat{background:#b9703f;color:#fff} #cardNote{background:#fff0c2}
+
+  /* 밥상 한마디 판 · 쓰기 */
+  .sheet{left:0;right:0;bottom:0;max-height:78vh;overflow:auto;background:#fffaf0;border-radius:22px 22px 0 0;padding:16px 16px calc(16px + var(--sb));
+    box-shadow:0 -10px 40px rgba(70,40,15,.25);transform:translateY(105%);transition:transform .3s;z-index:9;-webkit-user-select:text;user-select:text}
+  .sheet.on{transform:none}
+  .sheet h2{margin:0 0 4px;font-size:19px} .sheet .sub{margin:0 0 12px;font-size:13px;color:#8a7461}
+  .sheet .x{position:absolute;top:10px;right:12px;border:0;background:#f1e7d6;border-radius:999px;width:36px;height:36px;font-size:18px}
+  #noteList{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+  #noteList li{border-radius:6px;padding:12px 12px 8px;box-shadow:0 3px 8px rgba(70,40,15,.12);transform:rotate(-.6deg)}
+  #noteList li:nth-child(2n){transform:rotate(.7deg)}
+  #noteList p{margin:0 0 8px;font-size:15px;line-height:1.45;word-break:keep-all;overflow-wrap:anywhere}
+  #noteList .who{display:block;font-size:12px;color:#8a6a4f;margin-bottom:6px}
+  #noteList .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  #noteList .row button{white-space:nowrap}
+  #noteList .row .report{margin-left:auto}
+  #noteList .todak{border:0;border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700;background:rgba(255,255,255,.8)}
+  #noteList .todak:disabled{color:#b9703f}
+  #noteList .report{border:0;background:none;font-size:12px;color:#a08b77;padding:6px}
+  .emptyNote{padding:18px;text-align:center;border:2px dashed #e6d6bb;border-radius:14px;font-size:15px;color:#8a6a4f;margin-bottom:10px}
+  .emptyNote[hidden],.offNote[hidden]{display:none}
+  .offNote{font-size:13px;color:#8a7461;margin:0 0 10px;text-align:center}
+  .bigBtn{width:100%;margin-top:12px;border:0;border-radius:14px;padding:14px;font-size:16px;font-weight:800;background:#b9703f;color:#fff}
+  .bigBtn:disabled{background:#d8c8b4}
+  #writeText{width:100%;min-height:88px;font-size:17px;padding:12px;border-radius:14px;border:2px solid #e6d6bb;background:#fffdf9;resize:none;outline:none;color:var(--ink);font-family:inherit}
+  #writeText:focus{border-color:var(--accent)}
+  .wmeta{display:flex;justify-content:space-between;font-size:12px;color:#8a7461;margin-top:6px}
+  #writeMsg{min-height:18px;font-size:13px;color:#b0502a;margin-top:8px}
+  .rules{font-size:12px;color:#8a7461;margin:8px 0 0;line-height:1.5}
+
+  .stamps{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:6px 0 4px}
+  .stamp{text-align:center;padding:10px 4px;border-radius:14px;background:#fff;box-shadow:0 2px 8px rgba(70,40,15,.1)}
+  .stamp .ink{width:62px;height:62px;margin:0 auto 6px;border-radius:50%;border:3px dashed #d8c8b4;display:flex;align-items:center;justify-content:center;font-size:28px;filter:grayscale(1);opacity:.45}
+  .stamp.got .ink{border-style:solid;filter:none;opacity:1;transform:rotate(-8deg)}
+  .stamp b{display:block;font-size:13px} .stamp span{display:block;font-size:12px;color:#8a7461;margin-top:2px}
+  .stamp a{display:inline-block;margin-top:6px;font-size:12px;color:#8a4f25}
+  .moreList{display:flex;flex-direction:column;gap:8px}
+  .moreList button,.moreList a{display:block;width:100%;text-align:left;border:0;border-radius:14px;padding:13px 14px;background:#fff;font-size:15px;font-weight:700;text-decoration:none;box-shadow:0 2px 8px rgba(70,40,15,.08)}
+  .moreList small{display:block;font-size:12px;font-weight:500;color:#8a7461;margin-top:2px}
+  .placeLinks{display:flex;gap:6px} .placeLinks a{flex:1;text-align:center;padding:11px 4px}
+  .placeLinks a.here{background:#f3e6d2}
+  #flash{inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .35s;z-index:15}
+  #flash.on{opacity:.8;transition:none}
+
+  /* 입장 화면 */
+  #enter{inset:0;z-index:30;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(250,243,232,.45);
+    -webkit-backdrop-filter:blur(10px) saturate(1.1);backdrop-filter:blur(10px) saturate(1.1);transition:opacity .5s}
+  #enter.gone{opacity:0;pointer-events:none}
+  #enter .inner{width:100%;max-width:360px;text-align:center;-webkit-user-select:text;user-select:text}
+  #enter h1{margin:0 0 14px;font-size:27px;line-height:1.35;font-weight:800;color:#3b2f25;text-shadow:0 1px 0 rgba(255,255,255,.6)}
+  .enterPlate{display:inline-block;padding:7px 16px 8px;border-radius:10px;background:linear-gradient(180deg,#b17a4b,#8a5a33);color:#fff7ea;font-weight:800;letter-spacing:.06em;font-size:15px;box-shadow:0 3px 0 #6b4425}
+  .enterPlate small{display:block;font-size:11px;font-weight:600;letter-spacing:0;opacity:.9;margin-top:2px}
+  #enter .calm{margin:14px 0 18px;font-size:14px;line-height:1.6;color:#6b5848}
+  #enter label{display:block;text-align:left;font-size:13px;font-weight:700;color:#6b5848;margin:0 0 6px 4px}
+  #enter .nameRow{display:flex;gap:8px}
+  #enterName{flex:1;min-width:0;font-size:18px;padding:13px 14px;border-radius:14px;border:2px solid #e0cfb5;background:#fffdf9;outline:none;color:#3b2f25;font-family:inherit}
+  #enterName:focus{border-color:#c9783e}
+  #enterDice{width:54px;border:0;border-radius:14px;background:#fff6e4;font-size:24px;box-shadow:0 2px 8px rgba(70,40,15,.12)}
+  #enter .hint{margin:8px 0 0;font-size:12px;color:#8a7461;text-align:left;padding-left:4px}
+  #enter .msg{min-height:18px;margin-top:6px;font-size:13px;color:#b0502a}
+  #enterGo{margin:14px auto 0;width:128px;height:128px;border-radius:50%;border:0;font-size:20px;font-weight:800;color:#fff;
+    background:radial-gradient(circle at 40% 35%,#f2b47a,#c9783e 60%,#a85f2c);box-shadow:0 0 0 8px rgba(255,214,160,.35),0 0 40px 10px rgba(255,190,120,.55);animation:glow 2.4s ease-in-out infinite}
+  @keyframes glow{50%{box-shadow:0 0 0 14px rgba(255,214,160,.22),0 0 60px 18px rgba(255,190,120,.7)}}
+  body:not(.in) #bottom,body:not(.in) #top,body:not(.in) #soundBtn,body:not(.in) #topL{visibility:hidden}
+  /* 저녁 짓는 시간 */
+  #liveBox{left:50%;transform:translateX(-50%);top:calc(150px + var(--st));width:min(360px,92vw);display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none}
+  #liveBox[hidden]{display:none}
+  #liveBox .badge{padding:5px 12px;border-radius:999px;background:rgba(59,47,37,.88);color:#fff;font-size:12px}
+  #liveBox .badge b{background:#e0483a;border-radius:4px;padding:1px 6px;margin-right:4px}
+  #liveBox .line{padding:9px 14px;border-radius:14px;background:rgba(255,252,246,.94);font-size:15px;font-weight:700;text-align:center;box-shadow:0 4px 14px rgba(70,40,15,.15);min-height:20px}
+  #liveBox .line.in{animation:popIn2 .5s ease}
+  @keyframes popIn2{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  #instaLive{pointer-events:auto;padding:10px 16px;border-radius:999px;background:#e0483a;color:#fff;font-weight:800;font-size:14px;text-decoration:none}
+  #instaLive[hidden]{display:none}
+  /* 한마디 답 */
+  #noteList .replies{margin:0 0 6px}
+  #noteList .reply{display:flex;justify-content:space-between;gap:6px;font-size:13px;color:#5a4636;padding:3px 0;border-top:1px dashed rgba(90,70,54,.2)}
+  #noteList .reply .report{padding:0 4px}
+  #noteList .todak.did{color:#b9703f}
+  #noteList .replyBtn{border:0;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:700;background:rgba(255,255,255,.6)}
+  #noteList .replyBox{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+  #noteList .replyBox input{flex:1;min-width:0;font-size:16px;padding:8px 10px;border-radius:10px;border:1px solid #e0cfb5;background:#fffdf9;font-family:inherit}
+  #noteList .replyBox button{border:0;border-radius:10px;padding:8px 12px;background:#b9703f;color:#fff;font-weight:700}
+  #noteList .replyMsg{width:100%;font-size:12px;color:#b0502a}
+  .anon{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:15px;font-weight:700}
+  .anon input{width:20px;height:20px;accent-color:#c9783e}
+  .rules.center{text-align:center}
+  #toast{left:50%;bottom:calc(140px + var(--sb));transform:translateX(-50%);padding:10px 16px;border-radius:999px;background:rgba(59,47,37,.9);color:#fff;font-size:14px;opacity:0;pointer-events:none;transition:.25s;z-index:12;white-space:nowrap}
+  #toast.on{opacity:1}
+  #fatal{inset:auto 16px 40% 16px;padding:16px;border-radius:14px;background:#fff;text-align:center;font-size:15px;z-index:20;box-shadow:0 8px 30px rgba(0,0,0,.2)}
+  #fatal[hidden]{display:none}
+  @media (min-width:800px){ #banner{font-size:40px} #tokBtn{width:86px;height:86px} }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="veil">부엌 불을 켜는 중…</div>
+
+<!-- 입장 화면: 흐린 부엌 위에 이름 하나만 -->
+<div id="enter" class="ui">
+  <div class="inner">
+    <h1>이름만 적고 들어와<br>밥 한 끼 하고 가는 곳</h1>
+    <div id="enterPlate" class="enterPlate"></div>
+    <p class="calm">요리 안 해도 괜찮아요.<br>그냥 앉아 있다 가도 돼요.</p>
+    <label for="enterName">이 안에서 불릴 이름</label>
+    <div class="nameRow"><input id="enterName" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"><button id="enterDice" type="button" aria-label="이름 다시 뽑기">🎲</button></div>
+    <p class="hint">실명이나 연락처 말고 편한 이름이면 돼요</p>
+    <div id="enterMsg" class="msg"></div>
+    <button id="enterGo" type="button">들어가기</button>
+  </div>
+</div>
+
+<!-- 저녁 짓는 시간 (live.js) -->
+<div id="liveBox" class="ui" hidden>
+  <div class="badge"><b>LIVE</b> <span id="liveTitle"></span></div>
+  <div id="liveLine" class="line"></div>
+  <a id="instaLive" href="#" target="_blank" rel="noopener" hidden></a>
+</div>
+
+<div id="topL" class="ui">
+  <div id="placeChip"><b id="placeName"></b><span id="placeLocal"></span></div>
+  <!-- 문패: 장소별 디자인은 디자인팀 시안 확정 뒤 (places.js plate) --><a id="plate" href="https://www.instagram.com/ssoll0820/" target="_blank" rel="noopener" aria-label="SOLL KITCHEN 쏠키친 인스타그램">SOLL KITCHEN · 쏠키친</a>
+</div>
+<button id="soundBtn" class="ui" type="button" aria-pressed="true">소리 켜짐</button>
+<div id="top" class="ui"><div id="potPill">냄비가 끓고 있어요</div><div id="together" hidden></div><div id="bowls" hidden></div><div id="notice" aria-live="polite"></div></div>
+
+<div id="banner" class="ui">잘 먹겠습니다</div>
+
+<div id="callBox" class="ui pop" hidden>
+  <b>밥 됐어요~~~</b>
+  <span id="callLeft"></span>
+  <button id="callGo" type="button">밥 먹으러 가기</button>
+</div>
+<div id="backBox" class="ui pop" hidden>
+  <b>잘 먹었습니다</b>
+  <button id="backGo" type="button">일거리로 돌아가기</button>
+</div>
+
+<div id="card" class="ui" role="dialog" aria-label="오늘의 한 그릇">
+  <div class="k">오늘의 한 그릇</div>
+  <div class="bowlart" aria-hidden="true"></div>
+  <div id="cardName"></div>
+  <div class="btns"><button id="cardEat" type="button">잘 먹었습니다</button><button id="cardNote" type="button">한마디 남기기</button></div>
+</div>
+
+<div id="bottom" class="ui">
+  <div id="nameChip">내 이름표 <b id="myName"></b></div>
+  <div id="greetPop" hidden>
+    <button type="button" data-g="0"></button>
+    <button type="button" data-g="1"></button>
+    <button type="button" data-g="2"></button>
+  </div>
+  <nav id="bar" aria-label="부엌 버튼">
+    <button id="greetBtn" type="button" aria-expanded="false"><i>👋</i>인사</button>
+    <button id="jobBtn" type="button"><i>🧺</i>일거리</button>
+    <button id="tokBtn" type="button"><i>🔪</i>도마 톡</button>
+    <button id="sitBtn" type="button"><i>🪑</i><span>앉기</span></button>
+    <button id="noteBtn" type="button"><i>📝</i>한마디</button>
+    <button id="stampBtn" type="button"><i>🔖</i>도장</button>
+    <button id="moreBtn" type="button"><i>⋯</i>더 보기</button>
+  </nav>
+</div>
+
+<section id="notes" class="ui sheet" aria-label="밥상 한마디">
+  <button class="x" type="button" data-close aria-label="닫기">×</button>
+  <h2>밥상 한마디</h2>
+  <p class="sub">같이 밥 먹은 분들이 남긴 한마디예요. 마음에 닿으면 "토닥", 한 줄로 답해도 돼요.</p>
+  <div id="noteEmpty" class="emptyNote">첫 한마디를 남겨 주세요</div>
+  <p id="noteOff" class="offNote" hidden>지금은 연습 부엌이라 아직 남길 수 없어요. 부엌 문을 열면 남길 수 있어요.</p>
+  <ul id="noteList"></ul>
+  <button id="noteWriteBtn" class="bigBtn" type="button">오늘 한마디 남기기</button>
+  <p class="rules center">마음을 다치게 하는 글은 내려갈 수 있어요.</p>
+</section>
+
+<section id="write" class="ui sheet" aria-label="한마디 남기기">
+  <button class="x" type="button" data-close aria-label="닫기">×</button>
+  <h2>오늘 어떤 하루였어요?</h2>
+  <textarea id="writeText" rows="4"></textarea>
+  <div class="wmeta"><span>하루 3개까지</span><span id="writeCount">0 / 100</span></div>
+  <label class="anon"><input id="writeAnon" type="checkbox" checked> 이름 없이 나누기</label>
+  <p id="writeNameRow" class="sub" hidden>이름 <b id="writeName"></b>(으)로 나눠요.</p>
+  <div id="writeMsg"></div>
+  <p class="rules">나눈 한마디는 이름·기기 정보 없이 60일까지 보여요. 내가 올린 글은 이 기기에서 언제든 내릴 수 있어요. 연락처·링크는 올라가지 않아요.</p>
+  <button id="writeSend" class="bigBtn" type="button">나누기</button>
+</section>
+
+<section id="jobSheet" class="ui sheet" aria-label="일거리">
+  <button class="x" type="button" data-close aria-label="닫기">×</button>
+  <h2>일거리</h2>
+  <p class="sub">하고 싶은 일을 고르면 그 자리로 옮겨 가요. 화면을 톡 누를 때마다 한 번씩 해요. 밥이 되면 같이 먹으러 가요.</p>
+  <div id="jobList" class="jobList"></div>
+</section>
+
+<section id="stampSheet" class="ui sheet" aria-label="도장 수첩">
+  <button class="x" type="button" data-close aria-label="닫기">×</button>
+  <h2>도장 수첩</h2>
+  <p class="sub">하루에 한 번, 솥이 한 바퀴 도는 동안 함께 있으면 그 부엌 도장을 받아요. 이 휴대폰에만 저장돼요.</p>
+  <div id="stampList" class="stamps"></div>
+</section>
+
+<section id="moreSheet" class="ui sheet" aria-label="더 보기">
+  <button class="x" type="button" data-close aria-label="닫기">×</button>
+  <h2>더 보기</h2>
+  <div class="moreList">
+    <button id="photoBtn" type="button">📷 지금 화면 사진으로 저장<small>이름표까지 같이 찍혀요</small></button>
+    <button id="soundBtn2" type="button">🔊 소리 켜기/끄기</button>
+    <div class="placeLinks" id="placeLinks"></div>
+    <a href="https://www.instagram.com/ssoll0820/" target="_blank" rel="noopener">🏠 SOLL KITCHEN · 쏠키친<small>쏠의 인스타그램으로 가요</small></a>
+  </div>
+</section>
+
+<div id="flash" class="ui"></div>
+<div id="toast" class="ui"></div>
+<div id="fatal" class="ui" hidden></div>
+<noscript><p style="position:fixed;inset:40% 16px auto;text-align:center">이 부엌은 자바스크립트를 켜야 보여요.</p></noscript>
+<script>
+  window.addEventListener('error', function (e) { if (e && e.message && /import|module|Failed to fetch/i.test(e.message)) { var f = document.getElementById('fatal'); f.textContent = '부엌을 여는 중에 문제가 생겼어요. 새로고침해 주세요.'; f.hidden = false; } });
+</script>
+<script type="module" src="./kitchen.js"></script>
+</body>
+</html>

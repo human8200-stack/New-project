@@ -1,0 +1,30 @@
+# 밥 짓는 집 — 실시간 서버 (Cloudflare Worker + Durable Object). 배포는 회장님 로그인·결재 뒤에.
+# 공부 루틴의 worker/(study-ai)·에이블 라운지와 따로인 새 Worker 다. 같은 Cloudflare 계정이면 무료 하루 한도는 같이 쓴다.
+name = "bab-kitchen"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+
+[vars]
+# 부엌 화면 주소만 받는다 (공개 때 실제 주소로 바꿈. 비어 있으면 모두 받음 — 시험용)
+ALLOWED_ORIGIN = ""
+ROOM_SIZE = "50"        # 방 하나 사람 수
+MAX_TOTAL = "3000"      # 동시에 이보다 많으면 새로 온 사람은 구경 모드
+DAILY_LIMIT = "60000"   # 하루 요청이 이만큼 넘으면 그날은 모두 구경 모드 (무료 한도 보호)
+NOTES_DAY_MAX = "500"   # 하루 한마디 전체 개수 한도
+
+[[durable_objects.bindings]]
+name = "ROOM"
+class_name = "Room"
+
+[[durable_objects.bindings]]
+name = "LOBBY"
+class_name = "Lobby"
+
+[[durable_objects.bindings]]
+name = "BOARD"
+class_name = "Board"
+
+# 무료 요금제에서 쓸 수 있는 SQLite 저장 방식
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Room", "Lobby", "Board"]
