@@ -551,7 +551,7 @@ const GEO = {
   scarf: new THREE.SphereGeometry(0.322, 18, 8, 0, Math.PI * 2, 0, Math.PI * 0.4), bun: new THREE.SphereGeometry(0.11, 12, 8),
   gatBrim: new THREE.CylinderGeometry(0.56, 0.56, 0.012, 20), gatCrown: new THREE.CylinderGeometry(0.15, 0.17, 0.27, 12), gatStrap: new THREE.TorusGeometry(0.3, 0.007, 3, 12, Math.PI),
   binyeo: new THREE.CylinderGeometry(0.012, 0.012, 0.36, 5), sangtu: new THREE.SphereGeometry(0.08, 8, 6),
-  eye: new THREE.SphereGeometry(0.04, 8, 6), glass: new THREE.TorusGeometry(0.075, 0.011, 6, 18), cheek: new THREE.SphereGeometry(0.045, 8, 6),
+  eye: new THREE.SphereGeometry(0.027, 8, 6), cheek: new THREE.SphereGeometry(0.045, 8, 6),
   leg: new THREE.CapsuleGeometry(0.095, 0.2, 4, 8), arm: new THREE.CapsuleGeometry(0.075, 0.24, 4, 8), hand: new THREE.SphereGeometry(0.075, 8, 6),
   apron: new THREE.CylinderGeometry(0.283, 0.3, 0.42, 16, 1, true, -1.05, 2.1), apronShort: new THREE.CylinderGeometry(0.29, 0.31, 0.26, 16, 1, true, -1.0, 2.0), band: new THREE.TorusGeometry(0.285, 0.018, 4, 20), bib: new THREE.BoxGeometry(0.28, 0.2, 0.025), strap: new THREE.BoxGeometry(0.03, 0.22, 0.02),
   skirt: new THREE.CylinderGeometry(0.3, 0.4, 0.62, 18, 1, true), goreum: new THREE.BoxGeometry(0.05, 0.16, 0.02),
@@ -567,7 +567,7 @@ const LOOK = {
   apron: ['#fbf7ee', '#a9b8a5', '#c98a62', '#e7c56a', '#9fb7cf', '#d9a5a0', '#f4efe2'],
   hair: ['#3b2a20', '#5a3e2b', '#2a2320', '#7a5236', '#a0764c', '#4a3b33'],
 };
-const SKIN = mat('#ffe3c8'), DARK = mat('#2b2b2b'), CHEEK = mat('#f5a3a3'), PANTS = mat('#5b5048'), STEEL = mat('#dfe2e6', { emissive: '#3a3e44', emissiveIntensity: 0.35 }), WOOD = mat('#7a5236');
+const SKIN = mat('#FBE2D0'), DARK = mat('#2B2422'), CHEEK = new THREE.MeshBasicMaterial({ color: '#F5A9A6', transparent: true, opacity: 0.5, depthWrite: false }), PANTS = mat('#5b5048'), STEEL = mat('#dfe2e6', { emissive: '#3a3e44', emissiveIntensity: 0.35 }), WOOD = mat('#7a5236');
 const GAT_M = new THREE.MeshLambertMaterial({ color: '#141414', transparent: true, opacity: 0.72, depthWrite: false, side: THREE.DoubleSide }); // 갓: 얇고 비치는 흑립 느낌
 const BINYEO = mat('#d4af37', { emissive: '#3a2a08', emissiveIntensity: 0.3 });
 const SHADOW_M = new THREE.MeshBasicMaterial({ color: 0x3b2a1a, transparent: true, opacity: 0.16, depthWrite: false });
@@ -626,11 +626,9 @@ function buildFigure(look, tagText, tagBg) {
   else if (look.hat === 'toque') { const wm = mat('#ffffff'); cyl(head, 0.22, 0.22, 0.3, wm, 0, 0.18, -0.02, 16); sph(head, 0.27, wm, 0, 0.55, -0.02, 14, 10).scale.y = 0.6; }
   else if (look.hat === 'beret') { const b = sph(head, 0.33, mat('#3a3a48'), 0.03, 0.2, -0.02, 16, 8); b.scale.y = 0.32; b.rotation.z = 0.2; }
   else if (look.hat === 'straw') { const st = mat('#d9b56a'); cyl(head, 0.5, 0.5, 0.025, st, 0, 0.16, 0, 20); cyl(head, 0.24, 0.27, 0.17, st, 0, 0.17, 0, 16); }
-  if (look.glasses) for (const sx of [-1, 1]) { const g0 = new THREE.Mesh(GEO.glass, DARK); g0.position.set(sx * 0.11, 0, 0.29); head.add(g0); } // 동그란 안경
-  if (look.glasses) { const br = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.012, 0.012), DARK); br.position.set(0, 0.01, 0.3); head.add(br); }
   for (const sx of [-1, 1]) {
-    const e = new THREE.Mesh(GEO.eye, DARK); e.position.set(sx * 0.11, 0, 0.27); head.add(e);
-    const ck = new THREE.Mesh(GEO.cheek, CHEEK); ck.position.set(sx * 0.18, -0.08, 0.24); ck.scale.z = 0.4; head.add(ck);
+    const e = new THREE.Mesh(GEO.eye, DARK); e.position.set(sx * 0.081, -0.054, 0.285); head.add(e); // 점 눈 (흰자·코·입 없음, 시안 비율)
+    const ck = new THREE.Mesh(GEO.cheek, CHEEK); ck.scale.set(1, 0.53, 0.3); ck.position.set(sx * 0.135, -0.12, 0.255); head.add(ck); // 볼터치 (반투명)
   }
   const pantsM = look.pants ? mat(look.pants) : PANTS;
   A.legs = [-1, 1].map((sx) => { const p = new THREE.Group(); p.position.set(sx * 0.13, 0.05, 0); hips.add(p); const m = new THREE.Mesh(GEO.leg, pantsM); m.position.y = -0.2; p.add(m); return p; });
@@ -837,6 +835,61 @@ function updateBits(now, dt) {
   }
 }
 
+/* ---------------- 부엌 주인 쏠 (디자인팀 시안 1: 일자 앞머리 단발 · 점 눈 · 볼터치 · 코·입 없음 · 머리:몸 = 1:1 · 손 모은 자세 · 안경 없음) ---------------- */
+// 기준 u = 머리 지름. 크기 비율은 시안 표 그대로 (눈 0.09 · 간격 0.27 · 볼 0.15×0.08 · 몸 높이 0.85 · 위 폭 0.63 · 아래 폭 0.71 · 팔 0.4×0.17 · 손 0.15 · 발 0.19×0.12)
+const SOLL = { skin: '#FBE2D0', hair: '#43352F', eye: '#2B2422', cheek: '#F5A9A6', feet: '#9C7A62', pin: '#D9B45A' };
+function buildSoll(look, tagText) {
+  const u = 0.66, r = u / 2, bodyH = 0.85 * u, rTop = 0.315 * u, rBot = 0.355 * u, footH = 0.12 * u;
+  const A = { root: new THREE.Group(), chopUntil: 0, bubble: null, bubbleAt: 0, off: Math.random() * 1000, nodAt: -1e9, hipY: footH * 0.6, handY: -(0.4 * u + 0.02) };
+  const hips = new THREE.Group(); hips.position.y = A.hipY; A.root.add(hips); A.hips = hips;
+  const torso = new THREE.Group(); hips.add(torso); A.torso = torso;
+  if (look.skirt) { // 한복: 저고리(위) + 치마(아래, 넓게)
+    cyl(torso, rTop * 0.96, rTop, bodyH * 0.45, mat(look.top), 0, bodyH * 0.55, 0, 16);
+    cyl(torso, rTop * 1.02, rBot * 1.12, bodyH * 0.62, mat(look.skirt), 0, 0, 0, 16);
+    const cm = mat(look.collar || '#9DB3D3'); for (const sx of [-1, 1]) { const c = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.17, 0.02), cm); c.position.set(sx * 0.045, bodyH * 0.86, rTop * 0.95); c.rotation.z = sx * 0.55; torso.add(c); } // 깃 (V)
+    if (look.goreum) { const gm = mat(look.goreum); for (const [rz, dx] of [[0.25, 0.05], [-0.1, 0.085]]) { const g = new THREE.Mesh(GEO.goreum, gm); g.scale.set(0.8, 0.8, 1); g.position.set(dx, bodyH * 0.7, rTop * 1.0); g.rotation.set(-0.15, 0, rz); torso.add(g); } } // 고름
+  } else cyl(torso, rTop, rBot, bodyH, mat(look.top), 0, 0, 0, 16);
+  if (look.apron) { // 짧은 크림 앞치마 + 끈
+    const am = new THREE.MeshLambertMaterial({ color: look.apron, side: THREE.DoubleSide });
+    const ap = new THREE.Mesh(new THREE.CylinderGeometry(rBot * (look.skirt ? 1.08 : 1.02), rBot * (look.skirt ? 1.14 : 1.05), bodyH * 0.42, 14, 1, true, -0.95, 1.9), am); ap.position.y = bodyH * 0.27; torso.add(ap);
+    const band = new THREE.Mesh(new THREE.TorusGeometry(rTop * 1.02, 0.012, 4, 20), mat(look.apronString || '#E7A496')); band.rotation.x = Math.PI / 2; band.position.y = bodyH * 0.5; torso.add(band);
+  }
+  if (look.scarf) { const sc = new THREE.Mesh(new THREE.TorusGeometry(rTop * 0.7, 0.03, 6, 16), mat(look.scarf)); sc.rotation.x = Math.PI / 2; sc.position.y = bodyH * 0.98; torso.add(sc); } // 작은 스카프
+  const head = new THREE.Group(); head.position.y = bodyH + r * 0.92; torso.add(head); A.head = head;
+  head.add(new THREE.Mesh(new THREE.SphereGeometry(r, 20, 14), mat(SOLL.skin)));
+  const hm = mat(SOLL.hair), sh = r * 1.04;
+  if (look.hairKind === 'jjok') { // 쪽진머리: 가운데 가르마 껍질 + 뒤통수 아래 쪽 + 금색 비녀
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(sh, 20, 10, 0, Math.PI * 2, 0, Math.PI * 0.42), hm); cap.rotation.x = -0.18; head.add(cap);
+    const back = new THREE.Mesh(new THREE.SphereGeometry(sh, 16, 10, Math.PI, Math.PI, 0, Math.PI * 0.62), hm); head.add(back);
+    const bun = new THREE.Mesh(GEO.bun, hm); bun.scale.set(0.33 * u / 0.22, 0.27 * u / 0.22, 0.27 * u / 0.22); bun.position.set(0, -0.12 * u, -0.5 * u); head.add(bun);
+    const pin = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.5 * u, 5), mat(SOLL.pin, { emissive: '#3a2a08', emissiveIntensity: 0.3 })); pin.rotation.z = Math.PI / 2; pin.position.set(0, -0.12 * u, -0.52 * u); head.add(pin);
+  } else { // 일자 앞머리 단발: 뒤·옆 껍질(끝 = 중심 아래 0.33) + 앞머리(끝 = 눈 위 0.3)
+    const bobT = Math.acos(clamp(-0.33 * u / sh, -1, 1)), bangT = Math.acos(clamp((-0.09 + 0.3) * u / sh, -1, 1));
+    head.add(new THREE.Mesh(new THREE.SphereGeometry(sh, 20, 12, Math.PI * 0.72, Math.PI * 1.56, 0, bobT), hm));
+    head.add(new THREE.Mesh(new THREE.SphereGeometry(sh * 1.005, 16, 8, Math.PI * 0.2, Math.PI * 0.6, 0, bangT), hm));
+  }
+  const eyeM = mat(SOLL.eye), ckM = new THREE.MeshBasicMaterial({ color: SOLL.cheek, transparent: true, opacity: 0.5, depthWrite: false });
+  for (const sx of [-1, 1]) {
+    const e = new THREE.Mesh(new THREE.SphereGeometry(0.045 * u, 8, 6), eyeM); e.position.set(sx * 0.135 * u, -0.09 * u, r * 0.94); head.add(e);
+    const ck = new THREE.Mesh(new THREE.SphereGeometry(0.075 * u, 10, 6), ckM); ck.scale.set(1, 0.53, 0.3); ck.position.set(sx * 0.22 * u, -0.2 * u, r * 0.86); head.add(ck);
+  }
+  if (look.hat === 'straw') { const st = mat('#EEDCB0'); cyl(head, 0.7 * u, 0.7 * u, 0.02, st, 0, r * 0.55, 0, 22); cyl(head, 0.3 * u, 0.33 * u, 0.25 * u, st, 0, r * 0.55, 0, 16); cyl(head, 0.335 * u, 0.335 * u, 0.06 * u, mat('#7A5A44'), 0, r * 0.57, 0, 16); }
+  else if (look.hat === 'toque') { const wm = mat('#FFFFFF'); cyl(head, 0.36 * u, 0.36 * u, 0.32 * u, wm, 0, r * 0.45, -0.02, 16); sph(head, 0.44 * u, wm, 0, r * 0.45 + 0.42 * u, -0.02, 14, 10).scale.y = 0.6; }
+  const armM = mat(look.skirt ? look.top : look.top), skinM = mat(SOLL.skin);
+  A.arms = [-1, 1].map((sx) => { // 손 모은 자세 (팔을 앞으로 모음)
+    const p = new THREE.Group(); p.position.set(sx * (rTop + 0.02), bodyH * 0.9, 0); p.rotation.z = sx * -0.45; torso.add(p);
+    const m = new THREE.Mesh(new THREE.CapsuleGeometry(0.085 * u, 0.4 * u - 0.17 * u, 4, 8), armM); m.position.y = -0.2 * u; p.add(m);
+    const hd = new THREE.Mesh(new THREE.SphereGeometry(0.075 * u, 8, 6), skinM); hd.position.y = -(0.4 * u); p.add(hd); return p;
+  });
+  A.restLX = -0.55; // 기본 팔 앞으로 (손 모음)
+  A.legs = [-1, 1].map((sx) => { const p = new THREE.Group(); p.position.set(sx * 0.12 * u, 0, 0.03); hips.add(p); const f = sph(p, 0.095 * u, mat(look.feet || SOLL.feet), 0, -A.hipY + footH * 0.5, 0.02, 10, 6); f.scale.set(1, 0.63, 1.3); return p; }); // 발 (다리 없음)
+  const shadow = new THREE.Mesh(GEO.shadow, SHADOW_M); shadow.scale.setScalar(0.8); shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.012; A.root.add(shadow);
+  const lt = labelTex(tagText, 'rgba(95,117,80,0.92)', '#fff', 38);
+  const tag = screenSprite(lt, TAG_K, 4); tag.position.y = look.hat === 'toque' ? 1.62 : look.hat === 'straw' ? 1.42 : 1.3; hips.add(tag); A.tag = tag;
+  room.add(A.root);
+  return A;
+}
+
 /* ---------------- 연출 캐릭터 (그 부엌의 주인·일꾼 — 손님 아님, 사람 수에 안 셈) ---------------- */
 const staff = [];
 function prepTable(x, z, kind) { // 작은 작업대 + 위 소품
@@ -858,13 +911,13 @@ function holdBasket(A, kind) { // 두 손으로 드는 바구니 (올리브 · �
 }
 function buildStaff() {
   for (const d of P.staff || []) {
-    const A = buildFigure(d.look, d.role, 'rgba(95,117,80,0.92)'); A.def = d; A.isStaff = true;
+    const A = d.owner ? buildSoll(d.look, d.role) : buildFigure(d.look, d.role, 'rgba(95,117,80,0.92)'); A.def = d; A.isStaff = true;
     const [x, z, rot] = d.at; A.x = x; A.z = z; A.root.position.set(x, 0, z); A.root.rotation.y = rot; A.dir = 1;
     const stool = new THREE.Group(); stool.position.set(0, 0, -0.08); stool.visible = false; A.root.add(stool); A.stool = stool;
     cyl(stool, 0.2, 0.2, 0.05, mat(shade(P.table, 0.05)), 0, 0.25, 0, 14); for (const [sx, sz] of [[-0.12, -0.12], [0.12, -0.12], [-0.12, 0.12], [0.12, 0.12]]) cyl(stool, 0.02, 0.02, 0.25, mat(shade(P.table, -0.1)), sx, 0, sz, 6);
     if (d.prep) A.prep = prepTable(x + Math.sin(rot) * 0.52, z + Math.cos(rot) * 0.52, d.prep);
     if (d.act === 'fire') { const fan = new THREE.Mesh(new THREE.CircleGeometry(0.16, 14, 0, Math.PI), new THREE.MeshLambertMaterial({ color: '#e9d9b5', side: THREE.DoubleSide })); fan.position.set(0, -0.42, 0.05); fan.rotation.x = Math.PI / 2; A.arms[1].add(fan); }
-    if (d.act === 'host') { const ld = new THREE.Group(); ld.position.set(0, -0.4, 0.04); A.arms[1].add(ld); const st = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.32, 6), mat('#8a6a4a')); st.rotation.x = Math.PI / 2; st.position.z = 0.12; ld.add(st); const cup = new THREE.Mesh(GEO.spoonHead, STEEL); cup.scale.set(1.6, 1.2, 1.6); cup.position.set(0, -0.03, 0.28); ld.add(cup); } // 국자
+    if (d.act === 'host') { const ld = new THREE.Group(); ld.position.set(0, A.handY != null ? A.handY : -0.4, 0.04); A.arms[1].add(ld); const st = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.32, 6), mat('#8a6a4a')); st.rotation.x = Math.PI / 2; st.position.z = 0.12; ld.add(st); const cup = new THREE.Mesh(GEO.spoonHead, STEEL); cup.scale.set(1.6, 1.2, 1.6); cup.position.set(0, -0.03, 0.28); ld.add(cup); } // 국자
     if (d.act === 'pipe') { const bag = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.2, 10), mat('#f4f1ea')); bag.position.set(0, -0.48, 0.05); bag.rotation.x = Math.PI; A.arms[1].add(bag); }
     if (d.act === 'basket') holdBasket(A, PLACE_KEY === 'tuscany' ? 'olive' : 'bread');
     staff.push(A);
@@ -883,7 +936,7 @@ function updateStaff(now, phase, dt) {
     if (dine) { A.root.position.set(seat.x, 0, seat.z); A.root.rotation.y = seat.rot; } else if (d.owner && liveOn) { A.root.position.set(0, 0, 1.75); A.root.rotation.y = 0; } else if (d.act !== 'basket') { A.root.position.set(d.at[0], 0, d.at[1]); A.root.rotation.y = d.at[2] || 0; } // 저녁 짓는 시간엔 쏠이 부엌 가운데(식탁 앞)
     A.dining = dine; if (A.stool) A.stool.visible = dine;
     if (dine) { if (mt >= 0 && mt < 1600) bow = Math.sin(Math.PI * mt / 1600) * 0.45; else if (mt >= 1600 && phase < MEAL_END) { const b = ((mt + A.off * 3) % 1400) / 1400; rx = -0.75 - Math.sin(b * Math.PI) * 1.2; lx = -0.45; } }
-    else if (d.act === 'host') { rx = -0.7 + Math.sin(t * 1.6) * 0.25; lx = -0.15; A.head.rotation.y = Math.sin(t * 0.5) * 0.4; }
+    else if (d.act === 'host') { rx = -0.7 + Math.sin(t * 1.6) * 0.25; lx = A.restLX != null ? A.restLX : -0.15; A.head.rotation.y = Math.sin(t * 0.5) * 0.4; }
     else if (d.act === 'fire') { bow = 0.3; rx = -0.75 + Math.sin(t * 7) * 0.28; lx = -0.2; }
     else if (d.act === 'greens') { bow = 0.25; lx = -0.95 + Math.sin(t * 4) * 0.12; rx = -0.95 - Math.sin(t * 4 + 1) * 0.12; }
     else if (d.act === 'knead') { const k = (Math.sin(t * 3) + 1) / 2; bow = 0.2 + k * 0.12; lx = rx = -0.9 - k * 0.35; if (A.prep && A.prep.userData.dough) A.prep.userData.dough.scale.set(1 + k * 0.12, 0.55 - k * 0.12, 1 + k * 0.08); }
@@ -903,7 +956,7 @@ function updateStaff(now, phase, dt) {
     if (d.act !== 'host') A.head.rotation.y = Math.sin(t * 0.35) * 0.15;
     const sit = dine || d.pose === 'sit';
     for (const l of A.legs) if (sit) l.rotation.x = lerp(l.rotation.x, -1.3, 0.2);
-    A.hips.position.y = sit ? 0.3 + (dine ? 0 : d.seatH || 0) : 0.38 + (walk ? Math.abs(Math.sin(t * 8)) * 0.03 : 0);
+    A.hips.position.y = sit ? 0.3 + (dine ? 0 : d.seatH || 0) : (A.hipY != null ? A.hipY : 0.38) + (walk ? Math.abs(Math.sin(t * 8)) * 0.03 : 0);
     bubbleTick(A, now);
   }
 }

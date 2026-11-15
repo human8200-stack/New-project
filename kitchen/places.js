@@ -25,7 +25,7 @@
 //  greets     인사 버튼 3개 말 (첫 번째는 장소 말). 서버는 글자가 아니라 번호(0~2)만 주고받음
 //  stamp      도장 수첩 그림 (그림 문자 하나) · stampColor: 도장 색
 //  staff      그 부엌의 주인·일꾼 연출 캐릭터 (손님 아님 · 사람 수에 안 셈 · 이름표 = 역할 이름)
-//             role(이름표) · owner(true = 부엌 주인 쏠: 밥 되면 부름, 상 가운데 자리) · look(옷·머리 · glasses 동그란 안경) · act(정해진 동작: host 국자 들고 살피기 · fire 불 보기 | greens 나물 다듬기 | knead 반죽 치대기 | basket 바구니 들고 오가기 | pipe 크림 짜기)
+//             role(이름표) · owner(true = 부엌 주인 쏠: 밥 되면 부름, 상 가운데 자리) · look(옷·머리 — 쏠은 시안 1 전용 몸: top · skirt · collar(깃) · goreum · apron · apronString · hairKind 'jjok'|'bob' · hat · scarf · feet) · act(정해진 동작: host 국자 들고 살피기 · fire 불 보기 | greens 나물 다듬기 | knead 반죽 치대기 | basket 바구니 들고 오가기 | pipe 크림 짜기)
 //             at: [x, z, 바라보는 방향] · path: 오가는 길 [x1, x2] (basket 만) · outside: 창밖에 서 있음
 //             pose: 'sit'(seatH 높이에 앉음) · prep: 앞에 작은 작업대 · 작업대 위 소품 'greens' | 'dough' | 'cake'
 //             look 칸: top(윗옷) · apron(앞치마 색, null 이면 없음) · apronKind('front' 서양 앞치마 | 'hanbok' 한복 치마 앞치마) · hair · hairKind('jjok' 쪽진머리·비녀 | 'sangtu' 상투 | 'bun' 올림머리 | 'short' | 'bob') · hat('gat' 검은 갓 | 'toque' 제빵사 모자 | 'beret' | 'straw' 밀짚모자 | 'scarf' 두건 | null) · gray(흰머리)
@@ -47,7 +47,7 @@ export const PLACES = {
     guest: { outfit: 'hanbok', tops: ['#fbe3e8', '#e3f0fb', '#fdf3d6', '#e6f4e1', '#efe4f7', '#fde9dc'], bottoms: ['#f6b8c6', '#a9cbe8', '#f3d27a', '#a9d6a0', '#c9b3e6', '#f4b59a'], aprons: ['#fffaf0', '#f6f0e4'], hat: null }, plate: { style: 'wood', title: 'SOLL BUEOK', sub: '쏠키친 · 쏠의 부엌' },
     callLine: '밥 됐어요~~~', meal: { rice: '#f6f1e4', soup: '#c98d4a', sides: ['#6fae4a', '#d9473a', '#e8c56a'] },
     staff: [
-      { role: '쏠', owner: true, act: 'host', at: [0.35, -2.3, 0], look: { top: '#fbe3e8', skirt: '#a9cbe8', goreum: '#d9607a', apron: '#fffaf0', apronKind: 'short', hair: '#2a2320', hairKind: 'jjok', hat: null, glasses: true } }, // 부엌 주인 (임시 모습 — 디자인팀 시안 확정 뒤 바꿈). "밥 됐어요~~~"를 부름
+      { role: '쏠', owner: true, act: 'host', at: [0.35, -2.3, 0], look: { top: '#E6F0DA', skirt: '#F7CFD3', collar: '#9DB3D3', goreum: '#EBA0A0', apron: '#FFF3DF', apronString: '#E7A496', hairKind: 'jjok', hat: null, feet: '#EBA0A0' } }, // 부엌 주인 (디자인팀 시안 1 · 안경 없음). "밥 됐어요~~~"를 부름
       { role: '종갓집 할머니', act: 'fire', at: [2.7, -2.55, 1.95], look: { top: '#f4efe4', skirt: '#7a3b3b', goreum: '#7a3b3b', apron: '#efe6d2', apronKind: 'short', hair: '#d9d6d0', hairKind: 'jjok', hat: null } },
       { role: '막내 며느리', act: 'greens', at: [-3.3, 2.65, 0], pose: 'sit', seatH: 0.32, look: { top: '#fdf0d6', skirt: '#a9b8a5', goreum: '#d98a6a', apron: '#fffaf0', apronKind: 'short', hair: '#2a2320', hairKind: 'jjok', hat: null } },
     ],
@@ -88,7 +88,7 @@ export const PLACES = {
     guest: { outfit: 'linen', tops: ['#ece4d4', '#e2e8d6', '#f1e6d4', '#e4ddd0', '#dde6ea', '#efe0d6'], bottoms: ['#8c8270', '#a39a86'], aprons: ['#f4efe2', '#d9c9a8', '#c8d3b8'], hat: 'straw' }, plate: { style: 'wood', title: 'SOLL KITCHEN · 쏠키친', sub: '' },
     callLine: 'A tavola~~~ 밥 됐어요!', meal: { rice: '#f2d27a', soup: '#c8553a', sides: ['#6fae4a', '#d49a58', '#f4efe2'] },
     staff: [
-      { role: '쏠', owner: true, act: 'host', at: [0.35, -2.3, 0], look: { top: '#ece4d4', pants: '#8c8270', apron: '#c9783e', apronKind: 'front', hair: '#2a2320', hairKind: 'bob', hat: 'straw', glasses: true } }, // 부엌 주인 (임시 모습 — 디자인팀 시안 확정 뒤 바꿈). "밥 됐어요~~~"를 부름
+      { role: '쏠', owner: true, act: 'host', at: [0.35, -2.3, 0], look: { top: '#CFE0C8', apron: '#FFF3DF', apronString: '#E7A496', hairKind: 'bob', hat: 'straw' } }, // 부엌 주인 (디자인팀 시안 1 · 안경 없음). "밥 됐어요~~~"를 부름
       { role: '논나', act: 'knead', at: [-2.2, -2.5, 0], prep: 'dough', look: { top: '#3f4a63', skirt: '#3f4a63', apron: '#fbf7ee', apronKind: 'front', hair: '#d9d6d0', hairKind: 'bun', hat: null } },
       { role: '농부 아저씨', act: 'basket', at: [2.45, -4.7, 0], path: [1.7, 3.2], outside: true, look: { top: '#8a9f6a', apron: null, apronKind: 'front', hair: '#5a3e2b', hairKind: 'short', hat: 'straw' } },
     ],
@@ -129,7 +129,7 @@ export const PLACES = {
     guest: { outfit: 'baker', tops: ['#fbfbf7', '#f7f5ef'], bottoms: ['#5b5f6a', '#3f4a52'], aprons: ['#fbfbf7', '#f3dfe4', '#dfe9f3', '#f1ead8'], hat: 'toque' }, plate: { style: 'wood', title: 'SOLL KITCHEN · 쏠키친', sub: '' },
     callLine: '빵 나왔어요~~~', meal: { rice: '#e9b46a', soup: '#f3dcc0', sides: ['#d8344a', '#f4efe2', '#c98a4a'] },
     staff: [
-      { role: '쏠', owner: true, act: 'host', at: [0.35, -2.3, 0], look: { top: '#fbfbf7', pants: '#3f4a52', apron: '#c9783e', apronKind: 'front', hair: '#2a2320', hairKind: 'bob', hat: 'toque', glasses: true } }, // 부엌 주인 (임시 모습 — 디자인팀 시안 확정 뒤 바꿈). "밥 됐어요~~~"를 부름
+      { role: '쏠', owner: true, act: 'host', at: [0.35, -2.3, 0], look: { top: '#CFE0C8', apron: '#FFF3DF', apronString: '#E7A496', hairKind: 'bob', hat: 'toque', scarf: '#E59A93' } }, // 부엌 주인 (디자인팀 시안 1 · 안경 없음). "밥 됐어요~~~"를 부름
       { role: '파티시에', act: 'pipe', at: [-2.2, -2.5, 0], prep: 'cake', look: { top: '#fbfbf7', apron: '#fbfbf7', apronKind: 'front', hair: '#7a5236', hairKind: 'short', hat: 'toque' } },
       { role: '빵집 견습생', act: 'basket', at: [0.8, -3.05, 0], path: [-1.2, 3.0], look: { top: '#f4efe4', apron: '#8a6a4a', apronKind: 'front', hair: '#a0764c', hairKind: 'bob', hat: 'beret' } },
     ],
