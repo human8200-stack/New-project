@@ -41,6 +41,8 @@
 //             연출 캐릭터 look 칸도 같은 이름: skirt(긴 치마 색) · pants(바지 색) · goreum(고름 색) · apronKind('front' 가슴 앞치마 | 'short' 허리 앞치마)
 //  layout     'courtyard' 이면 상자 방 대신 마당형 장면 (court: 마루 높이·색, noteBoard: 한마디 판 자리, miel: 미엘 길). 없으면 방
 //  sound      simmer: 냄비 끓는 소리 크기(0~1) · day / night: 창밖 소리 'birds' | 'crickets' | null
+// 둥글게 둘러앉는 자리 n개 (가운데를 봄)
+function ring(cx, cz, r, n, a0 = 0) { const out = []; for (let i = 0; i < n; i++) { const a = a0 + i / n * Math.PI * 2, x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r; out.push([x, z, Math.atan2(cx - x, cz - z)]); } return out; }
 export const PLACES = {
   hanok: {
     title: '한옥 종갓집 부엌',
@@ -48,19 +50,31 @@ export const PLACES = {
     guest: { outfit: 'hanbok', tops: ['#fbe3e8', '#e3f0fb', '#fdf3d6', '#e6f4e1', '#efe4f7', '#fde9dc'], bottoms: ['#f6b8c6', '#a9cbe8', '#f3d27a', '#a9d6a0', '#c9b3e6', '#f4b59a'], aprons: ['#fffaf0', '#f6f0e4'], hat: null }, plate: { style: 'wood', title: 'SOLL BUEOK', sub: '쏠키친 · 쏠의 부엌' },
     callLine: '밥 됐어요~~~', meal: { kind: 'bangsang', rice: '#fbf8f0', soup: '#c98d4a', sides: ['#6fae4a', '#d9473a', '#e8c56a', '#f1e2b0', '#8a5a3a'] }, // 놋그릇 반상: 주발(뚜껑)·국그릇·반찬 접시 5
     staff: [
-      { role: '쏠', owner: true, act: 'host', at: [0, 2.05, 0], look: { top: '#E6F0DA', skirt: '#F7CFD3', collar: '#9DB3D3', goreum: '#EBA0A0', apron: '#FFF3DF', apronString: '#E7A496', hairKind: 'jjok', hat: null, feet: '#EBA0A0' } }, // 부엌 주인 (디자인팀 시안 1 · 안경 없음). 대청마루 앞 디딤돌에서 손님 맞이. "밥 됐어요~~~"를 부름
-      { role: '종갓집 할머니', act: 'fire', at: [3.3, 2.85, 1.3], look: { top: '#f4efe4', skirt: '#7a3b3b', goreum: '#7a3b3b', apron: '#efe6d2', apronKind: 'short', hair: '#d9d6d0', hairKind: 'jjok', hat: null } },
-      { role: '막내 며느리', act: 'greens', at: [-2.8, 2.15, 0], pose: 'sit', seatH: 0.32, look: { top: '#fdf0d6', skirt: '#a9b8a5', goreum: '#d98a6a', apron: '#fffaf0', apronKind: 'short', hair: '#2a2320', hairKind: 'jjok', hat: null } },
+      { role: '쏠', owner: true, act: 'host', at: [0, -5.15, 0], look: { top: '#E6F0DA', skirt: '#F7CFD3', collar: '#9DB3D3', goreum: '#EBA0A0', apron: '#FFF3DF', apronString: '#E7A496', hairKind: 'jjok', hat: null, feet: '#EBA0A0' } }, // 부엌 주인 (디자인팀 시안 1 · 안경 없음). 대청마루 앞 디딤돌에서 손님 맞이. "밥 됐어요~~~"를 부름
+      { role: '종갓집 할머니', act: 'fire', at: [8.75, 1.95, 0.9], look: { top: '#f4efe4', skirt: '#7a3b3b', goreum: '#7a3b3b', apron: '#efe6d2', apronKind: 'short', hair: '#d9d6d0', hairKind: 'jjok', hat: null } },
+      { role: '막내 며느리', act: 'greens', at: [-8.4, 1.95, 0], pose: 'sit', seatH: 0.32, look: { top: '#fdf0d6', skirt: '#a9b8a5', goreum: '#d98a6a', apron: '#fffaf0', apronKind: 'short', hair: '#2a2320', hairKind: 'jjok', hat: null } },
     ],
     local: { city: '안동', tz: 'Asia/Seoul', lat: 36.57, lon: 128.73 },
     greets: ['진지 드셨어요?', '맛있게 드세요', '잘 먹었습니다'],
     stamp: '🍚', stampColor: '#b5452f',
     cards: './cards/hanok.js',
-    // ㄷ자 한옥 마당 (kitchen.js buildCourtyard): 뒤 = 대청마루(좌식 긴 상·꽃무늬 방석·창호지 격자문·서까래·기와 처마), 양옆 = 날개채, 앞 = 잔디 마당·디딤돌
+    // 대갓집 ㄷ자 한옥 마당 (kitchen.js buildCourtyard): 세 면 모두 긴 대청마루·툇마루(좌식 긴 상·꽃무늬 방석) + 가운데 멍석·교자상 2줄 + 가장자리 일거리
     layout: 'courtyard',
-    court: { maruH: 0.45, grass: '#7f9a55', stone: '#a49c8e', plaster: '#f1ece2', earth: '#c9ab84', wood: '#9a6a40', woodDark: '#5e3e24', tile: '#4a4c50', lantern: '#ffd99a', mountains: ['#b7834f', '#9a6a3f', '#6f6a3e', '#8d5a3a'] },
-    noteBoard: { x: 0, y: 1.0, z: -1.76 },
-    miel: [[-1.3, 1.95], [-0.7, 3.3], [0.45, 3.5], [0.5, 5.9], [-0.5, 5.7]],
+    court: {
+      maruH: 0.45, grass: '#7f9a55', stone: '#a49c8e', plaster: '#f1ece2', earth: '#c9ab84', wood: '#9a6a40', woodDark: '#5e3e24', tile: '#4a4c50', lantern: '#ffd99a', mountains: ['#b7834f', '#9a6a3f', '#6f6a3e', '#8d5a3a'],
+      inner: 10.4, back: -9.6, mainFront: -5.9, wingDepth: 3.5, front: 10.2, // 마당 안쪽 반 폭 · 뒤 벽 z · 본채 마루 앞 z · 날개채 마루 깊이 · 앞 담장 z
+      // 상: cx·cz 가운데 · axis 상이 놓인 방향 · offs 자리 간격 · floor 'maru'(마루 위) | 'ground'(멍석 위) · len 상 길이
+      tables: [
+        { id: 'main', cx: 0, cz: -7.75, axis: 'x', offs: [-3.6, -2.7, -1.8, -0.9, 0.9, 1.8, 2.7, 3.6], floor: 'maru', len: 8.6, pot: true },
+        { id: 'left', cx: -12.15, cz: 0.6, axis: 'z', offs: [-1.8, -0.9, 0, 0.9, 1.8], floor: 'maru', len: 4.8 },
+        { id: 'right', cx: 12.15, cz: 0.6, axis: 'z', offs: [-1.8, -0.9, 0, 0.9, 1.8], floor: 'maru', len: 4.8 },
+        { id: 'feast1', cx: 0, cz: 0.8, axis: 'x', offs: [-1.35, -0.45, 0.45, 1.35], floor: 'ground', len: 3.9 },
+        { id: 'feast2', cx: 0, cz: 3.4, axis: 'x', offs: [-1.35, -0.45, 0.45, 1.35], floor: 'ground', len: 3.9 },
+      ],
+      mat: { x: 0, z: 2.1, w: 7.2, d: 5.2 }, // 멍석
+    },
+    noteBoard: { x: 0, y: 1.0, z: -9.56 },
+    miel: [[-5.5, -4.3], [0, -4.7], [5.5, -4.3], [6.2, 1.5], [5.4, 5.6], [0, 6.0], [-4.6, 5.0]],
     wall: { color: '#efe3cc', texture: 'plaster', lower: null, timber: '#7a5434' },
     floor: { texture: 'maru', color: '#c69a66' },
     ceiling: { color: '#e9dbc0', beams: null, beam: '#6e4a2c' },
@@ -72,20 +86,25 @@ export const PLACES = {
     lamp: '#ffe4b8', lampKind: 'paper',
     sound: { simmer: 0.75, day: 'birds', night: 'crickets' },
     yard: null,
+    // 일거리 순서 (회장님 11/15): 전 부치기 · 파 다듬기 · 나물 다듬기 · 고추 따기 · 채소 씻기 · 밥 짓기 · 불 지피기 · 설거지 (맨 앞 '요리하기'는 대청마루 큰 상)
     jobs: [
-      { id: 'table', name: '요리하기 (대청마루 상)', who: '요리하는', tap: '도마 톡', icon: '🔪', act: 'chop', sound: 'tok' },
+      { id: 'table', name: '요리하기 (대청마루 큰 상)', who: '요리하는', tap: '도마 톡', icon: '🔪', act: 'chop', sound: 'tok' },
+      { id: 'jeon', name: '전 부치기 (솥뚜껑 번철)', who: '전 부치는', tap: '전 부치기', icon: '🥞', act: 'flip', sound: 'sizzle', pose: 'crouch',
+        prop: { kind: 'griddle', x: -6.4, z: 6.7 }, slots: ring(-6.4, 6.7, 1.0, 6, -Math.PI / 2), fx: { color: '#e9c46a', at: [-6.4, 0.6, 6.7] } },
+      { id: 'pa', name: '파 다듬기 (평상)', who: '파 다듬는', tap: '파 다듬기', icon: '🧅', act: 'trim', sound: 'pluck', pose: 'sit', seatH: 0.32,
+        prop: { kind: 'platform', x: -2.6, z: 8.0, item: 'pa' }, slots: [[-3.25, 8.0, Math.PI / 2], [-1.95, 8.0, -Math.PI / 2], [-2.9, 7.6, 0.4], [-2.3, 7.6, -0.4], [-2.6, 8.45, Math.PI]], fx: { color: '#9fcf6a', at: [-2.6, 0.6, 8.0] } },
       { id: 'namul', name: '나물 다듬기 (평상)', who: '나물 다듬는', tap: '다듬기', icon: '🌿', act: 'trim', sound: 'pluck', pose: 'sit', seatH: 0.32,
-        prop: { kind: 'platform', x: -2.8, z: 2.6, item: 'greens' }, slots: [[-3.4, 2.6, Math.PI / 2], [-2.2, 2.6, -Math.PI / 2], [-2.8, 3.05, Math.PI], [-3.35, 3.0, 2.4]], fx: { color: '#6fae4a', at: [-2.8, 0.6, 2.6] } },
-      { id: 'wash', name: '채소 씻기 (우물가 대야)', who: '채소 씻는', tap: '씻기', icon: '🥬', act: 'wash', sound: 'splash', pose: 'crouch',
-        prop: { kind: 'well', x: -3.5, z: 4.3, wellAt: [-4.3, 5.25] }, slots: [[-3.5, 3.85, 0], [-3.95, 4.3, Math.PI / 2], [-3.05, 4.3, -Math.PI / 2]], fx: { color: '#9fd0e6', at: [-3.5, 0.3, 4.3] } },
-      { id: 'rice', name: '밥 짓기 (부엌칸 쌀 씻기)', who: '밥 짓는', tap: '쌀 씻기', icon: '🍚', act: 'scrub', sound: 'splash', pose: 'stand',
-        prop: { kind: 'riceStand', x: 4.15, z: 3.6 }, slots: [[3.6, 3.6, Math.PI / 2], [3.75, 4.1, 2.0]], fx: { color: '#f6f1e4', at: [4.15, 0.8, 3.6] } },
-      { id: 'fire', name: '불 지피기 (아궁이)', who: '불 지피는', tap: '불 지피기', icon: '🔥', act: 'fire', sound: 'crackle', pose: 'crouch',
-        prop: { kind: 'hearthYard', x: 4.25, z: 2.3 }, slots: [[3.25, 1.8, Math.PI / 2], [3.25, 2.25, Math.PI / 2]], fx: { color: '#ffa64a', at: [3.75, 0.3, 2.3] } },
-      { id: 'dish', name: '설거지 (돌 개수대)', who: '설거지하는', tap: '뽀득뽀득', icon: '🍽️', act: 'scrub', sound: 'clink', pose: 'stand',
-        prop: { kind: 'trough', x: -1.75, z: 4.65 }, slots: [[-1.75, 4.15, 0], [-1.15, 4.65, -Math.PI / 2], [-1.75, 5.15, Math.PI]], fx: { color: '#dff1f8', at: [-1.75, 0.55, 4.65] } },
+        prop: { kind: 'platform', x: -8.4, z: 2.4, item: 'greens' }, slots: [[-9.05, 2.4, Math.PI / 2], [-7.75, 2.4, -Math.PI / 2], [-8.4, 2.85, Math.PI], [-8.85, 2.85, 2.4], [-7.95, 2.85, -2.4]], fx: { color: '#6fae4a', at: [-8.4, 0.6, 2.4] } },
       { id: 'pepper', name: '고추 따기 (마당 텃밭)', who: '고추 따는', tap: '고추 따기', icon: '🌶️', act: 'pick', sound: 'pluck', pose: 'stand',
-        prop: { kind: 'garden', x: 1.9, z: 4.95, fruit: '#d23a2a', shape: 'chili' }, slots: [[1.15, 4.15, 0], [1.95, 4.15, 0], [2.75, 4.15, 0]], fx: { color: '#d23a2a', at: [1.9, 0.7, 4.95] } },
+        prop: { kind: 'garden', x: 3.0, z: 8.0, fruit: '#d23a2a', shape: 'chili' }, slots: [[2.1, 7.1, 0], [3.0, 7.1, 0], [3.9, 7.1, 0], [2.5, 8.95, Math.PI], [3.5, 8.95, Math.PI]], fx: { color: '#d23a2a', at: [3.0, 0.7, 8.0] } },
+      { id: 'wash', name: '채소 씻기 (우물가 대야)', who: '채소 씻는', tap: '씻기', icon: '🥬', act: 'wash', sound: 'splash', pose: 'crouch',
+        prop: { kind: 'well', x: -8.9, z: 5.6, wellAt: [-9.6, 7.4] }, slots: [[-8.9, 5.1, 0], [-9.4, 5.6, Math.PI / 2], [-8.4, 5.6, -Math.PI / 2], [-8.9, 6.1, Math.PI]], fx: { color: '#9fd0e6', at: [-8.9, 0.3, 5.6] } },
+      { id: 'rice', name: '밥 짓기 (부엌칸 쌀 씻기)', who: '밥 짓는', tap: '쌀 씻기', icon: '🍚', act: 'scrub', sound: 'splash', pose: 'stand',
+        prop: { kind: 'riceStand', x: 9.0, z: 5.1 }, slots: [[8.45, 5.1, Math.PI / 2], [8.6, 5.65, 2.1], [8.6, 4.55, 1.0]], fx: { color: '#f6f1e4', at: [9.0, 0.8, 5.1] } },
+      { id: 'fire', name: '불 지피기 (아궁이)', who: '불 지피는', tap: '불 지피기', icon: '🔥', act: 'fire', sound: 'crackle', pose: 'crouch',
+        prop: { kind: 'hearthYard', x: 9.45, z: 3.0 }, slots: [[8.55, 2.75, Math.PI / 2], [8.55, 3.3, Math.PI / 2], [8.6, 3.85, 2.0]], fx: { color: '#ffa64a', at: [8.95, 0.3, 3.0] } },
+      { id: 'dish', name: '설거지 (돌 개수대)', who: '설거지하는', tap: '뽀득뽀득', icon: '🍽️', act: 'scrub', sound: 'clink', pose: 'stand',
+        prop: { kind: 'trough', x: 6.3, z: 8.3 }, slots: [[6.3, 7.8, 0], [5.7, 8.3, Math.PI / 2], [6.9, 8.3, -Math.PI / 2]], fx: { color: '#dff1f8', at: [6.3, 0.55, 8.3] } },
     ],
   },
   tuscany: {

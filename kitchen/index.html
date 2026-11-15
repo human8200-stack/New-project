@@ -41,6 +41,9 @@
   #soundBtn{top:calc(10px + var(--st));right:calc(10px + var(--sr));border:0;border-radius:999px;padding:9px 13px;font-size:13px;font-weight:700;
     background:rgba(255,252,246,.92);box-shadow:0 3px 10px rgba(70,40,15,.18)}
   #soundBtn.off{color:#9a8878}
+  #zoomBtn{top:calc(56px + var(--st));right:calc(10px + var(--sr));border:0;border-radius:999px;padding:8px 13px;font-size:13px;font-weight:700;background:rgba(255,252,246,.92);box-shadow:0 3px 10px rgba(70,40,15,.18)}
+  #zoomBtn[hidden]{display:none}
+  body:not(.in) #zoomBtn{visibility:hidden}
   #top{top:calc(118px + var(--st));left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
   #potPill,#together,#bowls{padding:6px 13px;border-radius:999px;background:rgba(255,252,246,.88);font-size:13px;font-weight:600;box-shadow:0 2px 8px rgba(70,40,15,.12)}
   #together[hidden],#bowls[hidden]{display:none}
@@ -221,6 +224,7 @@
   <!-- 문패: 장소별 디자인은 디자인팀 시안 확정 뒤 (places.js plate) --><a id="plate" href="https://www.instagram.com/ssoll0820/" target="_blank" rel="noopener" aria-label="SOLL KITCHEN 쏠키친 인스타그램">SOLL KITCHEN · 쏠키친</a>
 </div>
 <button id="soundBtn" class="ui" type="button" aria-pressed="true">소리 켜짐</button>
+<button id="zoomBtn" class="ui" type="button" hidden>가까이 보기</button>
 <div id="top" class="ui"><div id="potPill">냄비가 끓고 있어요</div><div id="together" hidden></div><div id="bowls" hidden></div><div id="notice" aria-live="polite"></div></div>
 
 <div id="banner" class="ui">잘 먹겠습니다</div>

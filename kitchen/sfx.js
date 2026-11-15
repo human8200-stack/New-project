@@ -72,6 +72,7 @@ export const SFX = {
   thump: (c, o, t) => { tone(c, o, t, { f: 110, f2: 70, dur: 0.14, vol: 0.25 }); burst(c, o, t, { type: 'lowpass', f: 400, dur: 0.08, vol: 0.18 }); }, // 반죽 쿵
   clink: (c, o, t) => { tone(c, o, t, { f: 1320, dur: 0.25, vol: 0.035, att: 0.002 }); tone(c, o, t + 0.07, { f: 1760, dur: 0.2, vol: 0.025, att: 0.002 }); burst(c, o, t, { f: 1500, q: 3, dur: 0.15, vol: 0.06 }); }, // 그릇 달그락
   swish: (c, o, t) => { burst(c, o, t, { f: 900, f2: 2200, q: 0.8, dur: 0.22, vol: 0.12, att: 0.05 }); }, // 크림 쭉
+  sizzle: (c, o, t) => { burst(c, o, t, { type: 'highpass', f: 3200, q: 0.7, dur: 0.9, vol: 0.1, att: 0.06 }); for (let i = 0; i < 10; i++) burst(c, o, t + 0.04 + Math.random() * 0.8, { f: 4000 + Math.random() * 2000, q: 4, dur: 0.02, vol: 0.15, att: 0.002 }); }, // 전 지글지글
   // 창밖 새소리 (낮, 아주 작게): 짧은 지저귐 2~3번
   birds: (c, o, t) => { const n = 2 + (Math.random() < 0.5 ? 1 : 0), f = 2100 + Math.random() * 700; for (let i = 0; i < n; i++) tone(c, o, t + i * 0.13, { f: f * (1 + i * 0.06), f2: f * 1.25, dur: 0.09, vol: 0.012, att: 0.01, lp: 3200 }); },
   // 창밖 풀벌레 (밤, 아주 작게): 떨리는 낮은 울음 3번
