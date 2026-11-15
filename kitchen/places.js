@@ -28,7 +28,7 @@
 //             role(이름표) · owner(true = 부엌 주인 쏠: 밥 되면 부름, 상 가운데 자리) · look(옷·머리 · glasses 동그란 안경) · act(정해진 동작: host 국자 들고 살피기 · fire 불 보기 | greens 나물 다듬기 | knead 반죽 치대기 | basket 바구니 들고 오가기 | pipe 크림 짜기)
 //             at: [x, z, 바라보는 방향] · path: 오가는 길 [x1, x2] (basket 만) · outside: 창밖에 서 있음
 //             pose: 'sit'(seatH 높이에 앉음) · prep: 앞에 작은 작업대 · 작업대 위 소품 'greens' | 'dough' | 'cake'
-//             look 칸: top(윗옷) · apron(앞치마 색, null 이면 없음) · apronKind('front' 서양 앞치마 | 'hanbok' 한복 치마 앞치마) · hair · hairKind('bun' 쪽머리 | 'short' | 'bob') · hat('toque' 제빵사 모자 | 'beret' | 'straw' 밀짚모자 | 'scarf' 두건 | null) · gray(흰머리)
+//             look 칸: top(윗옷) · apron(앞치마 색, null 이면 없음) · apronKind('front' 서양 앞치마 | 'hanbok' 한복 치마 앞치마) · hair · hairKind('jjok' 쪽진머리·비녀 | 'sangtu' 상투 | 'bun' 올림머리 | 'short' | 'bob') · hat('gat' 검은 갓 | 'toque' 제빵사 모자 | 'beret' | 'straw' 밀짚모자 | 'scarf' 두건 | null) · gray(흰머리)
 //  yard       부엌 앞 마당 (식탁 앞쪽 땅). color: 땅 색 · null 이면 바닥 그대로
 //  jobs       일거리 자리 (첫 번째는 늘 식탁 "요리하기"). 손님이 [일거리]에서 고르면 그 자리로 바로 옮김 (걷지 않음). 화면을 톡 누를 때마다 동작·소리 한 번
 //             name(목록 이름) · who(사람 수 문구 "○○ 사람 3") · tap(가운데 버튼 글자) · icon · act(동작) · sound(sfx.js 소리) · pose('stand' | 'sit' | 'crouch') · seatH(앉는 높이)
@@ -36,7 +36,7 @@
 //             prop: 자리 소품 { kind, x, z, ... } (kitchen.js JOB_PROPS) · slots: 손님이 서는 곳 [x, z, 바라보는 방향] (모자라면 화면에 안 보이고 숫자만 셈)
 //             fx: 톡 할 때 튀는 조각 { color, at: [x, y, z] }
 //  callLine   밥이 되면 주인 캐릭터가 부르는 말 · meal: 상 차림 색 { rice(밥·주식), soup(국), sides: [반찬 3] }
-//  guest      손님 옷 (장소를 바꾸면 옷도 바뀜). outfit: 'hanbok'(저고리 + 치마 또는 바지 + 짧은 앞치마) | 'linen'(린넨 옷) | 'baker'(흰 제빵복)
+//  guest      손님 옷 (장소를 바꾸면 옷도 바뀜). outfit: 'hanbok'(저고리 + 치마 또는 바지 + 짧은 앞치마 · 쪽 차림 = 치마 + 쪽진머리, 갓 차림 = 바지 + 상투 + 갓 — 입장 화면에서 고름, 기본 무작위) | 'linen'(린넨 옷) | 'baker'(흰 제빵복)
 //             tops(윗옷 색들) · bottoms(치마·바지 색들) · aprons(앞치마 색들) · hat('straw' 밀짚모자 | 'toque' 제빵사 모자 | null) — 손님마다 색이 다름
 //             연출 캐릭터 look 칸도 같은 이름: skirt(긴 치마 색) · pants(바지 색) · goreum(고름 색) · apronKind('front' 가슴 앞치마 | 'short' 허리 앞치마)
 //  sound      simmer: 냄비 끓는 소리 크기(0~1) · day / night: 창밖 소리 'birds' | 'crickets' | null
@@ -47,9 +47,9 @@ export const PLACES = {
     guest: { outfit: 'hanbok', tops: ['#fbe3e8', '#e3f0fb', '#fdf3d6', '#e6f4e1', '#efe4f7', '#fde9dc'], bottoms: ['#f6b8c6', '#a9cbe8', '#f3d27a', '#a9d6a0', '#c9b3e6', '#f4b59a'], aprons: ['#fffaf0', '#f6f0e4'], hat: null }, plate: { style: 'wood', title: 'SOLL BUEOK', sub: '쏠키친 · 쏠의 부엌' },
     callLine: '밥 됐어요~~~', meal: { rice: '#f6f1e4', soup: '#c98d4a', sides: ['#6fae4a', '#d9473a', '#e8c56a'] },
     staff: [
-      { role: '쏠', owner: true, act: 'host', at: [0.35, -2.3, 0], look: { top: '#fbe3e8', skirt: '#a9cbe8', goreum: '#d9607a', apron: '#fffaf0', apronKind: 'short', hair: '#2a2320', hairKind: 'bob', hat: null, glasses: true } }, // 부엌 주인 (임시 모습 — 디자인팀 시안 확정 뒤 바꿈). "밥 됐어요~~~"를 부름
-      { role: '종갓집 할머니', act: 'fire', at: [2.7, -2.55, 1.95], look: { top: '#f4efe4', skirt: '#7a3b3b', goreum: '#7a3b3b', apron: '#efe6d2', apronKind: 'short', hair: '#d9d6d0', hairKind: 'bun', hat: null } },
-      { role: '막내 며느리', act: 'greens', at: [-3.3, 2.65, 0], pose: 'sit', seatH: 0.32, look: { top: '#fdf0d6', skirt: '#a9b8a5', goreum: '#d98a6a', apron: '#fffaf0', apronKind: 'short', hair: '#2a2320', hairKind: 'bun', hat: null } },
+      { role: '쏠', owner: true, act: 'host', at: [0.35, -2.3, 0], look: { top: '#fbe3e8', skirt: '#a9cbe8', goreum: '#d9607a', apron: '#fffaf0', apronKind: 'short', hair: '#2a2320', hairKind: 'jjok', hat: null, glasses: true } }, // 부엌 주인 (임시 모습 — 디자인팀 시안 확정 뒤 바꿈). "밥 됐어요~~~"를 부름
+      { role: '종갓집 할머니', act: 'fire', at: [2.7, -2.55, 1.95], look: { top: '#f4efe4', skirt: '#7a3b3b', goreum: '#7a3b3b', apron: '#efe6d2', apronKind: 'short', hair: '#d9d6d0', hairKind: 'jjok', hat: null } },
+      { role: '막내 며느리', act: 'greens', at: [-3.3, 2.65, 0], pose: 'sit', seatH: 0.32, look: { top: '#fdf0d6', skirt: '#a9b8a5', goreum: '#d98a6a', apron: '#fffaf0', apronKind: 'short', hair: '#2a2320', hairKind: 'jjok', hat: null } },
     ],
     local: { city: '안동', tz: 'Asia/Seoul', lat: 36.57, lon: 128.73 },
     greets: ['진지 드셨어요?', '맛있게 드세요', '잘 먹었습니다'],

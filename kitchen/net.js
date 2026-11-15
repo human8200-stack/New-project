@@ -1,6 +1,6 @@
 /* 함께 쓰는 판 (서버 연결) — 서버 주소(config.js SERVER)가 비어 있으면 createNet() 이 null 을 돌려주고 부엌은 혼자 돈다.
    서버: kitchen/worker/ (Cloudflare Worker + Durable Object). 부엌 50명마다 방 하나.
-   보내는 것 (최소 신호): 장소 이름(hanok 등) · 이 안에서 불릴 이름(10자, 서버가 다시 거름) · 일거리 자리 번호 · 15초 동안 도마 톡 횟수 · 인사 번호(0~2). 연락처·실명 같은 개인정보는 받지 않는다.
+   보내는 것 (최소 신호): 장소 이름(hanok 등) · 이 안에서 불릴 이름(10자, 서버가 다시 거름) · 한옥 차림(쪽/갓) · 일거리 자리 번호 · 15초 동안 도마 톡 횟수 · 인사 번호(0~2). 연락처·실명 같은 개인정보는 받지 않는다.
    받는 것: 15초마다 묶음 한 번 — 방 사람 수, 이 장소 전체 사람 수, 오늘 지은 밥 그릇 수, 자리 목록, 자리별 톡 횟수, 인사.
    밥상 한마디(100자)·한 줄 답(50자)도 글자를 보낸다 (서버가 다시 거름). */
 
@@ -13,15 +13,15 @@ export function createNet(server, h, place) {
   const http = base.replace(/^ws/, 'http');
   const N = {
     online: false, offset: 0, seat: -1, roomN: 0, total: 0, bowls: null, // bowls: 오늘 이 장소에서 지은 밥 그릇 수 (서버가 셈)
-    _ws: null, _taps: 0, _greet: -1, _lastSend: 0, _timer: 0, _tries: 0, _name: '', _job: 0, _stopped: false,
+    _ws: null, _taps: 0, _greet: -1, _lastSend: 0, _timer: 0, _tries: 0, _name: '', _job: 0, _style: '', _stopped: false,
 
     // 시계 맞추기: 서버 시각과 이 휴대폰 시각의 차이 (밀리초) — 솥 한 바퀴를 모두 같게
     now() { return Date.now() + this.offset; },
 
-    connect(name, job) {
-      this._name = String(name || ''); if (job != null) this._job = job | 0;
+    connect(name, job, style) {
+      this._name = String(name || ''); if (job != null) this._job = job | 0; if (style) this._style = style;
       let ws;
-      try { ws = new WebSocket(base + '/ws?nm=' + encodeURIComponent(this._name) + '&j=' + (this._job | 0) + '&p=' + encodeURIComponent(place || '')); } catch (e) { this._fail(); return; }
+      try { ws = new WebSocket(base + '/ws?nm=' + encodeURIComponent(this._name) + '&s=' + (this._style || '') + '&j=' + (this._job | 0) + '&p=' + encodeURIComponent(place || '')); } catch (e) { this._fail(); return; }
       this._ws = ws;
       const sentAt = Date.now();
       ws.onmessage = (ev) => {

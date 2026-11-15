@@ -150,6 +150,11 @@
   #enterName:focus{border-color:#c9783e}
   #enterDice{width:54px;border:0;border-radius:14px;background:#fff6e4;font-size:24px;box-shadow:0 2px 8px rgba(70,40,15,.12)}
   #enter .hint{margin:8px 0 0;font-size:12px;color:#8a7461;text-align:left;padding-left:4px}
+  .styleRow{display:flex;align-items:center;gap:8px;margin-top:10px}
+  .styleRow[hidden]{display:none}
+  .styleRow span{font-size:13px;font-weight:700;color:#6b5848;margin-right:4px}
+  .styleRow button{flex:1;border:2px solid #e0cfb5;background:#fffdf9;border-radius:12px;padding:9px;font-size:16px;font-weight:800;color:#7a6654}
+  .styleRow button.sel{border-color:#c9783e;background:#fbefe2;color:#8a4f25}
   #enter .msg{min-height:18px;margin-top:6px;font-size:13px;color:#b0502a}
   #enterGo{margin:14px auto 0;width:128px;height:128px;border-radius:50%;border:0;font-size:20px;font-weight:800;color:#fff;
     background:radial-gradient(circle at 40% 35%,#f2b47a,#c9783e 60%,#a85f2c);box-shadow:0 0 0 8px rgba(255,214,160,.35),0 0 40px 10px rgba(255,190,120,.55);animation:glow 2.4s ease-in-out infinite}
@@ -198,6 +203,7 @@
     <label for="enterName">이 안에서 불릴 이름</label>
     <div class="nameRow"><input id="enterName" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"><button id="enterDice" type="button" aria-label="이름 다시 뽑기">🎲</button></div>
     <p class="hint">실명이나 연락처 말고 편한 이름이면 돼요</p>
+    <div id="enterStyle" class="styleRow" hidden><span>차림</span><button type="button" data-s="f">쪽</button><button type="button" data-s="m">갓</button></div>
     <div id="enterMsg" class="msg"></div>
     <button id="enterGo" type="button">들어가기</button>
   </div>

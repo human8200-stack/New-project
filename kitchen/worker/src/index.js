@@ -96,7 +96,7 @@ export class Lobby extends DurableObject {
 /* ---------- Room: 부엌 한 칸 (50명) ---------- */
 export class Room extends DurableObject {
   constructor(ctx, env) { super(ctx, env); this.batch = { taps: new Map(), greets: [] }; this.msgs = 0; this.dirty = true; this.total = 0; this.bowls = 0; this.roomId = 0; this.place = ''; this.tickN = 0; this.lastCycle = Math.floor((Date.now() - MEAL_AT) / PERIOD); }
-  peers() { const out = []; for (const ws of this.ctx.getWebSockets()) { const a = ws.deserializeAttachment(); if (a) out.push([a.seat, a.n, a.j | 0]); } return out; }
+  peers() { const out = []; for (const ws of this.ctx.getWebSockets()) { const a = ws.deserializeAttachment(); if (a) out.push([a.seat, a.n, a.j | 0, a.s || '']); } return out; }
   async fetch(req) {
     const url = new URL(req.url);
     this.roomId = num(url.searchParams.get('room'), this.roomId) || this.roomId;
@@ -108,7 +108,8 @@ export class Room extends DurableObject {
     const used = new Set(socks.map((w) => (w.deserializeAttachment() || {}).seat)); let seat = 0; while (used.has(seat)) seat++;
     const nc = checkName(url.searchParams.get('nm') || ''); const n = nc.ok ? nc.text : '손님'; // 이 안에서 불릴 이름 (10자, 거른 뒤). 안 맞으면 '손님'
     const j = Math.max(0, Math.min(JOB_MAX, num(url.searchParams.get('j'), 0)));
-    this.ctx.acceptWebSocket(server); server.serializeAttachment({ seat, n, j, last: 0, jAt: 0 });
+    const st = url.searchParams.get('s'), sv = st === 'f' || st === 'm' ? st : ''; // 한옥 차림 (쪽 f / 갓 m)
+    this.ctx.acceptWebSocket(server); server.serializeAttachment({ seat, n, j, s: sv, last: 0, jAt: 0 });
     this.dirty = true;
     server.send(JSON.stringify({ t: 'hello', seat, now: Date.now(), n: socks.length + 1, total: Math.max(this.total, socks.length + 1), bowls: this.bowls, peers: this.peers() }));
     if (!(await this.ctx.storage.getAlarm())) await this.ctx.storage.setAlarm(Date.now() + TICK_MS);

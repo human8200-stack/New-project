@@ -5,4 +5,7 @@ export const CARDS = [
   { name: '토마토 브루스케타', line: '구운 빵 위에 토마토를 소복이', tip: '빵이 따뜻할 때 마늘을 문질러요', inBook: false },
   { name: '버섯 리소또', line: '쌀알이 살아 있는 크림빛 한 접시', tip: '육수는 한 국자씩 나눠 부어요', inBook: false },
   { name: '알리오 올리오', line: '마늘 향이 솔솔 나는 파스타', tip: '면 삶은 물을 한 국자 남겨 섞어요', inBook: false },
+  // 한옥 카드에서 옮겨 옴 (편집팀 1판)
+  { name: "보리 버섯 리소또", line: "톡톡 씹히는 보리에 버섯 향", tip: "보리는 미리 불려 두면 빨리 익어요", inBook: true },
+  { name: "감자 프리타타", line: "팬 하나로 굽는 두툼한 감자 달걀부침", tip: "약불에 뚜껑을 덮으면 윗면까지 익어요", inBook: false },
 ];

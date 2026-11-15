@@ -42,6 +42,7 @@ const store = {
   set(k, v) { try { localStorage.setItem('bab.' + k, v); } catch (e) { /* 사생활 보호 모드 — 무시 */ } },
 };
 const randomName = () => NAMES[Math.floor(Math.random() * NAMES.length)] || '손님';
+let myStyle = store.get('style', ''); if (myStyle !== 'f' && myStyle !== 'm') myStyle = Math.random() < 0.5 ? 'f' : 'm'; // 한옥 차림: 'f' 쪽 · 'm' 갓 (처음엔 무작위)
 let myName = store.get('myname', ''); if (!checkName(myName).ok) myName = randomName(); // 이 안에서 불릴 이름 (입장 화면에서 고침)
 let devId = store.get('dev', '');
 if (!/^[a-z0-9]{16,40}$/.test(devId)) { devId = Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => b.toString(16).padStart(2, '0')).join(''); store.set('dev', devId); }
@@ -548,6 +549,8 @@ const GEO = {
   bob: new THREE.SphereGeometry(0.335, 20, 12, Math.PI * 0.62, Math.PI * 1.76, 0, Math.PI * 0.68),
   fringe: new THREE.SphereGeometry(0.318, 16, 8, -1.0, 2.0, 0.42, 0.42), fringeM: new THREE.SphereGeometry(0.312, 16, 8, -0.9, 1.8, 0.5, 0.35),
   scarf: new THREE.SphereGeometry(0.322, 18, 8, 0, Math.PI * 2, 0, Math.PI * 0.4), bun: new THREE.SphereGeometry(0.11, 12, 8),
+  gatBrim: new THREE.CylinderGeometry(0.56, 0.56, 0.012, 20), gatCrown: new THREE.CylinderGeometry(0.15, 0.17, 0.27, 12), gatStrap: new THREE.TorusGeometry(0.3, 0.007, 3, 12, Math.PI),
+  binyeo: new THREE.CylinderGeometry(0.012, 0.012, 0.36, 5), sangtu: new THREE.SphereGeometry(0.08, 8, 6),
   eye: new THREE.SphereGeometry(0.04, 8, 6), glass: new THREE.TorusGeometry(0.075, 0.011, 6, 18), cheek: new THREE.SphereGeometry(0.045, 8, 6),
   leg: new THREE.CapsuleGeometry(0.095, 0.2, 4, 8), arm: new THREE.CapsuleGeometry(0.075, 0.24, 4, 8), hand: new THREE.SphereGeometry(0.075, 8, 6),
   apron: new THREE.CylinderGeometry(0.283, 0.3, 0.42, 16, 1, true, -1.05, 2.1), apronShort: new THREE.CylinderGeometry(0.29, 0.31, 0.26, 16, 1, true, -1.0, 2.0), band: new THREE.TorusGeometry(0.285, 0.018, 4, 20), bib: new THREE.BoxGeometry(0.28, 0.2, 0.025), strap: new THREE.BoxGeometry(0.03, 0.22, 0.02),
@@ -565,6 +568,8 @@ const LOOK = {
   hair: ['#3b2a20', '#5a3e2b', '#2a2320', '#7a5236', '#a0764c', '#4a3b33'],
 };
 const SKIN = mat('#ffe3c8'), DARK = mat('#2b2b2b'), CHEEK = mat('#f5a3a3'), PANTS = mat('#5b5048'), STEEL = mat('#dfe2e6', { emissive: '#3a3e44', emissiveIntensity: 0.35 }), WOOD = mat('#7a5236');
+const GAT_M = new THREE.MeshLambertMaterial({ color: '#141414', transparent: true, opacity: 0.72, depthWrite: false, side: THREE.DoubleSide }); // 갓: 얇고 비치는 흑립 느낌
+const BINYEO = mat('#d4af37', { emissive: '#3a2a08', emissiveIntensity: 0.3 });
 const SHADOW_M = new THREE.MeshBasicMaterial({ color: 0x3b2a1a, transparent: true, opacity: 0.16, depthWrite: false });
 const ME_RING_M = new THREE.MeshBasicMaterial({ color: 0xe08a4a, transparent: true, opacity: 0.75, depthWrite: false });
 
@@ -609,9 +614,15 @@ function buildFigure(look, tagText, tagBg) {
   head.add(new THREE.Mesh(GEO.head, SKIN));
   const hair = new THREE.Mesh(GEO.hair, hairM); hair.rotation.x = -0.25; head.add(hair);
   if (look.hairKind === 'short') head.add(new THREE.Mesh(GEO.fringeM, hairM));
+  else if (look.hairKind === 'jjok') { const bn = new THREE.Mesh(GEO.bun, hairM); bn.position.set(0, -0.13, -0.27); bn.scale.set(1.1, 0.8, 0.9); head.add(bn); const pin = new THREE.Mesh(GEO.binyeo, BINYEO); pin.rotation.z = Math.PI / 2; pin.position.set(0, -0.13, -0.3); head.add(pin); } // 쪽진머리 (뒤로 낮게 묶은 쪽 + 비녀)
+  else if (look.hairKind === 'sangtu') { const st = new THREE.Mesh(GEO.sangtu, hairM); st.position.set(0, 0.33, -0.02); head.add(st); } // 상투 (갓 아래)
   else if (look.hairKind === 'bun') { head.add(new THREE.Mesh(GEO.fringe, hairM)); const bn = new THREE.Mesh(GEO.bun, hairM); bn.position.set(0, 0.1, -0.29); head.add(bn); }
   else { head.add(new THREE.Mesh(GEO.bob, hairM)); head.add(new THREE.Mesh(GEO.fringe, hairM)); }
-  if (look.hat === 'scarf') { const sc = new THREE.Mesh(GEO.scarf, mat(look.scarf || look.apron || '#f4efe2')); sc.rotation.x = -0.35; sc.position.y = 0.02; head.add(sc); }
+  if (look.hat === 'gat') { // 검은 갓: 반투명 재질 하나 · 조각 3개 (챙 · 대우 · 갓끈)
+    const brim = new THREE.Mesh(GEO.gatBrim, GAT_M); brim.position.y = 0.2; head.add(brim);
+    const crown = new THREE.Mesh(GEO.gatCrown, GAT_M); crown.position.y = 0.34; head.add(crown);
+    const strap = new THREE.Mesh(GEO.gatStrap, GAT_M); strap.position.set(0, 0.0, 0.02); strap.rotation.z = Math.PI; head.add(strap);
+  } else if (look.hat === 'scarf') { const sc = new THREE.Mesh(GEO.scarf, mat(look.scarf || look.apron || '#f4efe2')); sc.rotation.x = -0.35; sc.position.y = 0.02; head.add(sc); }
   else if (look.hat === 'toque') { const wm = mat('#ffffff'); cyl(head, 0.22, 0.22, 0.3, wm, 0, 0.18, -0.02, 16); sph(head, 0.27, wm, 0, 0.55, -0.02, 14, 10).scale.y = 0.6; }
   else if (look.hat === 'beret') { const b = sph(head, 0.33, mat('#3a3a48'), 0.03, 0.2, -0.02, 16, 8); b.scale.y = 0.32; b.rotation.z = 0.2; }
   else if (look.hat === 'straw') { const st = mat('#d9b56a'); cyl(head, 0.5, 0.5, 0.025, st, 0, 0.16, 0, 20); cyl(head, 0.24, 0.27, 0.17, st, 0, 0.17, 0, 16); }
@@ -626,7 +637,7 @@ function buildFigure(look, tagText, tagBg) {
   A.arms = [-1, 1].map((sx) => { const p = new THREE.Group(); p.position.set(sx * 0.33, 0.6, 0); p.rotation.z = sx * 0.15; torso.add(p); const m = new THREE.Mesh(GEO.arm, shirt); m.position.y = -0.18; p.add(m); const hd = new THREE.Mesh(GEO.hand, SKIN); hd.position.y = -0.36; p.add(hd); return p; });
   const shadow = new THREE.Mesh(GEO.shadow, SHADOW_M); shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.012; A.root.add(shadow);
   const lt = labelTex(tagText, tagBg, '#fff', 38);
-  const tag = screenSprite(lt, TAG_K, 4); tag.position.y = look.hat === 'toque' ? 1.95 : look.hat === 'straw' ? 1.78 : 1.62; hips.add(tag); A.tag = tag;
+  const tag = screenSprite(lt, TAG_K, 4); tag.position.y = look.hat === 'toque' ? 1.95 : look.hat === 'gat' ? 1.9 : look.hat === 'straw' ? 1.78 : 1.62; hips.add(tag); A.tag = tag;
   room.add(A.root);
   return A;
 }
@@ -671,16 +682,16 @@ function addTable() {
 
 const chefs = new Map(); // 손님 (진짜 손님만): 'me' 또는 's' + 서버 자리 번호 → 캐릭터
 const seatOcc = [], jobOcc = JOBS.map((j) => (j.slots || []).map(() => null));
-function makeChef(key, name, isMe, seed, job) {
+function makeChef(key, name, isMe, seed, job, style) { // style: 'f' 쪽 차림 · 'm' 갓 차림 (없으면 이름으로 정함)
   let h = 0; for (const ch of String(name)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   const r = rng(seed * 7919 + h), pick = (a) => a[Math.floor(r() * a.length)];
-  const f = r() < 0.55, G = P.guest || {}, tops = G.tops || LOOK.shirt, bottoms = G.bottoms || ['#5b5048'], aprons = G.aprons || LOOK.apron;
+  const f = style === 'f' ? true : style === 'm' ? false : r() < 0.55, G = P.guest || {}, tops = G.tops || LOOK.shirt, bottoms = G.bottoms || ['#5b5048'], aprons = G.aprons || LOOK.apron;
   // 장소별 옷: 한옥 = 파스텔 한복(저고리 + 치마 또는 바지) + 짧은 앞치마 · 토스카나 = 린넨 + 밀짚모자 · 파리 = 흰 제빵복 + 모자
   const look = { top: pick(tops), apron: pick(aprons), apronKind: G.outfit === 'hanbok' ? 'short' : 'front', hair: pick(LOOK.hair), hairKind: f ? 'bob' : 'short', hat: G.hat || null };
-  if (G.outfit === 'hanbok') { const b = pick(bottoms); if (f) look.skirt = b; else look.pants = b; look.goreum = shade(b, -0.12); }
+  if (G.outfit === 'hanbok') { const b = pick(bottoms); if (f) { look.skirt = b; look.hairKind = 'jjok'; } else { look.pants = b; look.hairKind = 'sangtu'; look.hat = 'gat'; } look.goreum = shade(b, -0.12); } // 한옥: 모두 한복 · 쪽진머리 또는 상투 + 갓
   else look.pants = pick(bottoms);
   const A = buildFigure(look, String(name), isMe ? 'rgba(201,120,62,0.95)' : 'rgba(59,47,37,0.8)');
-  Object.assign(A, { key, name, isMe, job: -1, seat: null, slot: null, actUntil: 0 });
+  Object.assign(A, { key, name, style, isMe, job: -1, seat: null, slot: null, actUntil: 0 });
   const knife = new THREE.Group(); knife.position.set(0, -0.38, 0.04); A.arms[1].add(knife);
   const bl = new THREE.Mesh(GEO.blade, STEEL); bl.position.z = 0.13; knife.add(bl); const hd = new THREE.Mesh(GEO.handle, WOOD); hd.position.z = 0.02; knife.add(hd); A.knife = knife;
   const spoon = new THREE.Group(); spoon.position.set(0, -0.4, 0); spoon.visible = false; A.arms[1].add(spoon);
@@ -1040,14 +1051,14 @@ function startNet() {
     full(total) { mode = 'watch'; showTogether(total); },
     count() { showTogether(); },
     peers(list, mySeat) { // list: [[서버 자리, 불릴 이름(서버가 거름), 일거리 번호], ...] — 일거리가 바뀐 손님은 그 자리로 옮김
-      const want = new Map(); for (const [ss, nm, j] of list) if (ss !== mySeat) { const c = checkName(String(nm || '')); want.set('s' + ss, { nm: c.ok ? c.text : '손님', j: JOBS[j | 0] ? j | 0 : 0, ss }); }
-      for (const k of [...chefs.keys()]) if (k !== 'me' && (!want.has(k) || chefs.get(k).name !== want.get(k).nm)) removeChef(k);
-      for (const [k, w] of want) { const A = chefs.get(k); if (!A) makeChef(k, w.nm, false, w.ss + 2, w.j); else if (A.job !== w.j || !A.root.visible) placeChef(A, w.j); }
+      const want = new Map(); for (const [ss, nm, j, st] of list) if (ss !== mySeat) { const c = checkName(String(nm || '')); want.set('s' + ss, { st: st === 'f' || st === 'm' ? st : null, nm: c.ok ? c.text : '손님', j: JOBS[j | 0] ? j | 0 : 0, ss }); }
+      for (const k of [...chefs.keys()]) if (k !== 'me' && (!want.has(k) || chefs.get(k).name !== want.get(k).nm || chefs.get(k).style !== want.get(k).st)) removeChef(k);
+      for (const [k, w] of want) { const A = chefs.get(k); if (!A) makeChef(k, w.nm, false, w.ss + 2, w.j, w.st); else if (A.job !== w.j || !A.root.visible) placeChef(A, w.j); }
     },
     taps(list, mySeat) { for (const [ss, c] of list) { if (ss === mySeat) continue; const A = chefs.get('s' + ss); if (!A) continue; for (let i = 0; i < Math.min(c, 6); i++) setTimeout(() => act(A, performance.now()), Math.random() * 13000); } },
     greets(list, mySeat) { for (const [ss, g] of list) { if (ss === mySeat) continue; const A = chefs.get('s' + ss); if (A && g >= 0 && g <= 2) setTimeout(() => say(A, g), Math.random() * 2500); } },
   }, PLACE_KEY);
-  if (net) net.connect(myName, me ? me.job : 0);
+  if (net) net.connect(myName, me ? me.job : 0, myStyle);
 }
 function showTogether(total) {
   const el = $('together'), bw = $('bowls');
@@ -1267,10 +1278,13 @@ function bindEnter() {
     myName = c.text; store.set('myname', myName); audio.unlock();
     $('enter').classList.add('gone'); setTimeout(() => { $('enter').hidden = true; }, 500);
     const saved = parseInt(store.get('job.' + PLACE_KEY, '0'), 10);
-    me = makeChef('me', myName, true, 1, JOBS[saved] ? saved : 0);
+    me = makeChef('me', myName, true, 1, JOBS[saved] ? saved : 0, myStyle);
     $('myName').textContent = myName; showJobBtn(); document.body.classList.add('in');
     startNet(); if (net) loadNotes(); else renderNotes();
   };
+  const showStyle = () => document.querySelectorAll('#enterStyle button').forEach((b) => b.classList.toggle('sel', b.dataset.s === myStyle));
+  $('enterStyle').hidden = !(P.guest && P.guest.outfit === 'hanbok'); // 한옥에서만 [쪽]/[갓]
+  document.querySelectorAll('#enterStyle button').forEach((b) => { b.onclick = () => { myStyle = b.dataset.s; store.set('style', myStyle); showStyle(); }; }); showStyle();
   $('enterGo').onclick = go; inp.onkeydown = (e) => { if (e.key === 'Enter') go(); };
 }
 
