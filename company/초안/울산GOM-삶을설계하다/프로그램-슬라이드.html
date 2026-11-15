@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>삶을 설계하다 — 제가 만든 프로그램들</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;900&family=Noto+Sans+KR:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; }
+  body { width: 1920px; height: 1080px; overflow: hidden; background: #0f1a2e; }
+  .slide {
+    position: relative; width: 1920px; height: 1080px; overflow: hidden;
+    background: radial-gradient(ellipse 1000px 800px at 1650px 200px, #1b2a47 0%, #0f1a2e 70%);
+    color: #f3ece0; font-family: 'Noto Serif KR', serif;
+  }
+  .head { position: absolute; left: 100px; top: 84px; }
+  .rule { width: 120px; height: 3px; background: #c9a96a; margin-bottom: 36px; }
+  h1 { margin: 0; font-weight: 900; font-size: 84px; letter-spacing: -0.02em; line-height: 1.2; }
+
+  .cards {
+    position: absolute; left: 100px; top: 290px; width: 1720px;
+    display: flex; gap: 22px;
+  }
+  .card {
+    box-sizing: border-box; width: 326px; height: 500px;
+    padding: 40px 24px 36px;
+    border: 1.5px solid rgba(201,169,106,0.38); border-radius: 22px;
+    background: rgba(255,255,255,0.035);
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+  }
+  /* 누구를 위해 — 시작점 */
+  .who {
+    font-family: 'Noto Sans KR', sans-serif; font-weight: 500; font-size: 32px;
+    color: #d8b878; white-space: nowrap; line-height: 1.2;
+  }
+  .stem { width: 2px; height: 34px; background: #c9a96a; margin: 14px 0; opacity: 0.8; }
+  .icon {
+    width: 108px; height: 108px; border-radius: 50%;
+    border: 2px solid #c9a96a; display: flex; align-items: center; justify-content: center;
+    background: rgba(201,169,106,0.08);
+  }
+  .icon svg { width: 60px; height: 60px; fill: none; stroke: #e6c98d; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+  .name { margin-top: 28px; font-weight: 900; font-size: 44px; line-height: 1.2; white-space: nowrap; letter-spacing: -0.01em; }
+  .desc {
+    margin-top: 18px; font-family: 'Noto Sans KR', sans-serif; font-weight: 400;
+    font-size: 34px; line-height: 1.5; color: #e6dccb; white-space: nowrap;
+  }
+
+  .message {
+    position: absolute; left: 0; width: 1920px; top: 868px; text-align: center;
+    font-weight: 700; font-size: 48px; color: #d8b878; letter-spacing: -0.01em;
+  }
+  .foot {
+    position: absolute; left: 100px; right: 100px; bottom: 40px;
+    display: flex; justify-content: space-between;
+    font-family: 'Noto Sans KR', sans-serif; font-weight: 500; font-size: 30px; color: #b9b2a6;
+  }
+  .foot .team { letter-spacing: 0.42em; color: #c9a96a; }
+</style>
+</head>
+<body>
+<div class="slide">
+  <div class="head">
+    <div class="rule"></div>
+    <h1>제가 만든 프로그램들</h1>
+  </div>
+
+  <div class="cards">
+    <!-- 1. 소비자 관리 -->
+    <div class="card">
+      <div class="who">고객님을 위해</div>
+      <div class="stem"></div>
+      <div class="icon">
+        <svg viewBox="0 0 60 60" aria-hidden="true">
+          <circle cx="24" cy="18" r="9"/>
+          <path d="M8 50 C8 37, 16 31, 24 31 C29 31, 33 33, 36 36"/>
+          <path d="M45 52 L37 44 C34 41, 35 36, 39 36 C42 36, 44 38, 45 40 C46 38, 48 36, 51 36 C55 36, 56 41, 53 44 Z"/>
+        </svg>
+      </div>
+      <div class="name">ABLE CRM</div>
+      <div class="desc">한 분 한 분을<br>잊지 않고 챙겨요</div>
+    </div>
+
+    <!-- 2. 레시피북 -->
+    <div class="card">
+      <div class="who">우리 식탁을 위해</div>
+      <div class="stem"></div>
+      <div class="icon">
+        <svg viewBox="0 0 60 60" aria-hidden="true">
+          <path d="M8 30 H52"/>
+          <path d="M11 30 C11 42, 19 50, 30 50 C41 50, 49 42, 49 30"/>
+          <path d="M22 22 C19 18, 25 15, 22 10"/>
+          <path d="M30 22 C27 18, 33 15, 30 10"/>
+          <path d="M38 22 C35 18, 41 15, 38 10"/>
+        </svg>
+      </div>
+      <div class="name">레시피북</div>
+      <div class="desc">레시피 213개를<br>함께 꺼내 봐요</div>
+    </div>
+
+    <!-- 3. 강의북 -->
+    <div class="card">
+      <div class="who">강의하는 분을 위해</div>
+      <div class="stem"></div>
+      <div class="icon">
+        <svg viewBox="0 0 60 60" aria-hidden="true">
+          <rect x="22" y="6" width="16" height="28" rx="8"/>
+          <path d="M14 28 C14 38, 21 44, 30 44 C39 44, 46 38, 46 28"/>
+          <path d="M30 44 V54"/>
+          <path d="M22 54 H38"/>
+        </svg>
+      </div>
+      <div class="name">강의북</div>
+      <div class="desc">말로 한 강의를<br>글로 정리해요</div>
+    </div>
+
+    <!-- 4. 공부 루틴 -->
+    <div class="card">
+      <div class="who">우리 아이를 위해</div>
+      <div class="stem"></div>
+      <div class="icon">
+        <svg viewBox="0 0 60 60" aria-hidden="true">
+          <rect x="9" y="12" width="42" height="40" rx="5"/>
+          <path d="M9 22 H51"/>
+          <path d="M20 7 V16"/>
+          <path d="M40 7 V16"/>
+          <path d="M20 37 L27 43 L41 30"/>
+        </svg>
+      </div>
+      <div class="name">공부 루틴</div>
+      <div class="desc">아이가 스스로<br>하루를 챙겨요</div>
+    </div>
+
+    <!-- 5. 라운지 -->
+    <div class="card">
+      <div class="who">우리 팀을 위해</div>
+      <div class="stem"></div>
+      <div class="icon">
+        <svg viewBox="0 0 60 60" aria-hidden="true">
+          <path d="M7 28 L30 9 L53 28"/>
+          <path d="M13 24 V51 H47 V24"/>
+          <circle cx="21" cy="36" r="3.5"/>
+          <circle cx="30" cy="36" r="3.5"/>
+          <circle cx="39" cy="36" r="3.5"/>
+          <path d="M18 47 H42"/>
+        </svg>
+      </div>
+      <div class="name">ABLE 라운지</div>
+      <div class="desc">멀리 있어도<br>한곳에 모여요</div>
+    </div>
+  </div>
+
+  <div class="message">기술보다 먼저, 누구를 위해 만들지 정했어요</div>
+
+  <div class="foot">
+    <span>울산 GOM · 2026. 11. 16</span>
+    <span class="team">ABLE TEAM</span>
+  </div>
+</div>
+</body>
+</html>
