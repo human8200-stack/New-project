@@ -14,7 +14,7 @@ export const CARDS = [
   { name: "밀푀유나베 찜", line: "배추, 깻잎, 고기를 겹겹이 세운 냄비", tip: "냄비 높이에 맞춰 썰면 세우기 쉬워요", inBook: true },
   { name: "미나리 매콤 얄피 수제비", line: "얇게 뜯은 반죽에 미나리 향이 확", tip: "미나리는 마지막에 넣어 향을 살려요", inBook: true },
   { name: "찜닭", line: "짭조름한 간장 국물에 당면까지", tip: "당면은 미리 불려 두면 금방 익어요", inBook: false },
-  // (빈자리 — 편집팀이 한식으로 채움)
-  // (빈자리 — 편집팀이 한식으로 채움)
-  // (빈자리 — 편집팀이 한식으로 채움)
+  { name: "된장찌개", line: "보글보글 끓는 뚝배기 하나", tip: "", inBook: false },
+  { name: "잡채", line: "잔칫날 큰 접시에 담는 잡채", tip: "", inBook: false },
+  { name: "소고기 미역국", line: "생일 아침에 끓이는 따뜻한 국", tip: "", inBook: false },
 ];
