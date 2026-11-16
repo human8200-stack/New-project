@@ -18,6 +18,17 @@ EMO = '/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf'
 # ---------------- 레시피 (레시피함 원문 계량 그대로, 제품명·냄비 이름 없이) ----------------
 # 토마토 솥밥: 회장님 11/8 — 물에 곰국 블록을 녹여 붓기(레시피함 원문과 같음), 꼭지 딴 토마토
 RECIPES = {
+    'olive_focaccia': dict(
+        # 회장님 11/15 정정 레시피 (레시피함 원문 + 정정): 팬 하나로, 오븐 없음, 제품명 없음
+        no='07', ko='올리브 포카치아', en='Olive Focaccia', meta='오븐 없이 팬 하나로', main='olive',
+        ing=['강력분 250g · 설탕 3g · 소금 7g · 이스트 3g',
+             '30℃ 미지근한 물 200ml · 올리브유 25g + 10g',
+             '올리브 슬라이스 50g · 로즈마리 약간'],
+        steps=['볼에 강력분 → 설탕 → 소금, 이스트 탄 물을 부어요',
+               '잘 섞다가 올리브유 25g을 넣고 더 섞어요',
+               '팬에 키친타월 + 유산지, 뚜껑 덮어 보온 50℃ 40분',
+               '접고 펴서 콕콕, 올리브·로즈마리·올리브유 → 15분',
+               '타월만 빼고 150℃ 25분, 뒤집어 15분 더']),
     'tomato_sotbap': dict(
         no='06', ko='토마토 솥밥', en='Tomato Sotbap', meta='4인분  ·  약 40분', main='tomato',
         ing=['쌀 2.5컵 · 다진 소고기 100g · 토마토 1개',
@@ -200,7 +211,29 @@ def draw_noodles(layer, cx, cy, r):
     d.line([(k(kx), k(ky)), (k(kx + r * 0.1), k(ky + r * 0.12))], fill=tw, width=k(r * 0.022))
 
 
-MAINS = {'tomato': draw_tomato, 'kabocha': draw_kabocha, 'noodles': draw_noodles}
+def draw_olive(layer, cx, cy, r):
+    """올리브 한 알 + 작은 잎 두 장 (주재료 하나만)"""
+    OLV, OLV_D = (98, 112, 70), (64, 76, 46)
+    sz = k(r * 2.8); c = sz / 2; R = k(r)
+    t = Image.new('RGBA', (sz, sz), (0, 0, 0, 0)); td = ImageDraw.Draw(t)
+    for ang, dx in [(-28, -0.62), (22, 0.6)]:
+        a = math.radians(ang); L = R * 1.25; Wd = R * 0.12
+        cx0, cy0 = c + R * dx, c - R * 0.72
+        pts = [(cx0 + L * u * math.cos(a) - Wd * math.sin(math.pi * (u + 0.5)) * math.sin(a) * 1,
+                cy0 + L * u * math.sin(a) + Wd * math.sin(math.pi * (u + 0.5)) * math.cos(a)) for u in np.linspace(-0.5, 0.5, 40)]
+        pts += [(cx0 + L * u * math.cos(a) + Wd * math.sin(math.pi * (u + 0.5)) * math.sin(a),
+                 cy0 + L * u * math.sin(a) - Wd * math.sin(math.pi * (u + 0.5)) * math.cos(a)) for u in np.linspace(0.5, -0.5, 40)]
+        td.polygon(pts, fill=OL + (255,))
+    td.ellipse((c - R * 0.92, c - R * 0.5, c + R * 0.92, c + R * 0.56), fill=OLV + (255,))
+    t = _shade(t, sz, c, R * 0.8, OLV_D, (196, 204, 150), (c - R * 0.5, c - R * 0.42, c - R * 0.12, c - R * 0.22))
+    td = ImageDraw.Draw(t)
+    td.line([(c, c - R * 0.5), (c + R * 0.05, c - R * 0.74)], fill=(110, 90, 60, 255), width=k(r * 0.06))
+    t = t.filter(ImageFilter.GaussianBlur(k(1.2)))
+    _ground_shadow(layer, cx, cy, r * 0.85)
+    layer.alpha_composite(t, (int(k(cx) - sz / 2), int(k(cy) - sz / 2)))
+
+
+MAINS = {'tomato': draw_tomato, 'kabocha': draw_kabocha, 'noodles': draw_noodles, 'olive': draw_olive}
 
 
 def make_card(key, out, tall=False):
@@ -208,7 +241,7 @@ def make_card(key, out, tall=False):
     extra = (len(rcp['ing']) - 2) * 46
     Hh, P0, oy, s = (1920, 860 - extra, 150, 1.15) if tall else (1350, 600 - extra, 0, 1.0)
     img = linen_bg(Hh)
-    size = {'tomato': 150, 'kabocha': 140, 'noodles': 170}[rcp['main']]
+    size = {'tomato': 150, 'kabocha': 140, 'noodles': 170, 'olive': 130}[rcp['main']]
     MAINS[rcp['main']](img, 540 + (520 - 540) * s, oy + (320 - extra * 0.4) * s, size * s)
     d = ImageDraw.Draw(img)
     d.text((k(64), k(58)), 'M A I S O N   E D E L', font=F('CormorantGaramond-Medium.ttf', 24), fill=(120, 105, 92))
