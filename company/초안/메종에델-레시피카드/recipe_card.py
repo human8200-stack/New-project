@@ -12,7 +12,7 @@ import numpy as np, math, sys, os
 IV = (248, 246, 242); BE = (232, 221, 207); TA = (168, 154, 138); OL = (107, 114, 88); CH = (62, 62, 62)
 TOM = (196, 104, 82); TOM_D = (160, 78, 62)
 K = 2; W = 1080
-FONT_DIR = '/tmp/claude-0/-home-user/020f0925-2716-5554-b1a3-06e5bb251207/scratchpad/ref/'
+FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fonts')  # 고운바탕·Cormorant (OFL), 이 폴더 fonts/
 EMO = '/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf'
 
 # ---------------- 레시피 (레시피함 원문 계량 그대로, 제품명·냄비 이름 없이) ----------------
