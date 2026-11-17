@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>엄마의 영양 노트 No.04 — 카드뉴스 9장</title>
+<style>
+@font-face{font-family:"NSR";font-weight:400;font-display:block;
+  src:url("file:///tmp/claude-0/-home-user/020f0925-2716-5554-b1a3-06e5bb251207/scratchpad/fonts/NanumSquareRoundR.woff") format("woff");}
+@font-face{font-family:"NSR";font-weight:700;font-display:block;
+  src:url("file:///tmp/claude-0/-home-user/020f0925-2716-5554-b1a3-06e5bb251207/scratchpad/fonts/NanumSquareRoundB.woff") format("woff");}
+@font-face{font-family:"NSR";font-weight:800;font-display:block;
+  src:url("file:///tmp/claude-0/-home-user/020f0925-2716-5554-b1a3-06e5bb251207/scratchpad/fonts/NanumSquareRoundEB.woff") format("woff");}
+
+:root{
+  --bg:#EEF2EA;      /* 60 배경 */
+  --ink:#2F4A3A;     /* 30 글자·선 */
+  --lemon:#F2C94C;   /* 10 포인트 */
+  --paper:#FAFBF7;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#c9cfc5;font-family:"NSR",sans-serif;color:var(--ink);padding:40px 0}
+
+.card{
+  width:1080px;height:1350px;position:relative;overflow:hidden;margin:0 auto 40px;
+  background-color:var(--bg);
+  background-image:
+    linear-gradient(rgba(47,74,58,.065) 2px,transparent 2px),
+    linear-gradient(90deg,rgba(47,74,58,.065) 2px,transparent 2px);
+  background-size:54px 54px;
+  background-position:-1px -1px;
+}
+.head{position:absolute;top:58px;left:72px;right:72px;display:flex;justify-content:space-between;align-items:center;
+  font-weight:700;font-size:32px;letter-spacing:-.01em}
+.head .no{background:var(--lemon);border-radius:999px;padding:4px 16px;margin-left:8px;font-weight:800}
+.head .page{font-weight:700;opacity:.75}
+/* 내용 칸: 위 14%(189px) ~ 아래 10%(135px) 사이 */
+.body{position:absolute;top:189px;bottom:135px;left:72px;right:72px;display:flex;flex-direction:column}
+
+.hl{background:linear-gradient(transparent 56%,var(--lemon) 56%,var(--lemon) 94%,transparent 94%);
+  padding:0 6px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.b{font-weight:800}
+
+.sub{font-weight:800;font-size:48px;letter-spacing:-.02em;line-height:1.25;padding-bottom:18px;border-bottom:4px dashed rgba(47,74,58,.35)}
+.sub .num{display:inline-block;margin-right:8px}
+.txt{font-weight:400;font-size:49px;line-height:1.48;letter-spacing:-.025em;margin-top:30px;white-space:nowrap}
+.txt strong{font-weight:800}
+/* 원고의 (작게) 한 줄 — 정리 장 .note와 같은 결 */
+.small{font-weight:700;font-size:32px;line-height:1.4;letter-spacing:-.02em;margin-top:22px;opacity:.8;word-break:keep-all}
+.ill{flex:1;display:flex;align-items:center;justify-content:center;min-height:0}
+.ill svg{display:block}
+svg .s{fill:none;stroke:var(--ink);stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+svg .t{fill:var(--ink);font-family:"NSR";font-weight:700}
+
+/* 1장 */
+.c1 h1{font-weight:800;letter-spacing:-.035em;line-height:1.22;margin-top:40px;white-space:nowrap}
+.c1 h1 .l1{font-size:100px;display:block}
+.c1 h1 .l2{font-size:84px;display:block}
+.c1 .lead{font-weight:700;font-size:50px;margin-top:40px;letter-spacing:-.02em}
+.c1 .art{position:absolute;left:0;right:0;bottom:0;height:640px}
+
+/* 정리 장 */
+.box{background:var(--paper);border:4px solid var(--ink);border-radius:28px;padding:30px 40px 34px;position:relative}
+.box .lab{display:inline-block;font-weight:800;font-size:40px;background:var(--lemon);border-radius:12px;padding:2px 16px;margin-bottom:14px}
+.box p{font-size:47px;line-height:1.45;letter-spacing:-.03em;white-space:nowrap}
+.box + .box{margin-top:34px}
+
+/* 챙겨 볼 영양소 (그림 없이 번호 목록) */
+.cn .pill{align-self:flex-start;font-weight:800;font-size:32px;background:var(--lemon);border-radius:999px;padding:4px 20px;margin-top:0}
+.cn h2{font-weight:800;font-size:60px;letter-spacing:-.035em;line-height:1.15;margin-top:10px;white-space:nowrap}
+.nu{background:var(--paper);border:4px solid var(--ink);border-radius:24px;padding:14px 26px 16px;margin-top:14px}
+.nu .nm{font-weight:800;font-size:44px;letter-spacing:-.03em;line-height:1.15}
+.nu .nm .num{display:inline-block;margin-right:8px}
+.nu .fn{font-size:40px;line-height:1.3;letter-spacing:-.04em;margin-top:6px;word-break:keep-all}
+.nu .bx{font-weight:700;font-size:34px;line-height:1.25;letter-spacing:-.03em;margin-top:4px;opacity:.85;word-break:keep-all}
+.nu .fd{font-weight:700;font-size:34px;line-height:1.3;letter-spacing:-.03em;margin-top:6px;padding-top:6px;border-top:3px dashed rgba(47,74,58,.3);word-break:keep-all}
+.nu .key{font-weight:800;font-size:34px;line-height:1.28;letter-spacing:-.035em;margin-top:6px;padding-left:14px;border-left:8px solid var(--lemon);word-break:keep-all}
+.nu .sm{font-weight:700;font-size:26px;line-height:1.3;letter-spacing:-.02em;margin-top:4px;opacity:.8;word-break:keep-all}
+/* 칸이 긴 장: 기능 문장 40px 유지, 나머지만 조금 줄임 */
+.tight .nu{padding:10px 22px 12px;margin-top:12px}
+.tight .nu .nm{font-size:42px}
+.tight .nu .fn{line-height:1.25}
+.tight .nu .fd{font-size:32px;line-height:1.25}
+/* No.03 7장: 기능 문장이 No.02보다 길어 조금 더 줄임 (기능 문장 40px은 그대로) */
+.tighter h2{font-size:56px;margin-top:6px}
+.tighter .nu{padding:8px 22px 10px;margin-top:10px}
+.tighter .nu .nm{font-size:40px}
+.tighter .nu .key{font-size:32px;line-height:1.25}
+.tighter .nu .fd{font-size:30px;line-height:1.25;margin-top:4px;padding-top:4px}
+.tighter .nu .sm{font-size:25px}
+.tighter .note{font-size:26px}
+.cn .note{margin-top:auto;padding-top:10px;font-size:28px;line-height:1.35;font-weight:700;opacity:.85;letter-spacing:-.02em;word-break:keep-all}
+
+/* 마무리 */
+.end .save{font-weight:800;font-size:86px;line-height:1.25;letter-spacing:-.035em;margin-top:40px;white-space:nowrap}
+.end .next{margin-top:60px;border-top:4px dashed rgba(47,74,58,.35);padding-top:40px}
+.end .next .lab{display:inline-block;font-weight:800;font-size:40px;background:var(--lemon);border-radius:12px;padding:2px 16px}
+.end .next p{font-weight:800;font-size:52px;line-height:1.35;letter-spacing:-.03em;margin-top:18px;word-break:keep-all}
+.end .next p .no2{display:block;font-size:44px;opacity:.75}
+.end .foot{margin-top:auto;font-size:28px;line-height:1.55;font-weight:700;opacity:.8;letter-spacing:-.02em}
+
+/* No.04 7장: 와파린 네모 상자 (진초록 테두리, 글씨 크게) */
+.warn{background:var(--paper);border:6px solid var(--ink);border-radius:24px;padding:24px 30px 26px;margin-top:26px;
+  font-weight:800;font-size:48px;line-height:1.42;letter-spacing:-.035em;word-break:keep-all}
+/* No.04 그림 이름표 (선 그림 안 글씨) */
+svg .lb{fill:var(--ink);font-family:"NSR";font-weight:800}
+</style>
+</head>
+<body>
+
+<!-- 균 얼굴 (1·3·4·5장 같은 모양): 웃는 유익균 / 뿔 유해균 / 옆 보는 중간균 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <g id="fg">
+      <circle r="30" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="4"/>
+      <ellipse cx="-19" cy="7" rx="6" ry="4" fill="#F2C94C"/><ellipse cx="19" cy="7" rx="6" ry="4" fill="#F2C94C"/>
+      <circle cx="-10" cy="-6" r="4" fill="#2F4A3A"/><circle cx="10" cy="-6" r="4" fill="#2F4A3A"/>
+      <path d="M-11 6 Q0 18 11 6" fill="none" stroke="#2F4A3A" stroke-width="4" stroke-linecap="round"/>
+    </g>
+    <g id="fb">
+      <path d="M-22 -14 L-21 -42 L-5 -28 Z" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M22 -14 L21 -42 L5 -28 Z" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="4" stroke-linejoin="round"/>
+      <circle r="30" fill="#DDE4D6" stroke="#2F4A3A" stroke-width="4"/>
+      <circle cx="-10" cy="-5" r="4" fill="#2F4A3A"/><circle cx="10" cy="-5" r="4" fill="#2F4A3A"/>
+      <path d="M-10 10 q5 -5 10 0 t10 0" fill="none" stroke="#2F4A3A" stroke-width="3.5" stroke-linecap="round"/>
+    </g>
+    <g id="fml">
+      <circle r="30" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="4"/>
+      <circle cx="-10" cy="-5" r="7.5" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="3"/><circle cx="10" cy="-5" r="7.5" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="3"/>
+      <circle cx="-14" cy="-5" r="3.5" fill="#2F4A3A"/><circle cx="6" cy="-5" r="3.5" fill="#2F4A3A"/>
+      <path d="M-7 12 H7" fill="none" stroke="#2F4A3A" stroke-width="4" stroke-linecap="round"/>
+    </g>
+    <g id="fmr">
+      <circle r="30" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="4"/>
+      <circle cx="-10" cy="-5" r="7.5" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="3"/><circle cx="10" cy="-5" r="7.5" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="3"/>
+      <circle cx="-6" cy="-5" r="3.5" fill="#2F4A3A"/><circle cx="14" cy="-5" r="3.5" fill="#2F4A3A"/>
+      <path d="M-7 12 H7" fill="none" stroke="#2F4A3A" stroke-width="4" stroke-linecap="round"/>
+    </g>
+    <!-- 벽돌 한 줄 (No.02·03과 같은 모양, 작게) -->
+    <g id="bricks">
+      <rect x="0" y="0" width="60" height="90" rx="12" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="4"/>
+      <rect x="60" y="0" width="60" height="90" rx="12" fill="#F2C94C" fill-opacity=".55" stroke="#2F4A3A" stroke-width="4"/>
+      <rect x="120" y="0" width="60" height="90" rx="12" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="4"/>
+      <rect x="56" y="4" width="8" height="82" rx="3" fill="#F2C94C" stroke="#2F4A3A" stroke-width="2"/>
+      <rect x="116" y="4" width="8" height="82" rx="3" fill="#F2C94C" stroke="#2F4A3A" stroke-width="2"/>
+      <g fill="none" stroke="#2F4A3A" stroke-width="3"><circle cx="30" cy="63" r="8"/><circle cx="90" cy="63" r="8"/><circle cx="150" cy="63" r="8"/></g>
+    </g>
+  </defs>
+</svg>
+
+<!-- 1장 — 훅 -->
+<section class="card c1" id="c1">
+  <div class="head"><div>영양 노트<span class="no">No.04</span></div><div class="page">1/9</div></div>
+  <div class="body">
+    <h1><span class="l1">장 속 균,</span><span class="l2">다 없애야 할까요?</span></h1>
+    <p class="lead">아니요, <span class="hl">유익균</span> 편을 들어 주면 돼요</p>
+  </div>
+  <svg class="art" viewBox="0 0 1080 640" width="1080" height="640">
+    <!-- 줄 -->
+    <path d="M70 380 C300 372 780 388 1010 380" fill="none" stroke="#2F4A3A" stroke-width="7" stroke-linecap="round"/>
+    <!-- 가운데 표시 -->
+    <path class="s" d="M540 383 V420"/>
+    <path d="M540 404 L572 414 L540 424 Z" fill="#F2C94C" stroke="#2F4A3A" stroke-width="3" stroke-linejoin="round"/>
+    <!-- 왼쪽 유익균 무리 (뒤로 기댐) -->
+    <g class="s" stroke-width="4"><path d="M142 340 L160 380"/><path d="M262 340 L280 380"/><path d="M382 340 L400 380"/></g>
+    <use href="#fg" transform="translate(120 310) rotate(-12) scale(1.45)"/>
+    <use href="#fg" transform="translate(240 310) rotate(-12) scale(1.45)"/>
+    <use href="#fg" transform="translate(360 310) rotate(-12) scale(1.45)"/>
+    <rect x="186" y="214" width="108" height="18" rx="6" fill="#F2C94C"/>
+    <text class="lb" x="240" y="228" font-size="36" text-anchor="middle">유익균</text>
+    <!-- 오른쪽 유해균 무리 -->
+    <g class="s" stroke-width="4"><path d="M698 340 L680 380"/><path d="M818 340 L800 380"/><path d="M938 340 L920 380"/></g>
+    <use href="#fb" transform="translate(720 310) rotate(12) scale(1.45)"/>
+    <use href="#fb" transform="translate(840 310) rotate(12) scale(1.45)"/>
+    <use href="#fb" transform="translate(960 310) rotate(12) scale(1.45)"/>
+    <rect x="786" y="196" width="108" height="18" rx="6" fill="#F2C94C"/>
+    <text class="lb" x="840" y="210" font-size="36" text-anchor="middle">유해균</text>
+    <!-- 가운데 중간균 (양쪽을 번갈아 봄) -->
+    <use href="#fml" transform="translate(440 510) scale(1.3)"/>
+    <use href="#fmr" transform="translate(540 500) scale(1.3)"/>
+    <use href="#fml" transform="translate(640 510) scale(1.3)"/>
+    <g class="s" stroke-width="3" opacity=".6"><path d="M384 498 l-14 -6 M384 512 l-16 2"/><path d="M696 498 l14 -6 M696 512 l16 2"/></g>
+    <rect x="486" y="582" width="108" height="18" rx="6" fill="#F2C94C"/>
+    <text class="lb" x="540" y="596" font-size="36" text-anchor="middle">중간균</text>
+  </svg>
+</section>
+
+<!-- 2장 — 장 속은 균의 마을 -->
+<section class="card" id="c2">
+  <div class="head"><div>영양 노트<span class="no">No.04</span></div><div class="page">2/9</div></div>
+  <div class="body">
+    <p class="sub"><span class="num">1.</span> 장 속은 균의 마을</p>
+    <p class="txt">장 속에는 셀 수 없이 많은<br>균이 함께 살아요.<br>대부분 <span class="hl">큰창자</span>에 모여<br>우리가 못 먹은 걸 나눠 먹어요.</p>
+    <div class="ill">
+      <svg width="900" height="500" viewBox="0 0 900 500">
+        <!-- 길 지도 (No.01) -->
+        <g class="s" stroke-width="3" fill="#FAFBF7">
+          <rect x="20" y="40" width="160" height="66" rx="16"/>
+          <rect x="20" y="146" width="160" height="66" rx="16"/>
+          <rect x="20" y="252" width="160" height="66" rx="16"/>
+        </g>
+        <rect class="s" x="20" y="358" width="160" height="66" rx="16" fill="#F2C94C"/>
+        <text class="t" x="100" y="84" font-size="30" text-anchor="middle">입</text>
+        <text class="t" x="100" y="190" font-size="30" text-anchor="middle">위</text>
+        <text class="t" x="100" y="296" font-size="30" text-anchor="middle">작은창자</text>
+        <text class="lb" x="100" y="402" font-size="30" text-anchor="middle">큰창자</text>
+        <g fill="none" stroke="#2F4A3A" stroke-width="5" stroke-linecap="round" stroke-dasharray="1 12">
+          <path d="M100 112 V140"/><path d="M100 218 V246"/><path d="M100 324 V352"/>
+        </g>
+        <!-- 확대 선 -->
+        <g class="s" stroke-width="3" stroke-dasharray="8 10" opacity=".7"><path d="M184 362 L266 44"/><path d="M184 420 L266 486"/></g>
+        <!-- 확대한 큰창자 칸 -->
+        <rect class="s" x="270" y="40" width="610" height="450" rx="30" fill="#FAFBF7"/>
+        <rect x="508" y="84" width="134" height="18" rx="6" fill="#F2C94C"/>
+        <text class="lb" x="575" y="98" font-size="36" text-anchor="middle">큰창자</text>
+        <path class="s" stroke-width="3" opacity=".5" d="M300 430 H850"/>
+        <!-- 작은 집 셋 -->
+        <g class="s" stroke-width="4" fill="#FAFBF7">
+          <path d="M310 430 V370 L360 326 L410 370 V430 Z"/>
+          <path d="M530 430 V374 L580 330 L630 374 V430 Z"/>
+          <path d="M740 430 V370 L790 326 L840 370 V430 Z"/>
+        </g>
+        <g class="s" stroke-width="3"><rect x="348" y="394" width="24" height="36" rx="4"/><rect x="568" y="398" width="24" height="32" rx="4"/><rect x="778" y="394" width="24" height="36" rx="4"/></g>
+        <!-- 함께 사는 균 -->
+        <use href="#fg" transform="translate(340 190) scale(.95)"/>
+        <use href="#fg" transform="translate(470 150) scale(.95)"/>
+        <use href="#fmr" transform="translate(460 260) scale(.95)"/>
+        <use href="#fg" transform="translate(690 160) scale(.95)"/>
+        <use href="#fml" transform="translate(810 200) scale(.95)"/>
+        <use href="#fg" transform="translate(680 270) scale(.95)"/>
+        <use href="#fb" transform="translate(800 110) scale(.85)"/>
+        <use href="#fg" transform="translate(470 395) scale(.8)"/>
+        <use href="#fml" transform="translate(690 405) scale(.8)"/>
+        <!-- 나눠 먹는 밥 부스러기 -->
+        <g fill="#F2C94C" stroke="#2F4A3A" stroke-width="2"><circle cx="575" cy="200" r="9"/><circle cx="560" cy="226" r="7"/><circle cx="595" cy="228" r="8"/></g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- 3장 — 쉽게 셋으로 나눠 봐요 -->
+<section class="card" id="c3">
+  <div class="head"><div>영양 노트<span class="no">No.04</span></div><div class="page">3/9</div></div>
+  <div class="body">
+    <p class="sub"><span class="num">2.</span> 쉽게 셋으로 나눠 봐요</p>
+    <p class="txt">도움을 주는 <span class="hl">유익균</span>,<br>탈을 내기 쉬운 <span class="hl">유해균</span>,<br>어느 편도 아닌 <span class="hl">중간균</span>.</p>
+    <p class="small">실제 균은 딱 셋으로 나뉘지 않아요. 이해를 돕는 쉬운 나눔이에요.</p>
+    <div class="ill">
+      <svg width="900" height="440" viewBox="0 0 900 440">
+        <use href="#fg" transform="translate(150 200) scale(2.6)"/>
+        <use href="#fb" transform="translate(450 200) scale(2.6)"/>
+        <use href="#fmr" transform="translate(750 200) scale(2.6)"/>
+        <g class="s" stroke-width="3" opacity=".6"><path d="M862 180 l18 -8 M864 206 l20 2"/></g>
+        <rect x="88" y="356" width="124" height="20" rx="6" fill="#F2C94C"/>
+        <text class="lb" x="150" y="372" font-size="42" text-anchor="middle">유익균</text>
+        <rect x="388" y="356" width="124" height="20" rx="6" fill="#F2C94C"/>
+        <text class="lb" x="450" y="372" font-size="42" text-anchor="middle">유해균</text>
+        <rect x="688" y="356" width="124" height="20" rx="6" fill="#F2C94C"/>
+        <text class="lb" x="750" y="372" font-size="42" text-anchor="middle">중간균</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- 4장 — 중간균은 눈치를 봐요 -->
+<section class="card" id="c4">
+  <div class="head"><div>영양 노트<span class="no">No.04</span></div><div class="page">4/9</div></div>
+  <div class="body">
+    <p class="sub"><span class="num">3.</span> 중간균은 눈치를 봐요</p>
+    <p class="txt"><span class="hl">중간균</span>은 그때그때<br>힘센 쪽을 따라간다고 해요.<br>그래서 균과 싸우기보다<br><span class="hl">유익균</span> 편을 들어 주는 게 먼저.</p>
+    <div class="ill">
+      <svg width="936" height="470" viewBox="0 0 1080 540">
+        <!-- 줄 (가운데 표시가 유익균 쪽으로) -->
+        <path d="M60 330 C300 322 780 338 1020 330" fill="none" stroke="#2F4A3A" stroke-width="7" stroke-linecap="round"/>
+        <path class="s" d="M600 333 V370"/>
+        <path d="M600 354 L568 364 L600 374 Z" fill="#F2C94C" stroke="#2F4A3A" stroke-width="3" stroke-linejoin="round"/>
+        <!-- 유익균 -->
+        <g class="s" stroke-width="4"><path d="M102 290 L120 330"/><path d="M212 290 L230 330"/><path d="M322 290 L340 330"/></g>
+        <use href="#fg" transform="translate(80 260) rotate(-14) scale(1.4)"/>
+        <use href="#fg" transform="translate(190 260) rotate(-14) scale(1.4)"/>
+        <use href="#fg" transform="translate(300 260) rotate(-14) scale(1.4)"/>
+        <!-- 유익균 쪽 줄을 같이 잡은 중간균 (유익균 쪽을 봄) -->
+        <g class="s" stroke-width="4"><path d="M432 290 L450 330"/><path d="M542 290 L560 330"/></g>
+        <use href="#fml" transform="translate(410 260) rotate(-14) scale(1.4)"/>
+        <use href="#fml" transform="translate(520 260) rotate(-14) scale(1.4)"/>
+        <!-- 유해균 -->
+        <g class="s" stroke-width="4"><path d="M778 290 L760 330"/><path d="M888 290 L870 330"/><path d="M998 290 L980 330"/></g>
+        <use href="#fb" transform="translate(800 260) rotate(10) scale(1.4)"/>
+        <use href="#fb" transform="translate(910 260) rotate(10) scale(1.4)"/>
+        <use href="#fb" transform="translate(1020 260) rotate(10) scale(1.4)"/>
+        <!-- 이름표 -->
+        <rect x="136" y="150" width="108" height="18" rx="6" fill="#F2C94C"/>
+        <text class="lb" x="190" y="164" font-size="36" text-anchor="middle">유익균</text>
+        <rect x="411" y="150" width="108" height="18" rx="6" fill="#F2C94C"/>
+        <text class="lb" x="465" y="164" font-size="36" text-anchor="middle">중간균</text>
+        <rect x="856" y="136" width="108" height="18" rx="6" fill="#F2C94C"/>
+        <text class="lb" x="910" y="150" font-size="36" text-anchor="middle">유해균</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- 5장 — 장 속 균이 만드는 것 -->
+<section class="card" id="c5">
+  <div class="head"><div>영양 노트<span class="no">No.04</span></div><div class="page">5/9</div></div>
+  <div class="body">
+    <p class="sub"><span class="num">4.</span> 장 속 균이 만드는 것</p>
+    <p class="txt">식이섬유를 먹은 장 속 균은<br>장 속을 약산성으로 만들고<br>벽돌의 밥 <span class="hl">뷰티르산</span>을 내놓아요.<br><span class="hl">비타민K</span>도 일부 만들어요.</p>
+    <p class="small">뷰티르산은 No.03에서 본 장벽 세포의 밥이에요.</p>
+    <div class="ill">
+      <svg width="900" height="470" viewBox="0 0 900 470">
+        <!-- 나물 접시 -->
+        <ellipse class="s" cx="90" cy="240" rx="80" ry="22" fill="#FAFBF7"/>
+        <ellipse class="s" stroke-width="3" cx="90" cy="238" rx="54" ry="12" opacity=".6"/>
+        <path class="s" d="M44 230 q9 -20 18 0 t18 0 t18 0 t18 0 t18 0"/>
+        <path class="s" d="M53 216 q9 -16 18 0 t18 0 t18 0 t18 0"/>
+        <text class="t" x="90" y="310" font-size="30" text-anchor="middle" opacity=".8">식이섬유</text>
+        <!-- 화살표 -->
+        <path d="M180 236 L215 236" fill="none" stroke="#2F4A3A" stroke-width="6" stroke-linecap="round" stroke-dasharray="1 16"/>
+        <path class="s" d="M214 222 L230 236 L214 250"/>
+        <!-- 웃는 균 -->
+        <use href="#fg" transform="translate(290 236) scale(1.5)"/>
+        <!-- 세 갈래 -->
+        <g fill="none" stroke="#2F4A3A" stroke-width="6" stroke-linecap="round" stroke-dasharray="1 16">
+          <path d="M350 220 C390 160 410 90 460 80"/>
+          <path d="M350 236 L455 236"/>
+          <path d="M350 252 C390 312 410 382 460 392"/>
+        </g>
+        <path class="s" d="M450 66 L466 80 L450 94"/>
+        <path class="s" d="M450 222 L466 236 L450 250"/>
+        <path class="s" d="M450 378 L466 392 L450 406"/>
+        <!-- ① 작은 물방울: 약산성 -->
+        <path class="s" stroke-width="3" fill="#FAFBF7" d="M520 40 C534 60 544 72 544 86 A24 24 0 0 1 496 86 C496 72 506 60 520 40 Z"/>
+        <text class="t" x="566" y="94" font-size="34">약산성</text>
+        <!-- ② 물방울 뷰티르산 → 벽돌 한 줄 -->
+        <path class="s" stroke-width="3" fill="#F2C94C" d="M522 186 C540 212 552 226 552 244 A30 30 0 0 1 492 244 C492 226 504 212 522 186 Z"/>
+        <rect x="452" y="298" width="140" height="18" rx="6" fill="#F2C94C"/>
+        <text class="lb" x="522" y="312" font-size="32" text-anchor="middle">뷰티르산</text>
+        <path d="M576 236 L612 236" fill="none" stroke="#2F4A3A" stroke-width="6" stroke-linecap="round" stroke-dasharray="1 16"/>
+        <path class="s" d="M610 222 L626 236 L610 250"/>
+        <use href="#bricks" transform="translate(650 192)"/>
+        <!-- ③ 잎 모양 K -->
+        <path class="s" fill="#FAFBF7" d="M478 432 C478 362 540 340 584 338 C584 400 540 432 478 432 Z"/>
+        <path class="s" stroke-width="3" d="M478 432 L466 444"/>
+        <text class="lb" x="533" y="402" font-size="36" text-anchor="middle">K</text>
+        <rect x="606" y="398" width="146" height="18" rx="6" fill="#F2C94C"/>
+        <text class="lb" x="679" y="412" font-size="32" text-anchor="middle">비타민K</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- 6장 — 챙겨 볼 영양소 1 -->
+<section class="card cn" id="c6">
+  <div class="head"><div>영양 노트<span class="no">No.04</span></div><div class="page">6/9</div></div>
+  <div class="body">
+    <span class="pill">챙겨 볼 영양소 1</span>
+    <h2>유익균 편을 들어 주려면</h2>
+
+    <div class="nu">
+      <p class="nm"><span class="num">1.</span><span class="hl">프로바이오틱스</span></p>
+      <p class="fn">유산균 증식과 유해균 억제, 배변활동 원활, 장 건강에 도움을 줄 수 있어요.</p>
+      <p class="fd">많은 음식: 김치·요구르트 같은 발효 음식</p>
+    </div>
+
+    <div class="nu">
+      <p class="nm"><span class="num">2.</span><span class="hl">프락토올리고당</span></p>
+      <p class="fn">장내 유익균의 증식과 배변활동 원활에 도움을 줄 수 있어요.</p>
+      <p class="fd">많은 음식: 양파·마늘·우엉·바나나</p>
+    </div>
+
+    <div class="nu">
+      <p class="nm"><span class="num">3.</span><span class="hl">식이섬유</span></p>
+      <p class="fn">배변활동 원활에 도움을 줄 수 있어요.</p>
+      <p class="fd">많은 음식: 채소·통곡물·콩·해조류</p>
+      <p class="bx">유익균의 먹이가 돼요. 갑자기 늘리면 가스가 찰 수 있어 조금씩 늘려요.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 7장 — 챙겨 볼 영양소 2 -->
+<section class="card cn" id="c7">
+  <div class="head"><div>영양 노트<span class="no">No.04</span></div><div class="page">7/9</div></div>
+  <div class="body">
+    <span class="pill">챙겨 볼 영양소 2</span>
+    <h2>장 속 균이 일부 만드는 비타민</h2>
+
+    <div class="nu">
+      <p class="nm"><span class="num">4.</span><span class="hl">비타민K</span></p>
+      <p class="fn">정상적인 혈액응고에 필요해요. 뼈의 구성에 필요해요.</p>
+      <p class="fd">많은 음식: 시금치·브로콜리·깻잎 같은 푸른 잎채소, 청국장</p>
+    </div>
+
+    <div class="warn">피를 묽게 하는 약(와파린 등)을 드시는 분은 비타민K 음식·영양제의 양을 갑자기 바꾸지 말고 담당 의사·약사와 먼저 상담해요.</div>
+
+    <p class="note">음식으로 골고루 먼저 챙겨요. 개인차가 있어요. 약을 드시는 중이면 의사·약사와 먼저 상담해요. 면역이 많이 약해진 치료 중이면 프로바이오틱스도 먼저 상담해요.</p>
+  </div>
+</section>
+
+<!-- 8장 — 한 줄 정리 / 오늘 해 볼 것 -->
+<section class="card" id="c8">
+  <div class="head"><div>영양 노트<span class="no">No.04</span></div><div class="page">8/9</div></div>
+  <div class="body">
+    <div class="box" style="margin-top:14px">
+      <span class="lab">한 줄 정리</span>
+      <p>장 속 균은 싸울 상대가 아니라<br>편을 들어 줄 이웃.<br><span class="hl b">식이섬유</span><span class="b">가 유익균의 밥이에요.</span></p>
+    </div>
+    <div class="box">
+      <span class="lab">오늘 해 볼 것</span>
+      <p class="b" style="font-weight:800">밥상에 나물 한 가지와<br>김치·된장 같은 발효 음식 하나</p>
+    </div>
+    <div class="ill">
+      <!-- 체크 칸 두 개 + 나물 접시·김치 종지 -->
+      <svg width="860" height="300" viewBox="0 0 860 300">
+        <rect x="40" y="110" width="80" height="80" rx="12" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="5"/>
+        <circle cx="290" cy="150" r="88" fill="#F2C94C" opacity=".45"/>
+        <ellipse class="s" cx="290" cy="170" rx="110" ry="28" fill="#FAFBF7"/>
+        <ellipse class="s" stroke-width="3" cx="290" cy="167" rx="74" ry="15" opacity=".6"/>
+        <path class="s" d="M226 158 q11 -24 22 0 t22 0 t22 0 t22 0 t22 0 t22 0"/>
+        <path class="s" d="M238 140 q11 -20 22 0 t22 0 t22 0 t22 0 t22 0"/>
+        <text class="t" x="290" y="250" font-size="32" text-anchor="middle" opacity=".8">나물 한 가지</text>
+
+        <rect x="470" y="110" width="80" height="80" rx="12" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="5"/>
+        <circle cx="700" cy="150" r="88" fill="#F2C94C" opacity=".45"/>
+        <path class="s" fill="#FAFBF7" d="M630 150 C634 210 766 210 770 150 Z"/>
+        <path class="s" d="M676 206 H724"/>
+        <ellipse class="s" cx="700" cy="150" rx="70" ry="14" fill="#FAFBF7"/>
+        <path class="s" d="M648 140 l14 -26 l14 22 l14 -28 l14 24 l14 -26 l14 22 l14 -20"/>
+        <text class="t" x="700" y="250" font-size="32" text-anchor="middle" opacity=".8">발효 음식 하나</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- 9장 — 마무리 -->
+<section class="card end" id="c9">
+  <div class="head"><div>영양 노트<span class="no">No.04</span></div><div class="page">9/9</div></div>
+  <div class="body">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between">
+      <p class="save">저장해 두고<br>필요할 때 꺼내 보세요.</p>
+    </div>
+    <svg width="120" height="150" viewBox="0 0 120 150" style="position:absolute;right:0;top:-10px">
+      <path d="M20 10 H100 V140 L60 105 L20 140 Z" fill="#F2C94C" stroke="#2F4A3A" stroke-width="5" stroke-linejoin="round"/>
+    </svg>
+    <div class="next">
+      <span class="lab">다음 노트</span>
+      <p><span class="no2">No.05</span>같은 밥, 다른 장 —<br>장 속 균은 지문처럼 달라요</p>
+    </div>
+    <p class="foot">출처: 건강 강의를 공부하며 정리한 노트<br>진단·치료를 대신하지 않아요. 치료 중이면 담당 의사와 먼저.</p>
+  </div>
+</section>
+
+</body>
+</html>
