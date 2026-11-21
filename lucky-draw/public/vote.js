@@ -147,7 +147,7 @@ function voteDrawTab() {
   const topTitle = v.topCount > 1 ? `① 후보 ${v.topCount}등까지 발표` : '① 후보 1등 발표';
   const topCard = el('div', { class: 'card' },
     el('h2', { text: topTitle }),
-    el('div', { class: 'muted small', text: `🎁 ${v.topPrize || '선물'} · 표가 가장 많은 후보` }),
+    el('div', { class: 'muted small', text: `🎁 ${v.topPrize || '선물'} · 표가 가장 많은 후보${v.redos ? ` · 다시 뽑음 ${v.redos}회` : ''}` }),
     top
       ? el('div', {},
           el('ol', { class: 'top-list' }, sortedTop(top).map((w) => el('li', {}, el('b', { text: `${rankText(w, top)} ${candName(w.candidateId)}` }), el('span', { class: 'muted', text: ` ${w.votes}표${w.drawn ? ' · 동점 추첨' : ''}` })))),
@@ -386,6 +386,7 @@ function voteResultsTab() {
     rows.push(['후보', c.name, c.votes, w ? `${rankText(w, top)}${w.drawn ? ' (동점 추첨)' : ''}` : '', w ? top.prize || v.topPrize : '']);
   });
   winners.forEach((w) => rows.push(['투표한 사람 추첨', `${w.number ?? '?'}번`, '', '당첨', w.prize]));
+  if (v.redos) rows.push(['기록', '1등 발표 다시 뽑음', '', `${v.redos}회`, '']);
 
   return el('div', {},
     el('div', { class: 'row', style: 'margin-bottom:16px' },
@@ -407,6 +408,7 @@ function voteResultsTab() {
         top
           ? el('ol', {}, sortedTop(top).map((w) => el('li', {}, el('span', { text: `${rankText(w, top)} ${candName(w.candidateId)}` }), el('span', { class: 'muted', text: `${w.votes}표${w.drawn ? ' · 동점 추첨' : ''}` }))))
           : el('p', { class: 'muted', text: '아직 발표 전이에요' }),
+        v.redos ? el('p', { class: 'muted small', text: `1등 발표를 지우고 다시 뽑음 ${v.redos}회` }) : null,
       ),
       el('div', { class: 'card' },
         el('h2', { text: `🎟️ 투표한 사람 추첨 · ${v.voterPrize || '선물'}` }),

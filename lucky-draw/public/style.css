@@ -199,6 +199,12 @@ canvas.confetti { position: fixed; inset: 0; pointer-events: none; z-index: 85; 
 .choice.on .dot { background: var(--accent); border-color: var(--accent); }
 .vote-number { font-size: 88px; font-weight: 900; line-height: 1.05; color: var(--accent); font-variant-numeric: tabular-nums; }
 
+@media (max-width: 480px) {
+  /* 휴대폰: 탭 네 개가 한 줄에 다 보이게 */
+  .tabs { gap: 0; }
+  .tab { padding: 10px 8px; font-size: 14px; flex: 1 1 auto; }
+}
+
 @media (max-width: 760px) {
   .qr-layout, .draw-layout { grid-template-columns: 1fr; }
   .stage { min-height: 420px; }

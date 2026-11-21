@@ -162,7 +162,7 @@ function renderVote(info) {
   });
   view.append(el('div', { class: 'card' },
     list, btn, err,
-    el('p', { class: 'muted small', style: 'text-align:center;margin:4px 0 0', text: '휴대폰 한 대에 한 표예요. 이름은 쓰지 않아요.' }),
+    el('p', { class: 'muted small', style: 'text-align:center;margin:4px 0 0', text: '이 화면에서 한 번만 투표할 수 있어요. 이름은 쓰지 않아요.' }),
     info.me ? el('button', { type: 'button', class: 'btn ghost', style: 'width:100%;margin-top:8px', text: '그대로 두기', onclick: () => { editing = false; render(last); } }) : null,
   ));
 }
@@ -170,6 +170,11 @@ function renderVote(info) {
 async function load() {
   try {
     const info = await api(`join/${eventId}?device=${device}`);
+    // 투표 후보를 바꾸는 중에 마감되거나 당첨되면 내 번호·당첨 화면으로 돌아간다
+    if (editing && info.event.kind === 'vote' && info.me && (!info.event.open || info.won.length)) {
+      editing = false;
+      picked = null;
+    }
     if (!editing) render(info);
   } catch (x) {
     title.textContent = '행운 추첨';
