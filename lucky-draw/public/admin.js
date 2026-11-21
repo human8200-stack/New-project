@@ -1,4 +1,5 @@
 // 진행자 화면 (누구나): 행사 만들기 → 큐알로 참가자 받기 → 룰렛·이름 뽑기로 선물 추첨 → 결과
+// 투표 추첨 행사(kind=vote)의 화면은 vote.js에 있다.
 const app = document.getElementById('app');
 
 const state = {
@@ -96,7 +97,7 @@ function showList() {
     el('div', { class: 'join-hero' },
       el('div', { class: 'emoji', text: '🎁' }),
       el('h1', { text: '행운 추첨' }),
-      el('p', { class: 'muted', text: '선물과 인원을 정하고, 큐알로 참가자를 받고, 룰렛으로 뽑아요. 가입 없이 누구나 써요.' }),
+      el('p', { class: 'muted', text: '큐알로 참가자를 받아 룰렛으로 뽑거나, 후보를 정해 투표로 뽑아요. 가입 없이 누구나 써요.' }),
     ),
     mine.length ? el('h2', { text: '내가 만든 행사' }) : null,
     mine.length
@@ -132,18 +133,44 @@ function prizeEditor(prizes) {
 function newEventCard() {
   const name = el('input', { class: 'input', placeholder: '예: 2026 송년회', maxlength: 60, required: true });
   const prizes = prizeEditor([]);
+  const vote = voteFields();
   const err = el('p', { class: 'error' });
+  // 명단 추첨(참가자가 이름 등록) / 투표 추첨(후보는 진행자가 쓰고 참가자는 투표만)
+  let kind = store('ld_kind') === 'vote' ? 'vote' : 'list';
+  const KINDS = { list: '📋 명단 추첨', vote: '🗳️ 투표 추첨' };
+  const HELP = {
+    list: '참가자가 큐알로 이름을 등록하고, 그 명단에서 룰렛으로 뽑아요.',
+    vote: '후보 이름은 진행자가 쓰고, 참가자는 큐알로 들어와 투표만 해요. 표가 가장 많은 후보와, 투표한 사람 중 몇 명(번호 추첨)에게 선물을 줘요.',
+  };
+  const help = el('p', { class: 'muted small' });
+  const listBox = el('div', { class: 'field' }, el('span', { text: '선물과 당첨 인원(명)' }), prizes.node);
+  const voteBox = el('div', {}, ...vote.nodes);
+  const kindBox = el('div', { class: 'mode', role: 'group', 'aria-label': '추첨 방식' });
+  const paint = () => {
+    kindBox.replaceChildren(...Object.entries(KINDS).map(([k, t]) => el('button', {
+      type: 'button', class: kind === k ? 'on' : null, text: t,
+      onclick: () => { kind = k; store('ld_kind', k); paint(); },
+    })));
+    help.textContent = HELP[kind];
+    listBox.hidden = kind !== 'list';
+    voteBox.hidden = kind !== 'vote';
+  };
+  paint();
   const form = el('form', { class: 'card' },
     el('h2', { text: '새 행사 만들기' }),
+    el('div', { class: 'field' }, el('span', { text: '추첨 방식' }), kindBox, help),
     el('label', { class: 'field' }, el('span', { text: '행사 이름' }), name),
-    el('div', { class: 'field' }, el('span', { text: '선물과 당첨 인원(명)' }), prizes.node),
+    listBox,
+    voteBox,
     el('button', { class: 'btn primary', text: '만들기' }),
     err,
   );
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    err.textContent = '';
     try {
-      const { event, key } = await api('events', { method: 'POST', body: { name: name.value, prizes: prizes.value() } });
+      const body = kind === 'vote' ? { kind, name: name.value, ...vote.value() } : { name: name.value, prizes: prizes.value() };
+      const { event, key } = await api('events', { method: 'POST', body });
       hosts.put({ id: event.id, key, name: event.name, at: event.createdAt });
       go(`#e/${event.id}/qr`);
     } catch (x) {
@@ -178,11 +205,17 @@ async function openEvent(id) {
   pollTimer = setInterval(async () => {
     if (state.busy || document.hidden || !['qr', 'draw'].includes(state.tab)) return;
     try {
-      const before = state.detail.participants.length + ':' + state.detail.winners.length;
+      const before = signature();
       await loadDetail(id);
-      if (before !== state.detail.participants.length + ':' + state.detail.winners.length && !state.busy) render();
+      if (before !== signature() && !state.busy) render();
     } catch {}
   }, 2500);
+}
+
+// 새로 그릴지 정하는 값 (사람 수·당첨 수·표)
+function signature() {
+  const d = state.detail;
+  return [d.participants.length, d.winners.length, (d.voters || []).map((v) => v.candidate).join(','), d.event.open].join(':');
 }
 
 function winnerOf(pid) {
@@ -198,14 +231,20 @@ function pool() {
 
 function render() {
   const { event } = state.detail;
-  const tabs = [['qr', '📱 큐알 등록'], ['draw', '🎡 추첨'], ['results', '🏆 결과'], ['settings', '⚙️ 설정']];
+  const vote = event.kind === 'vote';
+  const tabs = vote
+    ? [['qr', '📱 큐알 투표'], ['draw', '🏆 발표·추첨'], ['results', '📋 결과'], ['settings', '⚙️ 설정']]
+    : [['qr', '📱 큐알 등록'], ['draw', '🎡 추첨'], ['results', '🏆 결과'], ['settings', '⚙️ 설정']];
+  const views = vote
+    ? { qr: voteQrTab, draw: voteDrawTab, results: voteResultsTab, settings: settingsTab }
+    : { qr: qrTab, draw: drawTab, results: resultsTab, settings: settingsTab };
   show(
     el('div', { class: 'row' },
       el('button', { class: 'btn sm ghost', text: '← 행사 목록', onclick: () => go('') }),
     ),
     el('h1', { text: event.name }),
     el('div', { class: 'tabs' }, tabs.map(([k, t]) => el('button', { class: `tab${state.tab === k ? ' on' : ''}`, text: t, onclick: () => go(`#e/${event.id}/${k}`) }))),
-    ({ qr: qrTab, draw: drawTab, results: resultsTab, settings: settingsTab }[state.tab] || qrTab)(),
+    (views[state.tab] || views.qr)(),
   );
 }
 
@@ -278,16 +317,25 @@ function qrTab() {
 
 function bigQr(event, url) {
   const count = el('div', { class: 'count-big' });
-  const update = () => (count.textContent = `${state.detail.participants.length}명 등록`);
+  const vote = isVote();
+  const bars = el('div', { class: 'big-bars' });
+  const update = () => {
+    if (!vote) return (count.textContent = `${state.detail.participants.length}명 등록`);
+    count.textContent = `${state.detail.voters.length}명 투표`;
+    bars.replaceChildren(voteBars(true));
+  };
   update();
   const timer = setInterval(update, 1000);
   const close = () => { clearInterval(timer); layer.remove(); document.removeEventListener('keydown', onKey); };
   const onKey = (e) => e.key === 'Escape' && close();
-  const layer = el('div', { class: 'stage-full' },
+  const layer = el('div', { class: `stage-full${vote ? ' vote' : ''}` },
     el('button', { class: 'btn close', text: '닫기 ✕', onclick: close }),
     el('h1', { text: event.name }),
-    qrSvg(url),
-    el('div', { style: 'font-size:clamp(20px,3vw,32px);font-weight:700', text: '📱 휴대폰 카메라로 찍고 이름을 넣어 주세요' }),
+    el('div', { class: 'big-qr-row' },
+      el('div', {}, qrSvg(url)),
+      vote ? bars : null,
+    ),
+    el('div', { style: 'font-size:clamp(20px,3vw,32px);font-weight:700', text: vote ? '📱 휴대폰 카메라로 찍고 투표해 주세요' : '📱 휴대폰 카메라로 찍고 이름을 넣어 주세요' }),
     count,
   );
   document.addEventListener('keydown', onKey);
@@ -440,7 +488,12 @@ function toggleFull(stage, btn) {
     stage.append(closer);
   } else if (!full && closer) closer.remove();
   const canvas = stage.querySelector('canvas');
-  if (canvas) requestAnimationFrame(() => drawWheel(canvas, pool().map((p) => p.name), wheelRotation));
+  if (canvas) requestAnimationFrame(() => drawWheel(canvas, wheelNames(), wheelRotation));
+}
+
+// 지금 룰렛에 올라갈 이름 (명단 추첨: 남은 사람, 투표 추첨: 남은 번호)
+function wheelNames() {
+  return isVote() ? numberPeople(voterPool()).map((p) => p.name) : pool().map((p) => p.name);
 }
 
 async function runDraw(stage, btn) {
@@ -634,6 +687,41 @@ function resultsTab() {
 function settingsTab() {
   const { event, winners } = state.detail;
   const id = event.id;
+  const form = isVote() ? voteSettingsForm() : listSettingsForm();
+
+  const hostLink = `${location.origin}/admin#host/${id}/${hosts.get(id)?.key || ''}`;
+  return el('div', {},
+    form,
+    el('div', { class: 'card' },
+      el('h2', { text: '다른 기기에서 진행하기' }),
+      el('p', { class: 'muted small', text: '진행자 키는 이 브라우저에만 저장돼 있어요. 이 링크를 열면 다른 기기(노트북·태블릿)에서도 이 행사를 진행할 수 있어요. 링크가 있으면 누구나 추첨을 할 수 있으니 참가자에게는 보내지 마세요.' }),
+      el('button', { class: 'btn', text: '진행자 링크 복사', onclick: () => navigator.clipboard?.writeText(hostLink).then(() => toast('진행자 링크를 복사했어요')) }),
+    ),
+    el('div', { class: 'card' },
+      el('h2', { text: '다시 하기' }),
+      el('div', { class: 'row' },
+        el('button', {
+          class: 'btn', text: `당첨 모두 지우기 (${winners.length}명)`, disabled: !winners.length,
+          onclick: async () => {
+            if (!confirm(isVote() ? '투표한 사람 추첨 당첨을 모두 지울까요? 표와 1등 발표는 그대로 남아요.' : '당첨 기록을 모두 지울까요? 참가자 명단은 그대로 남아요.')) return;
+            try { await api(`events/${id}/winners`, { method: 'DELETE' }); await loadDetail(id); toast('당첨을 모두 지웠어요'); render(); } catch (x) { onError(x); }
+          },
+        }),
+        el('button', {
+          class: 'btn danger', text: '행사 지우기',
+          onclick: async () => {
+            if (prompt(`행사와 ${isVote() ? '표' : '참가자'}·당첨 기록이 모두 지워져요.\n지우려면 행사 이름(${event.name})을 똑같이 써 주세요.`) !== event.name) return;
+            try { await api(`events/${id}`, { method: 'DELETE' }); hosts.remove(id); toast('지웠어요'); go(''); } catch (x) { onError(x); }
+          },
+        }),
+      ),
+    ),
+  );
+}
+
+function listSettingsForm() {
+  const { event } = state.detail;
+  const id = event.id;
   const name = el('input', { class: 'input', value: event.name, maxlength: 60, required: true });
   const prizes = prizeEditor(event.prizes);
   const err = el('p', { class: 'error' });
@@ -659,34 +747,7 @@ function settingsTab() {
     }
   });
 
-  const hostLink = `${location.origin}/admin#host/${id}/${hosts.get(id)?.key || ''}`;
-  return el('div', {},
-    form,
-    el('div', { class: 'card' },
-      el('h2', { text: '다른 기기에서 진행하기' }),
-      el('p', { class: 'muted small', text: '진행자 키는 이 브라우저에만 저장돼 있어요. 이 링크를 열면 다른 기기(노트북·태블릿)에서도 이 행사를 진행할 수 있어요. 링크가 있으면 누구나 추첨을 할 수 있으니 참가자에게는 보내지 마세요.' }),
-      el('button', { class: 'btn', text: '진행자 링크 복사', onclick: () => navigator.clipboard?.writeText(hostLink).then(() => toast('진행자 링크를 복사했어요')) }),
-    ),
-    el('div', { class: 'card' },
-      el('h2', { text: '다시 하기' }),
-      el('div', { class: 'row' },
-        el('button', {
-          class: 'btn', text: `당첨 모두 지우기 (${winners.length}명)`, disabled: !winners.length,
-          onclick: async () => {
-            if (!confirm('당첨 기록을 모두 지울까요? 참가자 명단은 그대로 남아요.')) return;
-            try { await api(`events/${id}/winners`, { method: 'DELETE' }); await loadDetail(id); toast('당첨을 모두 지웠어요'); render(); } catch (x) { onError(x); }
-          },
-        }),
-        el('button', {
-          class: 'btn danger', text: '행사 지우기',
-          onclick: async () => {
-            if (prompt(`행사와 참가자·당첨 기록이 모두 지워져요.\n지우려면 행사 이름(${event.name})을 똑같이 써 주세요.`) !== event.name) return;
-            try { await api(`events/${id}`, { method: 'DELETE' }); hosts.remove(id); toast('지웠어요'); go(''); } catch (x) { onError(x); }
-          },
-        }),
-      ),
-    ),
-  );
+  return form;
 }
 
 // ---------- 시작 ----------
@@ -700,7 +761,7 @@ paintSound();
 window.addEventListener('hashchange', route);
 window.addEventListener('resize', () => {
   const canvas = app.querySelector('canvas');
-  if (canvas && state.detail && !state.busy) drawWheel(canvas, pool().map((p) => p.name), wheelRotation);
+  if (canvas && state.detail && !state.busy) drawWheel(canvas, wheelNames(), wheelRotation);
 });
 
 route();

@@ -165,7 +165,50 @@ canvas.confetti { position: fixed; inset: 0; pointer-events: none; z-index: 85; 
 @keyframes pop { 0% { transform: scale(0.85); opacity: 0; } 60% { transform: scale(1.04); opacity: 1; } 100% { transform: scale(1); } }
 @keyframes blink { 50% { opacity: 0.25; } }
 
+/* 투표 추첨 */
+.cand-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.bars { display: grid; gap: 10px; margin: 16px 0 4px; }
+.bar-row { display: grid; grid-template-columns: minmax(64px, 32%) 1fr 3.6em; gap: 10px; align-items: center; }
+.bar-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-track { height: 22px; border-radius: 99px; background: var(--accent-soft); overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 99px; background: var(--accent); transition: width 0.8s ease; min-width: 0; }
+.bar-row.lead .bar-fill { background: var(--gold); }
+.bar-n { text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; }
+.bars.big { gap: 14px; width: 100%; }
+.bars.big .bar-row { font-size: clamp(18px, 2.4vw, 30px); }
+.bars.big .bar-track { height: clamp(22px, 3vh, 36px); }
+.big-qr-row { display: flex; gap: 32px; align-items: center; justify-content: center; width: 100%; }
+.stage-full.vote .qr svg, .stage-full.vote .qr img { width: min(46vh, 40vw); }
+.stage-full.vote .big-bars { width: min(720px, 50vw); }
+.top-list { margin: 10px 0 0; padding-left: 1.2em; }
+.top-list li { padding: 2px 0; }
+
+.reveal { gap: 12px; }
+.reveal-body { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
+.reveal-rank { font-size: clamp(30px, 6vw, 60px); font-weight: 900; color: var(--accent-dark); }
+.reveal-name { font-size: clamp(44px, 11vw, 120px); font-weight: 900; line-height: 1.1; word-break: keep-all; animation: pop 0.5s ease; }
+.reveal-sub { font-size: clamp(18px, 3vw, 28px); font-weight: 700; color: var(--muted); margin: 0; }
+.drum { font-size: clamp(36px, 8vw, 80px); font-weight: 900; color: var(--gold); }
+.reveal-wheel { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
+.reveal-wheel .wheel-wrap { width: min(60vh, 86vw); }
+
+.choices { display: grid; gap: 10px; margin-bottom: 16px; }
+.choice { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 14px 16px; border: 2px solid var(--line); border-radius: 14px; background: var(--card); font-size: 18px; font-weight: 700; cursor: pointer; }
+.choice .dot { flex: none; width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--line); display: inline-flex; align-items: center; justify-content: center; font-size: 15px; color: #fff; }
+.choice.on { border-color: var(--accent); background: var(--accent-soft); }
+.choice.on .dot { background: var(--accent); border-color: var(--accent); }
+.vote-number { font-size: 88px; font-weight: 900; line-height: 1.05; color: var(--accent); font-variant-numeric: tabular-nums; }
+
+@media (max-width: 480px) {
+  /* 휴대폰: 탭 네 개가 한 줄에 다 보이게 */
+  .tabs { gap: 0; }
+  .tab { padding: 10px 8px; font-size: 14px; flex: 1 1 auto; }
+}
+
 @media (max-width: 760px) {
   .qr-layout, .draw-layout { grid-template-columns: 1fr; }
   .stage { min-height: 420px; }
+  .big-qr-row { flex-direction: column; gap: 16px; }
+  .stage-full.vote .qr svg, .stage-full.vote .qr img { width: min(36vh, 70vw); }
+  .stage-full.vote .big-bars { width: 92vw; }
 }
