@@ -10,6 +10,9 @@ const KEEP_DAYS = 90; // 이보다 오래된 행사는 지운다
 const MAX_PARTICIPANTS = 3000;
 const MAX_PRIZES = 50;
 const MAX_CANDIDATES = 20;
+// 한 행사에서 같은 인터넷 주소(IP)로 받는 표. 행사장 와이파이를 여럿이 같이 쓰니 넉넉하게.
+// (같은 사람이 다른 브라우저·비공개 창으로 또 투표하는 것까지 완전히 막지는 못한다)
+const MAX_VOTES_PER_IP = 30;
 const DEVICE_RE = /^[a-z0-9]{16,40}$/;
 const ID_RE = /^[a-z0-9]{4,20}$/;
 
@@ -106,22 +109,30 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS votes (
     id TEXT PRIMARY KEY, event_id TEXT NOT NULL, device TEXT NOT NULL, candidate TEXT NOT NULL,
     number INTEGER NOT NULL, absent INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL,
+    ip TEXT NOT NULL DEFAULT '',
     UNIQUE (event_id, device), UNIQUE (event_id, number))`,
 ];
-// 예전에 만든 events 표에는 없는 칸 (있으면 그냥 둔다)
-const EVENT_COLUMNS = {
-  kind: "ALTER TABLE events ADD COLUMN kind TEXT NOT NULL DEFAULT 'list'",
-  vote: "ALTER TABLE events ADD COLUMN vote TEXT NOT NULL DEFAULT '{}'",
+// 예전에 만든 표에는 없는 칸 (있으면 그냥 둔다)
+const ADD_COLUMNS = {
+  events: {
+    kind: "ALTER TABLE events ADD COLUMN kind TEXT NOT NULL DEFAULT 'list'",
+    vote: "ALTER TABLE events ADD COLUMN vote TEXT NOT NULL DEFAULT '{}'",
+  },
+  votes: {
+    ip: "ALTER TABLE votes ADD COLUMN ip TEXT NOT NULL DEFAULT ''",
+  },
 };
 let schemaReady = false;
 
 async function ensureSchema(env) {
   if (schemaReady) return;
   await env.DB.batch(SCHEMA.map((sql) => env.DB.prepare(sql)));
-  const { results } = await env.DB.prepare('PRAGMA table_info(events)').all();
-  const have = new Set(results.map((r) => r.name));
-  for (const [col, sql] of Object.entries(EVENT_COLUMNS)) {
-    if (!have.has(col)) await env.DB.prepare(sql).run();
+  for (const [table, cols] of Object.entries(ADD_COLUMNS)) {
+    const { results } = await env.DB.prepare(`PRAGMA table_info(${table})`).all();
+    const have = new Set(results.map((r) => r.name));
+    for (const [col, sql] of Object.entries(cols)) {
+      if (!have.has(col)) await env.DB.prepare(sql).run();
+    }
   }
   schemaReady = true;
 }
@@ -162,6 +173,7 @@ function cleanVote(b, prev = {}) {
     voterCount: int(pick('voterCount'), 2, 0, 50),
     voterPrize: cleanText(pick('voterPrize'), 40),
     top: (b.top === undefined ? prev.top : b.top) || null,
+    redos: int(b.redos === undefined ? prev.redos : b.redos, 0, 0, 9999), // 1등 발표를 지우고 다시 한 횟수
   };
 }
 
@@ -194,7 +206,7 @@ async function createEvent(request, env) {
   const kind = b.kind === 'vote' ? 'vote' : 'list';
   let vote = {};
   if (kind === 'vote') {
-    vote = cleanVote({ ...b, top: null });
+    vote = cleanVote({ ...b, top: null, redos: 0 });
     if (vote.candidates.length < 2) return fail(400, '후보를 2개 이상 넣어 주세요');
   }
   const id = randomId(8);
@@ -214,7 +226,7 @@ async function updateEvent(request, env, ev) {
   const open = b.open === undefined ? ev.open : !!b.open;
   let vote = {};
   if (ev.kind === 'vote') {
-    vote = cleanVote({ ...b, top: undefined }, ev.vote);
+    vote = cleanVote({ ...b, top: undefined, redos: undefined }, ev.vote);
     if (vote.candidates.length < 2) return fail(400, '후보를 2개 이상 넣어 주세요');
     // 표가 있는 후보는 뺄 수 없다 (이름 고치기는 된다)
     const keep = new Set(vote.candidates.map((c) => c.id));
@@ -226,7 +238,10 @@ async function updateEvent(request, env, ev) {
     }
     // 후보나 인원이 바뀌거나 투표를 다시 받으면 발표한 1등은 지운다
     const changed = JSON.stringify(vote.candidates.map((c) => c.id)) !== JSON.stringify(ev.vote.candidates.map((c) => c.id)) || vote.topCount !== ev.vote.topCount;
-    if (changed || (open && !ev.open)) vote.top = null;
+    if (vote.top && (changed || (open && !ev.open))) {
+      vote.top = null;
+      vote.redos += 1;
+    }
   }
   await env.DB.prepare('UPDATE events SET name = ?, prizes = ?, open = ?, vote = ? WHERE id = ?')
     .bind(name, JSON.stringify(prizes), open ? 1 : 0, JSON.stringify(vote), ev.id)
@@ -282,8 +297,8 @@ async function removeParticipant(env, ev, pid) {
 }
 
 // 선물 하나를 걸고 한 명 뽑는다. 이미 당첨된 사람은 다시 뽑히지 않는다.
-async function draw(request, env, ev) {
-  const { prize } = await body(request);
+async function draw(request, env, ev, tries = 0, again) {
+  const prize = again ?? (await body(request)).prize;
   const item = ev.prizes.find((p) => p.name === prize);
   if (!item) return fail(400, '선물을 골라 주세요');
   const [given, pool] = await env.DB.batch([
@@ -297,9 +312,18 @@ async function draw(request, env, ev) {
   if (!pool.results.length) return fail(400, '뽑을 사람이 없어요');
   const pick = pool.results[randomInt(pool.results.length)];
   const winner = { id: randomId(10), participantId: pick.id, prize: item.name, at: Date.now() };
-  await env.DB.prepare('INSERT INTO winners (id, event_id, participant_id, prize, created_at) VALUES (?, ?, ?, ?, ?)')
-    .bind(winner.id, ev.id, winner.participantId, winner.prize, winner.at)
-    .run();
+  // 동시에 눌러도 같은 사람이 두 번, 인원보다 많이 뽑히지 않게 조건을 붙여 한 문장으로 넣는다
+  const res = await env.DB.prepare(
+    `INSERT INTO winners (id, event_id, participant_id, prize, created_at)
+     SELECT ?, ?, ?, ?, ?
+     WHERE NOT EXISTS (SELECT 1 FROM winners WHERE event_id = ? AND participant_id = ?)
+     AND (SELECT COUNT(*) FROM winners WHERE event_id = ? AND prize = ?) < ?`,
+  ).bind(winner.id, ev.id, winner.participantId, winner.prize, winner.at, ev.id, pick.id, ev.id, item.name, item.count).run();
+  if (!res.meta?.changes) {
+    // 다른 요청이 먼저 넣었다: 처음부터 다시 (다 찼으면 "다 나갔어요")
+    if (tries < 5) return draw(request, env, ev, tries + 1, prize);
+    return fail(409, '잠시 뒤 다시 해 주세요');
+  }
   return json({ winner, pool: pool.results.map((r) => r.id) });
 }
 
@@ -343,6 +367,7 @@ async function announceTop(request, env, ev) {
   const b = await body(request);
   if (ev.open) return fail(400, '먼저 투표를 마감해 주세요');
   if (ev.vote.top && !b.redo) return json({ top: ev.vote.top });
+  if (ev.vote.top) ev.vote.redos += 1;
   const { results } = await env.DB.prepare('SELECT candidate, COUNT(*) AS n FROM votes WHERE event_id = ? GROUP BY candidate').bind(ev.id).all();
   const n = new Map(results.map((r) => [r.candidate, r.n]));
   const counts = ev.vote.candidates.map((c) => ({ id: c.id, votes: n.get(c.id) || 0 })).sort((x, y) => y.votes - x.votes);
@@ -373,13 +398,14 @@ async function announceTop(request, env, ev) {
 }
 
 async function clearTop(env, ev) {
+  if (ev.vote.top) ev.vote.redos += 1;
   ev.vote.top = null;
   await saveVote(env, ev);
   return json({ ok: true });
 }
 
 // 투표한 사람 중 한 명(번호)을 뽑는다. 이미 뽑힌 번호, 자리에 없던 번호는 다시 안 뽑힌다.
-async function drawVoter(env, ev) {
+async function drawVoter(env, ev, tries = 0) {
   if (ev.open) return fail(400, '먼저 투표를 마감해 주세요');
   const [given, pool] = await env.DB.batch([
     env.DB.prepare('SELECT COUNT(*) AS n FROM winners WHERE event_id = ?').bind(ev.id),
@@ -392,9 +418,18 @@ async function drawVoter(env, ev) {
   if (!pool.results.length) return fail(400, '뽑을 번호가 없어요');
   const pick = pool.results[randomInt(pool.results.length)];
   const winner = { id: randomId(10), participantId: pick.id, prize: ev.vote.voterPrize || '투표 추첨 선물', number: pick.number, at: Date.now() };
-  await env.DB.prepare('INSERT INTO winners (id, event_id, participant_id, prize, created_at) VALUES (?, ?, ?, ?, ?)')
-    .bind(winner.id, ev.id, winner.participantId, winner.prize, winner.at)
-    .run();
+  // 동시에 눌러도 같은 번호가 두 번, 인원보다 많이 뽑히지 않게 조건을 붙여 한 문장으로 넣는다
+  const res = await env.DB.prepare(
+    `INSERT INTO winners (id, event_id, participant_id, prize, created_at)
+     SELECT ?, ?, ?, ?, ?
+     WHERE NOT EXISTS (SELECT 1 FROM winners WHERE event_id = ? AND participant_id = ?)
+     AND EXISTS (SELECT 1 FROM votes WHERE event_id = ? AND id = ? AND absent = 0)
+     AND (SELECT COUNT(*) FROM winners WHERE event_id = ?) < ?`,
+  ).bind(winner.id, ev.id, winner.participantId, winner.prize, winner.at, ev.id, pick.id, ev.id, pick.id, ev.id, ev.vote.voterCount).run();
+  if (!res.meta?.changes) {
+    if (tries < 5) return drawVoter(env, ev, tries + 1);
+    return fail(409, '잠시 뒤 다시 해 주세요');
+  }
   return json({ winner, pool: pool.results.map((r) => ({ id: r.id, number: r.number })) });
 }
 
@@ -424,6 +459,8 @@ async function voteJoinInfo(env, ev, device) {
 
 async function castVote(request, env, ev) {
   const b = await body(request);
+  // 인터넷 주소는 그대로 두지 않고 행사별로 섞어서(해시) 저장한다
+  const ip = (await sha256(`${ev.id}:${request.headers.get('CF-Connecting-IP') || ''}`)).slice(0, 24);
   if (!DEVICE_RE.test(b.device || '')) return fail(400, '페이지를 새로 열어 주세요');
   if (!ev.vote.candidates.some((c) => c.id === b.candidate)) return fail(400, '후보를 골라 주세요');
   if (!ev.open) return fail(403, '투표가 마감됐어요');
@@ -435,15 +472,21 @@ async function castVote(request, env, ev) {
   }
   const row = await env.DB.prepare('SELECT COUNT(*) AS n FROM votes WHERE event_id = ?').bind(ev.id).first();
   if (row.n >= MAX_PARTICIPANTS) return fail(400, '투표한 사람이 너무 많아요');
+  const tooMany = () => fail(429, '이 인터넷(와이파이)에서 들어온 표가 너무 많아요. 휴대폰 데이터로 바꿔서 해 주세요.');
+  const same = await env.DB.prepare('SELECT COUNT(*) AS n FROM votes WHERE event_id = ? AND ip = ?').bind(ev.id, ip).first();
+  if (same.n >= MAX_VOTES_PER_IP) return tooMany();
   // 번호는 이 행사의 가장 큰 번호 + 1 (한 문장으로 넣어서 겹치지 않게, 겹치면 다시)
   for (let i = 0; i < 5; i++) {
     const res = await env.DB.prepare(
-      `INSERT OR IGNORE INTO votes (id, event_id, device, candidate, number, created_at)
-       SELECT ?, ?, ?, ?, COALESCE(MAX(number), 0) + 1, ? FROM votes WHERE event_id = ?`,
-    ).bind(randomId(10), ev.id, b.device, b.candidate, Date.now(), ev.id).run();
+      `INSERT OR IGNORE INTO votes (id, event_id, device, candidate, number, created_at, ip)
+       SELECT ?, ?, ?, ?, COALESCE(MAX(number), 0) + 1, ?, ? FROM votes WHERE event_id = ?
+       HAVING (SELECT COUNT(*) FROM votes WHERE event_id = ? AND ip = ?) < ?`,
+    ).bind(randomId(10), ev.id, b.device, b.candidate, Date.now(), ip, ev.id, ev.id, ip, MAX_VOTES_PER_IP).run();
     if (res.meta?.changes) break;
     const again = await env.DB.prepare('SELECT id FROM votes WHERE event_id = ? AND device = ?').bind(ev.id, b.device).first();
     if (again) break;
+    const n = await env.DB.prepare('SELECT COUNT(*) AS n FROM votes WHERE event_id = ? AND ip = ?').bind(ev.id, ip).first();
+    if (n.n >= MAX_VOTES_PER_IP) return tooMany();
   }
   return voteJoinInfo(env, ev, b.device);
 }
@@ -534,6 +577,7 @@ export async function onRequest({ request, env, params }) {
 
     return fail(404, '없는 주소예요');
   } catch (e) {
-    return fail(500, `서버 오류: ${e.message}`);
+    console.error(e); // 자세한 내용은 Cloudflare 기록에만 남긴다
+    return fail(500, '잠시 뒤 다시 해 주세요');
   }
 }
