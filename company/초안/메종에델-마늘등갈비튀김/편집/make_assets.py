@@ -56,7 +56,7 @@ caps = {
     'c01': ('등갈비 800g', 'pork ribs 800g'),
     'c02': ('키친타월로 물기 닦기', 'pat dry with kitchen towel'),
     'c03': ('전분가루 5T', 'potato starch 5T'),
-    'c04': ('포도씨유 1컵 · 180℃', 'grapeseed oil 1 cup · 180℃'),
+    'c04': ('포도씨유 1컵 · 180℃', 'grapeseed oil 1 cup · 180°C'),
     'c05': ('노릇하게 튀기기', 'fry until golden'),
     'c06': ('다진 마늘 3T', 'minced garlic 3T'),
     'c07': ('간장 2T', 'soy sauce 2T'),
@@ -123,12 +123,12 @@ for i, s in enumerate(ing):
     dc.text((200, panel_top + 275 + i * 46), s, font=ko34, fill=(62, 62, 62, 255), anchor='ls')
 yl = panel_top + 275 + 4 * 46 - 10
 dc.line([(120, yl), (W - 120, yl)], fill=(222, 214, 202, 255), width=2)
-steps = ['찬물에 핏물 빼고, 꺼내서 키친타월로 닦기',
+steps = ['찬물에 핏물을 빼고, 꺼내서 키친타월로 닦아요',
          '전분가루를 골고루 묻혀요',
-         '웍에 포도씨유, 튀김모드 180℃로 노릇하게',
+         '웍에 포도씨유, 튀김모드 180℃로 노릇하게 튀겨요',
          '건져내고 기름은 따라 버려요',
-         '소스를 5단에서 끓이고 등갈비를 넣어 섞기',
-         '다진 땅콩과 깨를 뿌려 완성']
+         '소스를 5단에서 끓이고 등갈비를 넣어 섞어요',
+         '다진 땅콩과 깨를 뿌려 완성해요']
 for i, s in enumerate(steps):
     y = yl + 60 + i * 50
     dc.text((112, y), str(i + 1), font=font(EN, 40), fill=(160, 90, 80, 255), anchor='ls')
