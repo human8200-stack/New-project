@@ -389,7 +389,7 @@ function voteResultsTab() {
 
   return el('div', {},
     el('div', { class: 'row', style: 'margin-bottom:16px' },
-      el('div', { class: 'grow muted', text: `투표 ${voters.length}명 · 후보 ${v.candidates.length}개` }),
+      el('div', { class: 'muted', style: 'flex:1 1 100%', text: `투표 ${voters.length}명 · 후보 ${v.candidates.length}개` }),
       el('button', { class: 'btn', text: '결과 엑셀(CSV)', onclick: () => download(`${event.name} 투표 결과.csv`, csv(rows)) }),
       el('button', {
         class: 'btn', text: '투표 번호 엑셀(CSV)',
