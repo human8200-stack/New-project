@@ -11,7 +11,7 @@ CROP32 = 'crop=576:1024:72:256,'  # ③-2: 1.25x, top cut so the mirin dish is o
 segs = [
     # hand-speed matched (Lucas-Kanade fingertip/tool tracking, target ~260 px/s on screen)
     ('No08-01-1-꺼내닦기-v1.mp4', 0.0, 1.25, 2.5, '', 'c01'),
-    ('No08-01-1-꺼내닦기-v1.mp4', 2.3, 2.9, 1.25, '', 'c02'),
+    ('No08-01-1-꺼내닦기-v1.mp4', 2.3, 2.95, 1.25, '', 'c02'),
     ('No08-01-2-가루묻히기-v1.mp4', 2.6, 3.3, 1.0, '', 'c03'),
     ('No08-02-튀기기-v1.mp4', 0.0, 0.45, 1.0, '', 'c04'),
     ('No08-02-튀기기-v1.mp4', 3.0, 3.6, 1.4, '', 'c05'),
@@ -34,7 +34,8 @@ for s in segs:
     times.append((t, t + d))
     t += d
 VIDEO_END = t
-TOTAL = t + (CARD if MODE == 'ig' else 0)
+XF = 0.2  # crossfade into the card (no black frame)
+TOTAL = t + ((CARD - XF) if MODE == 'ig' else 0)
 
 inputs = []
 NIN = [0]
@@ -56,7 +57,7 @@ for i, (f, st, en, sp, ex, _) in enumerate(segs):
     labels.append(f'[s{i}]')
 if MODE == 'ig':
     ci = addin(['-loop', '1', '-t', str(CARD), '-i', os.path.join(A, 'card.png')])
-    fc.append(f'[{ci}:v]scale=1080:1920,fps=30,setsar=1,format=yuv420p,fade=in:st=0:d=0.25[card]')
+    fc.append(f'[{ci}:v]scale=1080:1920,fps=30,setsar=1,format=yuv420p,settb=1/30[card]')
 fc.append(''.join(labels) + f'concat=n={len(segs)}:v=1:a=0[vcat]')
 
 # overlays: base (gradient+watermark) over the cooking part only; captions with short fades
@@ -81,13 +82,14 @@ for k, (png, t0, t1) in enumerate(ov):
     fc.append(f'{cur}[o{k}]overlay=0:0:enable=\'between(t,{t0:.3f},{t1:.3f})\'[v{k}]')
     cur = f'[v{k}]'
 if MODE == 'ig':
-    fc.append(f'{cur}[card]concat=n=2:v=1:a=0[vout]')
+    fc.append(f'{cur}fps=30,settb=1/30[vmain]')
+    fc.append(f'[vmain][card]xfade=transition=fade:duration={XF}:offset={VIDEO_END - XF:.3f}[vout]')
 else:
     fc.append(f'{cur}null[vout]')
 
 # sounds: (file, ss, dur, at, gain_dB)
 T = times
-BITE = T[12][1] - 0.12  # last moment the rib is fully in view
+BITE = T[12][1]  # 0407 crunch (5.3s) lands exactly on the cut to the beer
 snd = [
     ('1-찰랑-손으로물젓기-bsb0651.mp3', 0.4, 0.6, T[0][0] + 0.03, 0),
     ('1-찰랑-물방울-bsb1382.mp3', 0.0, T[0][1] - (T[0][0] + 0.2), T[0][0] + 0.2, -10),
@@ -109,12 +111,12 @@ snd = [
     # ⑤ 먹기: pick-up + faint room, bite (0407 transient at 5.3s) at the last frame where the rib is fully in view
     ('4-톡-작은접시놓기-bsb1190.mp3', 4.0, 0.45, T[12][0] + 0.05, -6),
     ('3-착착-팬볶기뒤적임-bsb1676.mp3', 0.0, BITE - 0.3 - T[12][0] + 0.05, T[12][0], -10),
-    ('5-바삭-대체-러스크씹기-bsb0407.mp3', 5.0, T[12][1] - (BITE - 0.3), BITE - 0.3, 0),
+    ('5-바삭-대체-러스크씹기-bsb0407.mp3', 5.0, 0.42, BITE - 0.3, 0),
     # ⑥ 맥주: glass lift, faint foam, then a clear gulp (3247 at 6.4s) as the glass reaches the mouth, exhale tail on the card
     ('6-잔들기-유리잔손에쥐기-bsb1201.mp3', 2.0, 0.45, T[13][0] + 0.03, 4),
     ('6-거품-맥주따르기-bsb1391.mp3', 6.0, T[13][1] - (T[13][0] + 0.3), T[13][0] + 0.3, -12),
-    ('6-꿀꺽-물통마시기-bsb3247.mp3', 6.25, 0.55, T[13][1] - 0.4, 6),
-    ('6-꿀꺽-물통마시기-bsb3247.mp3', 7.75, 0.75 if MODE == 'ig' else 0.3, T[13][1] + 0.12, 10),
+    ('6-꿀꺽-물통마시기-bsb3247.mp3', 6.25, 0.55, T[13][1] - 0.12, -9),
+    ('6-꿀꺽-물통마시기-bsb3247.mp3', 7.75, 0.75 if MODE == 'ig' else 0.3, T[13][1] + 0.5, 10),
 ]
 amix = []
 for j, (f, ss, d, at, g) in enumerate(snd):
