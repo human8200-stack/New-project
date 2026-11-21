@@ -8,22 +8,23 @@ OUTF = sys.argv[3]
 
 CROP32 = 'crop=576:1024:72:256,'  # ③-2: 1.25x, top cut so the mirin dish is out of frame
 # (file, start, end, speed, extra_filter, caption_key)
+M = 1.3  # one speed for every cut (회장님 11/21 "전체적으로 빨라지면 안되지")
 segs = [
-    # hand-speed matched (Lucas-Kanade fingertip/tool tracking, target ~260 px/s on screen)
-    ('No08-01-1-꺼내닦기-v1.mp4', 0.0, 1.25, 2.5, '', 'c01'),
-    ('No08-01-1-꺼내닦기-v1.mp4', 2.3, 2.95, 1.25, '', 'c02'),
-    ('No08-01-2-가루묻히기-v1.mp4', 2.6, 3.3, 1.0, '', 'c03'),
-    ('No08-02-튀기기-v1.mp4', 0.0, 0.45, 1.0, '', 'c04'),
-    ('No08-02-튀기기-v1.mp4', 3.0, 3.6, 1.4, '', 'c05'),
-    ('No08-03-1-마늘간장-v1.mp4', 0.0, 1.1, 1.35, '', 'c06'),
-    ('No08-03-1-마늘간장-v1.mp4', 2.45, 3.6, 1.8, '', 'c07'),
-    ('No08-03-2-굴소스설탕-v1.mp4', 0.0, 1.1, 1.8, CROP32, 'c08'),
-    ('No08-03-2-굴소스설탕-v1.mp4', 2.8, 4.0, 1.8, CROP32, 'c09'),
-    ('No08-03-버무리기-v1.mp4', 0.0, 1.0, 1.0, '', 'c10'),
-    ('No08-03-버무리기-v1.mp4', 2.75, 3.5, 1.05, '', None),
-    ('No08-04-땅콩깨뿌리기-v1.mp4', 0.25, 2.15, 2.6, '', 'c11'),
-    ('No08-05-먹기-v1.mp4', 0.0, 3.15, 1.9, '', None),
-    ('No08-06-맥주-v1.mp4', 0.3, 2.35, 1.9, '', None),
+    # windows skip: sudden hand bursts, freezes, one-frame jumps, top-edge cut-offs
+    ('No08-01-1-꺼내닦기-v1.mp4', 0.0, 1.25, M, '', 'c01'),
+    ('No08-01-1-꺼내닦기-v1.mp4', 2.3, 2.95, M, '', 'c02'),
+    ('No08-01-2-가루묻히기-v1.mp4', 1.7, 3.75, M, '', 'c03'),
+    ('No08-02-튀기기-v1.mp4', 0.0, 0.95, M, '', 'c04'),
+    ('No08-02-튀기기-v1.mp4', 2.6, 3.6, M, '', 'c05'),
+    ('No08-03-1-마늘간장-v1.mp4', 0.0, 1.1, M, '', 'c06'),
+    ('No08-03-1-마늘간장-v1.mp4', 2.45, 4.0, M, '', 'c07'),
+    ('No08-03-2-굴소스설탕-v1.mp4', 0.0, 1.2, M, CROP32, 'c08'),
+    ('No08-03-2-굴소스설탕-v1.mp4', 2.6, 4.0, M, CROP32, 'c09'),
+    ('No08-03-버무리기-v1.mp4', 0.0, 2.2, M, '', 'c10'),
+    ('No08-03-버무리기-v1.mp4', 2.5, 3.75, M, '', None),
+    ('No08-04-땅콩깨뿌리기-v1.mp4', 0.0, 2.15, M, '', 'c11'),
+    ('No08-05-먹기-v1.mp4', 0.0, 3.15, M, '', None),
+    ('No08-06-맥주-v1.mp4', 0.0, 2.35, M, '', None),
 ]
 CARD = 4.0
 
@@ -35,7 +36,7 @@ for s in segs:
     t += d
 VIDEO_END = t
 XF = 0.2  # crossfade into the card (no black frame)
-TAIL = 0.9  # youtube: hold the last beer frame and darken, so the gulp and breath are heard
+TAIL = 0.8  # youtube: last cut fades out while still moving (0.4s), then 0.8s black — no frozen frame
 TOTAL = t + ((CARD - XF) if MODE == 'ig' else TAIL)
 
 inputs = []
@@ -86,7 +87,7 @@ if MODE == 'ig':
     fc.append(f'{cur}fps=30,settb=1/30[vmain]')
     fc.append(f'[vmain][card]xfade=transition=fade:duration={XF}:offset={VIDEO_END - XF:.3f}[vout]')
 else:
-    fc.append(f'{cur}tpad=stop_mode=clone:stop_duration={TAIL},fade=t=out:st={VIDEO_END:.3f}:d={TAIL}[vout]')
+    fc.append(f'{cur}fade=t=out:st={VIDEO_END - 0.4:.3f}:d=0.4,tpad=stop_mode=add:stop_duration={TAIL}:color=black[vout]')
 
 # sounds: (file, ss, dur, at, gain_dB)
 T = times
@@ -113,12 +114,13 @@ snd = [
     ('4-톡-작은접시놓기-bsb1190.mp3', 4.0, 0.45, T[12][0] + 0.05, -6),
     ('3-착착-팬볶기뒤적임-bsb1676.mp3', 0.0, BITE - 0.3 - T[12][0] + 0.05, T[12][0], -10),
     ('5-바삭-대체-러스크씹기-bsb0407.mp3', 5.0, 0.42, BITE - 0.3, 0),
-    # ⑥ 맥주: glass lift, faint foam, then a clear gulp (3247 at 6.4s) as the glass reaches the mouth, exhale tail on the card
+    # ⑥ 맥주: glass lift + faint foam only (3247 was a man's voice — removed per 회장님 11/21; no female/neutral CC0 found)
     ('6-잔들기-유리잔손에쥐기-bsb1201.mp3', 2.0, 0.45, T[13][0] + 0.03, 4),
-    ('6-거품-맥주따르기-bsb1391.mp3', 6.0, T[13][1] - (T[13][0] + 0.3), T[13][0] + 0.3, -12),
-    ('6-꿀꺽-물통마시기-bsb3247.mp3', 6.25, 0.55, T[13][1] - 0.12, -9),
-    ('6-꿀꺽-물통마시기-bsb3247.mp3', 7.75, 0.75 if MODE == 'ig' else 0.38, T[13][1] + 0.5, 10 if MODE == 'ig' else -2),
+    ('6-거품-맥주따르기-bsb1391.mp3', 6.0, T[13][1] - (T[13][0] + 0.3) + (0.5 if MODE == 'ig' else 0.6), T[13][0] + 0.3, -12),
 ]
+if MODE == 'ig':
+    # card: the foam keeps fizzing softly under the recipe card (no drinking sound — male recording removed 11/21)
+    snd.append(('6-거품-맥주따르기-bsb1391.mp3', 8.0, TOTAL - VIDEO_END - 0.2, VIDEO_END + 0.1, -20))
 amix = []
 for j, (f, ss, d, at, g) in enumerate(snd):
     ii = addin(['-i', os.path.join(SND, f)])
