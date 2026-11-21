@@ -35,7 +35,8 @@ for s in segs:
     t += d
 VIDEO_END = t
 XF = 0.2  # crossfade into the card (no black frame)
-TOTAL = t + ((CARD - XF) if MODE == 'ig' else 0)
+TAIL = 0.9  # youtube: hold the last beer frame and darken, so the gulp and breath are heard
+TOTAL = t + ((CARD - XF) if MODE == 'ig' else TAIL)
 
 inputs = []
 NIN = [0]
@@ -85,7 +86,7 @@ if MODE == 'ig':
     fc.append(f'{cur}fps=30,settb=1/30[vmain]')
     fc.append(f'[vmain][card]xfade=transition=fade:duration={XF}:offset={VIDEO_END - XF:.3f}[vout]')
 else:
-    fc.append(f'{cur}null[vout]')
+    fc.append(f'{cur}tpad=stop_mode=clone:stop_duration={TAIL},fade=t=out:st={VIDEO_END:.3f}:d={TAIL}[vout]')
 
 # sounds: (file, ss, dur, at, gain_dB)
 T = times
@@ -116,7 +117,7 @@ snd = [
     ('6-잔들기-유리잔손에쥐기-bsb1201.mp3', 2.0, 0.45, T[13][0] + 0.03, 4),
     ('6-거품-맥주따르기-bsb1391.mp3', 6.0, T[13][1] - (T[13][0] + 0.3), T[13][0] + 0.3, -12),
     ('6-꿀꺽-물통마시기-bsb3247.mp3', 6.25, 0.55, T[13][1] - 0.12, -9),
-    ('6-꿀꺽-물통마시기-bsb3247.mp3', 7.75, 0.75 if MODE == 'ig' else 0.3, T[13][1] + 0.5, 10),
+    ('6-꿀꺽-물통마시기-bsb3247.mp3', 7.75, 0.75 if MODE == 'ig' else 0.38, T[13][1] + 0.5, 10 if MODE == 'ig' else -2),
 ]
 amix = []
 for j, (f, ss, d, at, g) in enumerate(snd):
