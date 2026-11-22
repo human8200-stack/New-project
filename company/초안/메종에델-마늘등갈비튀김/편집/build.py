@@ -101,7 +101,7 @@ def D(i, start):
 snd = [
     # ① 꺼내 닦기 (hand-close)
     ('1-찰랑-손으로물젓기-bsb0651.mp3', 0.4, 0.6, T[0][0] + 0.03, 'main', 'near'),
-    ('1-찰랑-물방울-bsb1382.mp3', 0.0, D(0, T[0][0] + 0.2), T[0][0] + 0.2, 'bed', 'near'),
+    ('1-찰랑-물방울-bsb1382.mp3', 0.0, D(0, T[0][0] + 0.2), T[0][0] + 0.2, 'main', 'near'),  # v7: was too quiet after denoise -> near-silent gap at 0.7s
     ('1-톡톡-종이만지기-bsb0785.ogg', 1.25, D(1, T[1][0]), T[1][0], 'main', 'near'),
     ('1-사각-천속알갱이누르기-bsb2890.mp3', 1.5, D(2, T[2][0]), T[2][0], 'main', 'near'),
     # ② 튀기기: the rib is already entering the oil on the first frame -> 치익 from frame 0
@@ -109,12 +109,13 @@ snd = [
     ('2-타닥-튀김기름-bsb2507.mp3', 3.0, D(3, T[3][0]), T[3][0], 'bed', 'far'),
     ('2-타닥-튀김기름-bsb2507.mp3', 1.2, D(4, T[4][0]), T[4][0], 'main', 'far'),
     # ③-1 마늘·간장: garlic / soy already touching the wok on the first frame of each cut -> 지글 from frame 0
-    ('2-치이익-대체-팬지지기-bsb0144.mp3', 0.5, D(5, T[5][0]), T[5][0], 'main', 'far'),
-    ('2-치이익-대체-팬지지기-bsb0144.mp3', 6.0, D(6, T[6][0]), T[6][0], 'main', 'far'),
+    # v7: 0144 was almost pure hiss (>6kHz = -0.2dB of its energy) = the '지지직' -> cleaner oil sizzle 2505, unused parts
+    ('2-치이익-튀김기름넣기-bsb2505.mp3', 10.0, D(5, T[5][0]), T[5][0], 'main', 'far'),
+    ('2-치이익-튀김기름넣기-bsb2505.mp3', 20.0, D(6, T[6][0]), T[6][0], 'main', 'far'),
     # ③-2 굴소스·설탕: oyster sauce dripping in from frame 0 -> 보글; sugar first hits the sauce at src 2.85s -> 사르르
-    ('3-바글바글-대체-끓음-bsb0149.mp3', 1.0, D(7, T[7][0]), T[7][0], 'main', 'far'),
-    ('3-바글바글-대체-끓음-bsb0149.mp3', 2.6, D(8, T[8][0]), T[8][0], 'bed', 'far'),
-    ('4-사르르-생쌀붓기-bsb0201.mp3', 2.2, D(8, C(8, 2.85)), C(8, 2.85), 'main', 'far'),
+    # v7: 0149 (hissy) -> clean low bubbling 0491, parts not used in ③; 0201 rice hiss for the sugar removed (sugar into sauce is nearly silent)
+    ('3-바글바글-세게끓음-bsb0491.mp3', 4.0, D(7, T[7][0]), T[7][0], 'main', 'far'),
+    ('3-바글바글-세게끓음-bsb0491.mp3', 5.0, D(8, T[8][0]), T[8][0], 'main', 'far'),
     # ③ 버무리기: spatula touches the wok at src 0.00s and again at 1.55s (cut 10), at 2.50s (cut 11) -> 착 (hits at 9.55/25.35/39.45s)
     ('3-바글바글-세게끓음-bsb0491.mp3', 0.5, D(9, T[9][0]), T[9][0], 'bed', 'far'),
     ('3-착착-팬볶기뒤적임-bsb1676.mp3', 9.53, 0.45, C(9, 0.0), 'hit', 'far'),
@@ -122,21 +123,22 @@ snd = [
     ('3-바글바글-세게끓음-bsb0491.mp3', 2.3, D(10, T[10][0]), T[10][0], 'bed', 'far'),
     ('3-착착-팬볶기뒤적임-bsb1676.mp3', 39.43, 0.45, C(10, 2.5), 'hit', 'far'),
     # ④ 땅콩: first peanuts land on the plate at src 0.10s -> 사르르 (a part of 0201 not used in ③-2)
-    ('4-사르르-생쌀붓기-bsb0201.mp3', 6.0, D(11, C(11, 0.1)), C(11, 0.1), 'main', 'near'),
+    # v7: 0201 rice pouring was white-noise hiss -> 2071 cereal into a bowl (clean, -67dB floor); 0.85s = first grains
+    ('4-사르르-대체-시리얼붓기-bsb2071.mp3', 0.85, D(11, C(11, 0.1)), C(11, 0.1), 'main', 'far'),
     # ⑤ 먹기 (1.8x lift): small pick-up tap, faint room, bite right before the rib reaches the top edge
     ('4-톡-작은접시놓기-bsb1190.mp3', 4.0, 0.4, T[12][0] + 0.03, 'bed', 'near'),
     ('3-착착-팬볶기뒤적임-bsb1676.mp3', 0.0, BITE - 0.3 - T[12][0] + 0.05, T[12][0], 'bed', 'near'),
     ('5-바삭-대체-러스크씹기-bsb0407.mp3', 5.0, 0.42, BITE - 0.3, 'hit', 'near'),
     # ⑥ 맥주 (kept until the new pictures come): glass + faint foam only
     ('6-잔들기-유리잔손에쥐기-bsb1201.mp3', 2.0, 0.45, T[13][0] + 0.03, 'main', 'near'),
-    ('6-거품-맥주따르기-bsb1391.mp3', 6.0, D(13, T[13][0] + 0.3) + (0.5 if MODE == 'ig' else 0.6), T[13][0] + 0.3, 'bed', 'near'),
+    ('6-거품-맥주따르기-bsb1391.mp3', 6.0, D(13, T[13][0] + 0.3) + (0.5 if MODE == 'ig' else 0.6), T[13][0] + 0.3, 'bed', 'fizz'),
 ]
 if MODE == 'ig':
     # card: a later, unused part of the foam keeps fizzing softly under the recipe card
-    snd.append(('6-거품-맥주따르기-bsb1391.mp3', 9.0, TOTAL - VIDEO_END - 0.2, VIDEO_END + 0.1, 'card', 'near'))
+    snd.append(('6-거품-맥주따르기-bsb1391.mp3', 9.0, TOTAL - VIDEO_END - 0.2, VIDEO_END + 0.1, 'card', 'fizz'))
 
 # one level per role (RMS for main/bed, peak for hits), so no sound jumps out louder or quieter than the rest
-LEVEL = {'main': -24.0, 'bed': -33.0, 'card': -38.0}
+LEVEL = {'main': -24.0, 'bed': -34.0, 'card': -46.0}
 HIT_PEAK = -5.0
 def measure(f, ss, d):
     raw = subprocess.run(['ffmpeg', '-v', 'error', '-ss', str(ss), '-t', f'{d:.3f}', '-i', os.path.join(SND, f),
@@ -147,8 +149,12 @@ def measure(f, ss, d):
     pk = max((abs(v) for v in x), default=0)
     return 20 * math.log10(rms + 1e-9), 20 * math.log10(pk + 1e-9)
 # room = same kitchen for every sound: short early reflections + one shared tone curve
-NEAR = 'highpass=f=90,lowpass=f=11000,aecho=1.0:0.92:11|19:0.10|0.06'
-FAR = 'highpass=f=110,lowpass=f=6500,equalizer=f=3000:t=q:w=1:g=-2,aecho=1.0:0.88:17|29|41:0.18|0.12|0.07'
+# v7: 4-pole low-pass (two stages) + light FFT denoise of the recordings' steady hiss floor
+DN = 'afftdn=nr=10:nf=-55:tn=1'
+NEAR = f'highpass=f=90,{DN},lowpass=f=10000,lowpass=f=10000,aecho=1.0:0.92:11|19:0.10|0.06'
+FAR = f'highpass=f=110,{DN},lowpass=f=6000,lowpass=f=6000,equalizer=f=3000:t=q:w=1:g=-2,aecho=1.0:0.88:17|29|41:0.18|0.12|0.07'
+FIZZ = f'highpass=f=150,{DN},lowpass=f=4000,lowpass=f=4000,aecho=1.0:0.92:11|19:0.10|0.06'
+ROOM = {'near': NEAR, 'far': FAR, 'fizz': FIZZ}
 spread = []
 amix = []
 for j, (f, ss, d, at, role, dist) in enumerate(snd):
@@ -161,10 +167,10 @@ for j, (f, ss, d, at, role, dist) in enumerate(snd):
     fo = min(0.025, d / 3)  # 15–30 ms soft edges, sound still stops with the cut
     fc.append(f'[{ii}:a]atrim=start={ss}:duration={d:.3f},asetpts=PTS-STARTPTS,aresample=48000,'
               f'aformat=channel_layouts=stereo,afade=in:d=0.02,afade=out:st={d - fo:.3f}:d={fo:.3f},'
-              f'volume={g:.2f}dB,{NEAR if dist == "near" else FAR},adelay={int(round(at * 1000))}|{int(round(at * 1000))}[a{j}]')
+              f'volume={g:.2f}dB,{ROOM[dist]},adelay={int(round(at * 1000))}|{int(round(at * 1000))}[a{j}]')
     amix.append(f'[a{j}]')
 fc.append(''.join(amix) + f'amix=inputs={len(amix)}:normalize=0:dropout_transition=0,'
-          f'equalizer=f=250:t=q:w=1:g=1,equalizer=f=8000:t=q:w=1:g=-1.5,'
+          f'equalizer=f=250:t=q:w=1:g=1,equalizer=f=8000:t=q:w=1:g=-3,'
           f'apad,atrim=0:{TOTAL:.3f},aresample=48000[aout]')
 for z in spread:
     print('lvl', *z)
