@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>엄마의 영양 노트 — 프로필 그리드 9칸 미리보기</title>
+<link rel="stylesheet" href="style.css">
+<style>
+body{background:#fff;padding:24px 0 40px}
+.phone{width:906px;margin:0 auto;transform-origin:top center}
+.prof{display:flex;align-items:center;gap:24px;padding:0 8px 20px}
+.prof .pic{width:120px;height:120px;border-radius:50%;background:var(--sage);border:2px solid #dbdbdb;
+  display:flex;align-items:center;justify-content:center;flex-direction:column;font-weight:800;font-size:26px;line-height:1.1;color:var(--ink)}
+.prof .pic span{background:linear-gradient(transparent 58%,var(--lemon) 58%)}
+.prof .id{font-family:-apple-system,"Apple SD Gothic Neo",sans-serif;font-size:26px;font-weight:700;color:#111}
+.prof .bio{font-family:-apple-system,"Apple SD Gothic Neo",sans-serif;font-size:20px;color:#333;margin-top:6px;line-height:1.4}
+.ig{display:grid;grid-template-columns:repeat(3,300px);gap:3px}
+/* 인스타 프로필은 4:5 게시물을 3:4로 보여 줌 → 좌우 약 34px씩 잘림 */
+.tile{width:300px;height:400px;position:relative;overflow:hidden}
+.tile>.card{position:absolute;left:0;top:0;margin:0;transform-origin:0 0;transform:translateX(-10px) scale(.29630)}
+.colname{display:grid;grid-template-columns:repeat(3,300px);gap:3px;margin-top:10px;text-align:center;
+  font-size:22px;font-weight:800;color:var(--ink)}
+.note{width:906px;margin:18px auto 0;font-size:20px;line-height:1.55;color:#333;font-weight:700}
+/* 자리 표시 (2·3줄째: 아직 정하지 않은 노트) */
+.ph-bar{display:block;height:64px;border-radius:14px;background:rgba(47,74,58,.18);margin-top:22px}
+.mon .ph-bar{background:rgba(250,251,247,.25)}
+.wed .ph-bar{background:rgba(47,74,58,.2)}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <g id="fg">
+      <circle r="30" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="4"/>
+      <ellipse cx="-19" cy="7" rx="6" ry="4" fill="#F2C94C"/><ellipse cx="19" cy="7" rx="6" ry="4" fill="#F2C94C"/>
+      <circle cx="-10" cy="-6" r="4" fill="#2F4A3A"/><circle cx="10" cy="-6" r="4" fill="#2F4A3A"/>
+      <path d="M-11 6 Q0 18 11 6" fill="none" stroke="#2F4A3A" stroke-width="4" stroke-linecap="round"/>
+    </g>
+    <g id="fb">
+      <path d="M-22 -14 L-21 -42 L-5 -28 Z" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M22 -14 L21 -42 L5 -28 Z" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="4" stroke-linejoin="round"/>
+      <circle r="30" fill="#DDE4D6" stroke="#2F4A3A" stroke-width="4"/>
+      <circle cx="-10" cy="-5" r="4" fill="#2F4A3A"/><circle cx="10" cy="-5" r="4" fill="#2F4A3A"/>
+      <path d="M-10 10 q5 -5 10 0 t10 0" fill="none" stroke="#2F4A3A" stroke-width="3.5" stroke-linecap="round"/>
+    </g>
+    <g id="fml">
+      <circle r="30" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="4"/>
+      <circle cx="-10" cy="-5" r="7.5" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="3"/><circle cx="10" cy="-5" r="7.5" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="3"/>
+      <circle cx="-14" cy="-5" r="3.5" fill="#2F4A3A"/><circle cx="6" cy="-5" r="3.5" fill="#2F4A3A"/>
+      <path d="M-7 12 H7" fill="none" stroke="#2F4A3A" stroke-width="4" stroke-linecap="round"/>
+    </g>
+    <g id="fmr">
+      <circle r="30" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="4"/>
+      <circle cx="-10" cy="-5" r="7.5" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="3"/><circle cx="10" cy="-5" r="7.5" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="3"/>
+      <circle cx="-6" cy="-5" r="3.5" fill="#2F4A3A"/><circle cx="14" cy="-5" r="3.5" fill="#2F4A3A"/>
+      <path d="M-7 12 H7" fill="none" stroke="#2F4A3A" stroke-width="4" stroke-linecap="round"/>
+    </g>
+    <g id="bowl">
+      <path d="M-70 0 C-66 64 66 64 70 0 Z" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M-64 0 Q0 -48 64 0" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="4" stroke-linecap="round"/>
+      <g fill="#2F4A3A" opacity=".7"><circle cx="-22" cy="-14" r="4"/><circle cx="2" cy="-24" r="4"/><circle cx="24" cy="-12" r="4"/></g>
+    </g>
+    <!-- 콩 세 알 -->
+    <g id="beans">
+      <ellipse cx="-40" cy="10" rx="46" ry="32" transform="rotate(-20 -40 10)" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="5"/>
+      <ellipse cx="44" cy="-14" rx="46" ry="32" transform="rotate(15 44 -14)" fill="#F2C94C" stroke="#2F4A3A" stroke-width="5"/>
+      <ellipse cx="22" cy="58" rx="46" ry="32" transform="rotate(-8 22 58)" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="5"/>
+      <g fill="none" stroke="#2F4A3A" stroke-width="4" stroke-linecap="round"><path d="M-52 8 q12 -6 24 0"/><path d="M32 -16 q12 6 24 2"/><path d="M10 58 q12 -4 24 0"/></g>
+    </g>
+  </defs>
+</svg>
+
+<div class="phone" id="phone">
+  <div class="prof">
+    <div class="pic"><span>영양</span><span>노트</span></div>
+    <div>
+      <div class="id">mom.nutri.note</div>
+      <div class="bio">엄마의 영양 노트<br>의사도 약사도 아닌 엄마가 공부한 장·영양 이야기</div>
+    </div>
+  </div>
+
+  <div class="ig">
+    <!-- ── 1줄: No.06 내용으로 만든 표지 3종 (금 → 수 → 월, 새 글이 왼쪽 위) ── -->
+    <div class="tile"><section class="card fri grid-sage">
+      <div class="head"><div>영양 노트<span class="no">No.06</span></div><div class="tag">그림 노트</div></div>
+      <svg class="art" viewBox="0 0 1080 1350">
+        <circle cx="540" cy="560" r="330" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="5"/>
+        <circle cx="540" cy="390" r="92" fill="#F2C94C" opacity=".45"/>
+        <use href="#bowl" transform="translate(540 395) scale(1.3)"/>
+        <g fill="none" stroke="#2F4A3A" stroke-width="6" stroke-linecap="round" stroke-dasharray="1 16"><path d="M500 490 C480 520 450 540 430 572"/><path d="M580 490 C600 520 630 540 650 572"/></g>
+        <path class="s" d="M416 560 L428 580 L448 570"/><path class="s" d="M632 570 L652 580 L664 560"/>
+        <circle cx="420" cy="700" r="105" fill="#EEF2EA" stroke="#2F4A3A" stroke-width="4"/>
+        <use href="#fg" transform="translate(380 672) scale(.85)"/><use href="#fg" transform="translate(458 680) scale(.85)"/><use href="#fml" transform="translate(418 744) scale(.85)"/>
+        <circle cx="660" cy="700" r="105" fill="#EEF2EA" stroke="#2F4A3A" stroke-width="4"/>
+        <use href="#fml" transform="translate(620 676) scale(.85)"/><use href="#fb" transform="translate(700 690) scale(.85)"/><use href="#fmr" transform="translate(648 748) scale(.85)"/>
+      </svg>
+      <div class="ttl"><h1><span class="l1">같은 밥,</span><span class="l2">장 속도 같을까요?</span></h1>
+        <p class="lead">아니요, <span class="hl">장 속 균</span>은 지문처럼 달라요</p></div>
+    </section></div>
+
+    <div class="tile"><section class="card wed grid-lemon">
+      <div class="head"><div>영양 노트<span class="no">No.06</span></div><div class="tag">연구 노트</div></div>
+      <div class="quote"><span class="br open"></span>
+        <p class="qt">장 속 균을 만드는 데는<br>타고난 유전자보다<br><span class="hl">환경</span>이 더 크게<br>작용한다.</p>
+        <span class="br close"></span></div>
+      <p class="en"><b>논문 제목 · 우리말 옮김</b>Environment dominates over host genetics in shaping human gut microbiota</p>
+      <div class="cite"><p class="who">Rothschild D 외 · Nature 2018</p>
+        <p class="what">매일 먹는 밥은 그 환경 가운데<br>우리가 고를 수 있는 것이에요.</p></div>
+    </section></div>
+
+    <div class="tile"><section class="card mon">
+      <div class="photo"><p class="ph">사진 자리</p></div><span class="tape"></span>
+      <div class="head"><div>영양 노트<span class="no">No.06</span></div><div class="tag">밥상 노트</div></div>
+      <div class="band"><h1>같은 밥, 다른 장</h1><p class="nutri">식이섬유 · 프락토올리고당 · 프로바이오틱스</p></div>
+    </section></div>
+
+    <!-- ── 2줄: 자리 표시 (내용 미정) ── -->
+    <div class="tile"><section class="card fri grid-sage">
+      <div class="head"><div>영양 노트<span class="no">No.○○</span></div><div class="tag">그림 노트</div></div>
+      <svg class="art" viewBox="0 0 1080 1350">
+        <circle cx="540" cy="560" r="330" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="5"/>
+        <use href="#beans" transform="translate(540 560) scale(1.8)"/>
+      </svg>
+      <div class="ttl"><h1><span class="l1">제목 자리,</span><span class="l2">질문형 두 줄</span></h1>
+        <p class="lead">부제 <span class="hl">영양소 이름</span> 한 줄</p></div>
+    </section></div>
+
+    <div class="tile"><section class="card wed grid-lemon">
+      <div class="head"><div>영양 노트<span class="no">No.○○</span></div><div class="tag">연구 노트</div></div>
+      <div class="quote"><span class="br open"></span>
+        <p class="qt">문장 자리<br><span class="ph-bar" style="width:640px"></span><span class="ph-bar" style="width:520px"></span></p>
+        <span class="br close"></span></div>
+      <div class="cite"><p class="who">논문·학자 이름 자리</p><p class="what">출처 확인 뒤에만 넣어요.</p></div>
+    </section></div>
+
+    <div class="tile"><section class="card mon">
+      <div class="photo"><p class="ph">사진 자리</p></div><span class="tape"></span>
+      <div class="head"><div>영양 노트<span class="no">No.○○</span></div><div class="tag">밥상 노트</div></div>
+      <div class="band"><h1>제목 자리</h1><p class="nutri">영양소 이름 · 영양소 이름</p></div>
+    </section></div>
+
+    <!-- ── 3줄: 자리 표시 ── -->
+    <div class="tile"><section class="card fri grid-sage">
+      <div class="head"><div>영양 노트<span class="no">No.○○</span></div><div class="tag">그림 노트</div></div>
+      <svg class="art" viewBox="0 0 1080 1350">
+        <circle cx="540" cy="560" r="330" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="5"/>
+        <circle cx="540" cy="560" r="92" fill="#F2C94C" opacity=".45"/>
+        <use href="#bowl" transform="translate(540 560) scale(2)"/>
+      </svg>
+      <div class="ttl"><h1><span class="l1">제목 자리,</span><span class="l2">대결형 A vs B</span></h1>
+        <p class="lead">부제 <span class="hl">영양소 이름</span> 한 줄</p></div>
+    </section></div>
+
+    <div class="tile"><section class="card wed grid-lemon">
+      <div class="head"><div>영양 노트<span class="no">No.○○</span></div><div class="tag">연구 노트</div></div>
+      <div class="quote"><span class="br open"></span>
+        <p class="qt">문장 자리<br><span class="ph-bar" style="width:600px"></span><span class="ph-bar" style="width:440px"></span></p>
+        <span class="br close"></span></div>
+      <div class="cite"><p class="who">논문·학자 이름 자리</p><p class="what">출처 확인 뒤에만 넣어요.</p></div>
+    </section></div>
+
+    <div class="tile"><section class="card mon">
+      <div class="photo"><p class="ph">사진 자리</p></div><span class="tape"></span>
+      <div class="head"><div>영양 노트<span class="no">No.○○</span></div><div class="tag">밥상 노트</div></div>
+      <div class="band"><h1>제목 자리</h1><p class="nutri">영양소 이름 · 영양소 이름</p></div>
+    </section></div>
+  </div>
+
+  <div class="colname"><div>금 · 그림 노트</div><div>수 · 연구 노트</div><div>월 · 밥상 노트</div></div>
+  <p class="note">인스타는 새 글이 왼쪽 위에 와요. 월·수·금 순서로 올리면 금요일 글을 올린 뒤에는 왼쪽 = 금(그림), 가운데 = 수(문장), 오른쪽 = 월(사진)으로 줄이 맞아요. 월·수요일에는 잠깐 한 칸씩 밀려 보여요. 고정 게시물은 3개 단위로만(1·2개 고정하면 줄이 어긋나요).</p>
+</div>
+
+<script>
+// 휴대폰 화면 폭에 맞춰 줄이기
+function fit(){var w=Math.min(1,(window.innerWidth-16)/906);document.getElementById('phone').style.zoom=w;}
+fit();window.addEventListener('resize',fit);
+</script>
+</body>
+</html>

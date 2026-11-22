@@ -1,0 +1,84 @@
+/* 엄마의 영양 노트 — 새 디자인 체계 (디자인팀, 2026-11-23)
+   표지 3종: 월 밥상 노트(사진) / 수 연구 노트(문장) / 금 그림 노트(그림)
+   색은 지금 영양노트 4가지만 씀. 새 색 없음. 사진 자리 회색은 시안 전용. */
+
+@font-face{font-family:"NSR";font-weight:400;font-display:block;
+  src:local("NanumSquareRound Regular"),local("NanumSquareRoundR"),
+      url("file:///tmp/claude-0/-home-user/020f0925-2716-5554-b1a3-06e5bb251207/scratchpad/fonts/NanumSquareRoundR.woff") format("woff");}
+@font-face{font-family:"NSR";font-weight:700;font-display:block;
+  src:local("NanumSquareRound Bold"),local("NanumSquareRoundB"),
+      url("file:///tmp/claude-0/-home-user/020f0925-2716-5554-b1a3-06e5bb251207/scratchpad/fonts/NanumSquareRoundB.woff") format("woff");}
+@font-face{font-family:"NSR";font-weight:800;font-display:block;
+  src:local("NanumSquareRound ExtraBold"),local("NanumSquareRoundEB"),
+      url("file:///tmp/claude-0/-home-user/020f0925-2716-5554-b1a3-06e5bb251207/scratchpad/fonts/NanumSquareRoundEB.woff") format("woff");}
+
+:root{
+  --sage:#EEF2EA;   /* 연한 세이지 — 금 그림 노트 바탕, 안쪽 장 바탕 */
+  --ink:#2F4A3A;    /* 진초록 — 글자·선, 월 밥상 노트 아래 띠 */
+  --lemon:#F2C94C;  /* 레몬 — 수 연구 노트 바탕, 형광펜, 번호 */
+  --paper:#FAFBF7;  /* 종이 흰색 — 상자, 큰 동그라미, 어두운 바탕 위 글자 */
+  --photo:#D5DAD2;  /* 시안 전용: 사진 자리 회색 */
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#c9cfc5;font-family:"NSR",sans-serif;color:var(--ink);padding:40px 0}
+
+/* 카드 바탕 1080 x 1350 (4:5) */
+.card{width:1080px;height:1350px;position:relative;overflow:hidden;margin:0 auto 40px;background:var(--sage)}
+/* 모눈 공책 결 — 세이지 위에는 진초록 6.5%, 레몬 위에는 진초록 7% */
+.grid-sage{background-color:var(--sage);
+  background-image:linear-gradient(rgba(47,74,58,.065) 2px,transparent 2px),linear-gradient(90deg,rgba(47,74,58,.065) 2px,transparent 2px);
+  background-size:54px 54px;background-position:-1px -1px}
+.grid-lemon{background-color:var(--lemon);
+  background-image:linear-gradient(rgba(47,74,58,.07) 2px,transparent 2px),linear-gradient(90deg,rgba(47,74,58,.07) 2px,transparent 2px);
+  background-size:54px 54px;background-position:-1px -1px}
+
+/* 머리줄 — 세 모양 모두 같은 자리(위 58, 좌우 72). 오른쪽은 표지에서 모양 이름, 안쪽 장에서 쪽수 */
+.head{position:absolute;top:58px;left:72px;right:72px;display:flex;justify-content:space-between;align-items:center;
+  font-weight:700;font-size:32px;letter-spacing:-.01em;z-index:2}
+.head .no{background:var(--lemon);color:var(--ink);border-radius:999px;padding:4px 16px;margin-left:8px;font-weight:800}
+.head .tag{font-weight:800;border:3px solid currentColor;border-radius:999px;padding:2px 18px}
+
+/* 형광펜: 세이지·진초록 위에서는 레몬, 레몬 위에서는 종이 흰색 */
+.hl{background:linear-gradient(transparent 56%,var(--lemon) 56%,var(--lemon) 94%,transparent 94%);
+  padding:0 6px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.grid-lemon .hl{background:linear-gradient(transparent 56%,var(--paper) 56%,var(--paper) 94%,transparent 94%)}
+
+svg .s{fill:none;stroke:var(--ink);stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+svg .t{fill:var(--ink);font-family:"NSR";font-weight:700}
+
+/* ───────── 월 · 밥상 노트 (사진 표지) ───────── */
+.mon{background:var(--ink)}
+.mon .head{top:936px;color:var(--paper)} /* 머리줄은 사진 아래 진초록 띠 안으로 */
+.mon .photo{position:absolute;top:40px;left:40px;right:40px;height:860px;border-radius:32px;background:var(--photo);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.mon .photo .ph{font-weight:800;font-size:72px;letter-spacing:-.03em;opacity:.55}
+.mon .photo .ph-note{font-weight:700;font-size:30px;line-height:1.45;margin-top:18px;opacity:.6;word-break:keep-all}
+.mon .tape{position:absolute;top:22px;left:64px;width:230px;height:58px;background:var(--lemon);opacity:.9;
+  transform:rotate(-7deg);border-radius:4px}
+.mon .band{position:absolute;left:72px;right:72px;top:1010px;bottom:72px;display:flex;flex-direction:column;color:var(--paper)}
+.mon h1{font-weight:800;font-size:108px;line-height:1.15;letter-spacing:-.04em;white-space:nowrap}
+.mon .nutri{font-weight:700;font-size:40px;letter-spacing:-.02em;margin-top:auto;color:var(--lemon);white-space:nowrap}
+
+/* ───────── 수 · 연구 노트 (문장 표지) ───────── */
+.wed .head .no{background:var(--ink);color:var(--lemon)}
+.wed .quote{position:absolute;left:72px;right:72px;top:230px}
+.wed .br{position:absolute;width:96px;height:96px;border:0 solid var(--ink)}
+.wed .br.open{top:0;left:0;border-top-width:16px;border-left-width:16px}
+.wed .br.close{bottom:0;right:0;border-bottom-width:16px;border-right-width:16px}
+.wed .qt{padding:96px 40px 96px 44px;font-weight:800;font-size:76px;line-height:1.32;letter-spacing:-.04em;white-space:nowrap}
+.wed .en{position:absolute;left:72px;right:72px;top:860px;font-weight:700;font-size:28px;line-height:1.4;opacity:.78;letter-spacing:-.01em}
+.wed .en b{display:block;font-weight:800;font-size:24px;opacity:.9;margin-bottom:4px;letter-spacing:0}
+.wed .cite{position:absolute;left:72px;right:72px;bottom:72px;background:var(--paper);border:4px solid var(--ink);border-radius:28px;padding:26px 36px 28px}
+.wed .cite .who{font-weight:800;font-size:40px;letter-spacing:-.02em}
+.wed .cite .what{font-weight:400;font-size:34px;line-height:1.42;letter-spacing:-.03em;margin-top:8px;word-break:keep-all}
+
+/* ───────── 금 · 그림 노트 (그림 표지) ───────── */
+.fri .art{position:absolute;left:0;top:0;width:1080px;height:1350px}
+.fri .ttl{position:absolute;left:72px;right:72px;top:930px}
+.fri h1{font-weight:800;letter-spacing:-.04em;line-height:1.2;white-space:nowrap}
+.fri h1 .l1{display:block;font-size:100px}
+.fri h1 .l2{display:block;font-size:84px}
+.fri .lead{font-weight:700;font-size:46px;letter-spacing:-.025em;margin-top:24px;white-space:nowrap}
+
+/* 시안 설명(카드 밖, 렌더링 대상 아님) */
+.memo{width:1080px;margin:0 auto 12px;font-size:22px;font-weight:700;color:#3d4a40}
