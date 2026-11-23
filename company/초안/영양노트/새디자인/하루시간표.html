@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>엄마의 영양 노트 — 장이 좋아하는 하루 (하루 시간표 1장, 시안)</title>
+<!-- 글꼴·색·머리줄·형광펜은 새디자인/style.css 그대로 (나눔스퀘어라운드, No.05 cards.html과 같은 경로) -->
+<link rel="stylesheet" href="style.css">
+<style>
+/* 크림색 종이: 새 색을 만들지 않고 종이 흰색 위에 레몬 11%를 덮어 만든 크림 + 공책 가로줄(진초록 5%) */
+.paper{
+  background-color:var(--paper);
+  background-image:
+    linear-gradient(rgba(242,201,76,.11),rgba(242,201,76,.11)),
+    repeating-linear-gradient(180deg,transparent 0 52px,rgba(47,74,58,.05) 52px 54px);
+}
+.paper .art{position:absolute;left:0;top:0;width:1080px;height:1350px;z-index:0}
+.paper .head{z-index:2}
+
+/* 제목 */
+.ttl{position:absolute;left:72px;right:72px;top:128px;z-index:2}
+.ttl h1{font-weight:800;letter-spacing:-.04em;line-height:1.18;white-space:nowrap}
+.ttl h1 .l1{display:block;font-size:86px}
+.ttl h1 .l2{display:block;font-size:70px}
+.ttl .lead{font-weight:700;font-size:34px;letter-spacing:-.03em;margin-top:16px;white-space:nowrap;opacity:.9}
+
+/* 시간 칸 글 (칸 폭 234, 가운데 맞춤) */
+.stop{position:absolute;width:234px;text-align:center;z-index:2;display:flex;flex-direction:column;align-items:center}
+.stop.up{top:410px;height:196px;justify-content:flex-end}   /* 윗줄: 글이 그림 위 */
+.stop.down{top:972px}                                          /* 아랫줄: 글이 그림 아래 */
+.stop .tm{display:inline-block;font-weight:800;font-size:30px;letter-spacing:0;background:var(--lemon);
+  border:3px solid var(--ink);border-radius:999px;padding:0 16px;line-height:38px;margin-bottom:8px}
+.stop .ln{font-weight:700;font-size:29px;line-height:1.36;letter-spacing:-.04em;white-space:nowrap}
+
+/* 시간은 예시 쪽지 (아랫줄 왼쪽 칸) */
+.memo-card{position:absolute;left:78px;top:852px;width:222px;z-index:2;transform:rotate(-2deg);
+  background:var(--paper);border:4px solid var(--ink);border-radius:22px;padding:30px 16px 20px;text-align:center}
+.memo-card .tape{position:absolute;top:-18px;left:50%;width:120px;height:34px;margin-left:-60px;background:var(--lemon);
+  opacity:.9;border-radius:4px;transform:rotate(4deg)}
+.memo-card .a{font-weight:800;font-size:30px;line-height:1.3;letter-spacing:-.04em}
+.memo-card .b{font-weight:700;font-size:26px;line-height:1.35;letter-spacing:-.04em;margin-top:12px;padding-top:12px;
+  border-top:3px dashed rgba(47,74,58,.35);opacity:.85}
+
+/* 맨 아래 */
+.foot{position:absolute;left:72px;right:72px;top:1204px;z-index:2;border-top:4px dashed rgba(47,74,58,.3);padding-top:24px;
+  display:flex;justify-content:space-between;align-items:center}
+.foot .dis{font-weight:700;font-size:24px;letter-spacing:-.02em;opacity:.78}
+.foot .brand{font-weight:800;font-size:26px;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+.foot .brand i{display:inline-block;width:14px;height:14px;border-radius:50%;background:var(--lemon);border:3px solid var(--ink)}
+</style>
+</head>
+<body>
+
+<p class="memo">하루 시간표 1장 · 1080×1350 · #day 를 PNG로 · 글은 모두 No.01~06 원고의 "오늘 해 볼 것"에서</p>
+
+<section class="card paper" id="day">
+
+  <!-- 그림 층: 손그림 느낌(선 살짝 흔들기) + 종이 결 -->
+  <svg class="art" viewBox="0 0 1080 1350" width="1080" height="1350" aria-hidden="true">
+    <defs>
+      <!-- 손그림 느낌: 선을 아주 조금 흔듦 -->
+      <filter id="rough" x="-10%" y="-10%" width="120%" height="120%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7" result="n"/>
+        <feDisplacementMap in="SourceGraphic" in2="n" scale="3.5" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+      <!-- 종이 결 (진초록 아주 옅게) -->
+      <filter id="grain" x="0" y="0" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" stitchTiles="stitch"/>
+        <feColorMatrix type="matrix" values="0 0 0 0 .184  0 0 0 0 .29  0 0 0 0 .227  0 0 0 .07 0"/>
+      </filter>
+      <!-- 시간 칸 동그라미 (레몬 그림자 + 두 겹 선) -->
+      <g id="spot">
+        <circle cx="8" cy="8" r="58" fill="#F2C94C" opacity=".35"/>
+        <circle r="58" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="4"/>
+        <circle cx="2" cy="-2" r="58" fill="none" stroke="#2F4A3A" stroke-width="2" opacity=".3"/>
+      </g>
+      <!-- 길 위 화살 꺾쇠 (오른쪽 방향) -->
+      <path id="chev" d="M-8 -12 L6 0 L-8 12" fill="none" stroke="#2F4A3A" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    </defs>
+
+    <rect width="1080" height="1350" filter="url(#grain)"/>
+
+    <g filter="url(#rough)">
+      <!-- 점선 길: 윗줄 왼→오, 오른쪽에서 꺾어, 아랫줄 오→왼 -->
+      <path d="M189 676 H891 C985 676 985 900 891 900 H423" fill="none" stroke="#2F4A3A" stroke-width="7"
+            stroke-linecap="round" stroke-dasharray="1 18"/>
+      <use href="#chev" transform="translate(306 676)"/>
+      <use href="#chev" transform="translate(540 676)"/>
+      <use href="#chev" transform="translate(774 676)"/>
+      <use href="#chev" transform="translate(962 788) rotate(90)"/>
+      <use href="#chev" transform="translate(774 900) rotate(180)"/>
+      <use href="#chev" transform="translate(540 900) rotate(180)"/>
+
+      <!-- 1. 07:00 물컵 -->
+      <g transform="translate(189 676)">
+        <use href="#spot"/>
+        <path d="M-28 -36 L-21 32 Q-20 38 -14 38 L14 38 Q20 38 21 32 L28 -36 Z" fill="#FAFBF7"/>
+        <path d="M-25 -8 L-20 32 Q-19 36 -14 36 L14 36 Q19 36 20 32 L25 -8 Z" fill="#EEF2EA"/>
+        <path d="M-25 -8 q6 -5 12.5 0 t12.5 0 t12.5 0 t12.5 0" fill="none" stroke="#2F4A3A" stroke-width="3" stroke-linecap="round" opacity=".7"/>
+        <path d="M-28 -36 L-21 32 Q-20 38 -14 38 L14 38 Q20 38 21 32 L28 -36" fill="none" stroke="#2F4A3A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M-14 -26 L-10 10" fill="none" stroke="#F2C94C" stroke-width="5" stroke-linecap="round"/>
+      </g>
+
+      <!-- 2. 07:30 잡곡밥 공기 -->
+      <g transform="translate(423 680)">
+        <use href="#spot" transform="translate(0 -4)"/>
+        <path d="M-36 -4 Q0 -36 36 -4 Z" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="4" stroke-linejoin="round"/>
+        <path d="M-40 -4 C-38 32 38 32 40 -4 Z" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="4" stroke-linejoin="round"/>
+        <path d="M-14 30 H14" fill="none" stroke="#2F4A3A" stroke-width="4" stroke-linecap="round"/>
+        <g fill="#2F4A3A" opacity=".75"><circle cx="-16" cy="-12" r="3.2"/><circle cx="4" cy="-22" r="3.2"/><circle cx="18" cy="-10" r="3.2"/><circle cx="-4" cy="-10" r="3.2"/></g>
+        <g fill="#F2C94C" stroke="#2F4A3A" stroke-width="2"><ellipse cx="-6" cy="-19" rx="5.5" ry="4"/><ellipse cx="12" cy="-18" rx="5.5" ry="4"/><ellipse cx="-22" cy="-7" rx="5.5" ry="4"/></g>
+      </g>
+
+      <!-- 3. 08:00 숟가락, 꼭꼭 -->
+      <g transform="translate(657 676)">
+        <use href="#spot"/>
+        <g transform="translate(-8 4) rotate(-35)">
+          <ellipse cx="0" cy="-18" rx="15" ry="20" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="4"/>
+          <ellipse cx="0" cy="-20" rx="9" ry="12" fill="#F2C94C" opacity=".55"/>
+          <g fill="#FAFBF7" stroke="#2F4A3A" stroke-width="2"><ellipse cx="-4" cy="-22" rx="4" ry="2.6"/><ellipse cx="4" cy="-16" rx="4" ry="2.6"/></g>
+          <path d="M0 2 L0 42" fill="none" stroke="#2F4A3A" stroke-width="5" stroke-linecap="round"/>
+        </g>
+        <g fill="none" stroke="#2F4A3A" stroke-width="3" stroke-linecap="round">
+          <path d="M22 -30 q8 6 0 13"/><path d="M31 -37 q13 13 0 27"/>
+        </g>
+      </g>
+
+      <!-- 4. 12:30 색깔 채소 접시 -->
+      <g transform="translate(891 676)">
+        <use href="#spot"/>
+        <ellipse cx="0" cy="18" rx="44" ry="13" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="4"/>
+        <ellipse cx="0" cy="16" rx="30" ry="7" fill="none" stroke="#2F4A3A" stroke-width="2" opacity=".45"/>
+        <path d="M-32 12 q4 -32 30 -28 q-2 28 -30 28 Z" fill="#DDE4D6" stroke="#2F4A3A" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M-32 12 L-6 -12" fill="none" stroke="#2F4A3A" stroke-width="2"/>
+        <g stroke="#2F4A3A" stroke-width="3" fill="#F2C94C">
+          <circle cx="10" cy="4" r="10"/><circle cx="27" cy="9" r="9"/><circle cx="18" cy="-13" r="9"/>
+        </g>
+        <g fill="none" stroke="#2F4A3A" stroke-width="1.6" opacity=".7"><circle cx="10" cy="4" r="4.5"/><circle cx="27" cy="9" r="4"/><circle cx="18" cy="-13" r="4"/></g>
+      </g>
+
+      <!-- 5. 18:30 김치 종지 + 젓가락 -->
+      <g transform="translate(891 900)">
+        <use href="#spot"/>
+        <path d="M-22 4 C-24 -14 -6 -22 2 -10 C8 -22 26 -16 22 4 Z" fill="#F2C94C" fill-opacity=".75" stroke="#2F4A3A" stroke-width="3" stroke-linejoin="round"/>
+        <g fill="none" stroke="#2F4A3A" stroke-width="2" stroke-linecap="round"><path d="M-12 0 q2 -8 6 -12"/><path d="M10 0 q2 -8 5 -12"/></g>
+        <path d="M-32 4 C-30 34 30 34 32 4 Z" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="4" stroke-linejoin="round"/>
+        <path d="M-12 32 H12" fill="none" stroke="#2F4A3A" stroke-width="4" stroke-linecap="round"/>
+        <g fill="none" stroke="#2F4A3A" stroke-width="4" stroke-linecap="round"><path d="M-36 -34 L36 -22"/><path d="M-34 -42 L38 -31"/></g>
+      </g>
+
+      <!-- 6. 19:30 냉장고 + 눈송이 (식혀 두기) -->
+      <g transform="translate(657 900)">
+        <use href="#spot"/>
+        <g transform="translate(-8 4)">
+          <rect x="-24" y="-40" width="48" height="76" rx="8" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="4"/>
+          <path d="M-24 -12 H24" fill="none" stroke="#2F4A3A" stroke-width="4"/>
+          <g fill="none" stroke="#2F4A3A" stroke-width="4" stroke-linecap="round"><path d="M-14 -32 V-22"/><path d="M-14 -2 V12"/></g>
+          <rect x="-4" y="4" width="20" height="14" rx="5" fill="#F2C94C" stroke="#2F4A3A" stroke-width="2.5"/>
+        </g>
+        <g fill="none" stroke="#2F4A3A" stroke-width="3" stroke-linecap="round" transform="translate(30 -30)">
+          <path d="M0 -12 V12"/><path d="M-10.4 -6 L10.4 6"/><path d="M-10.4 6 L10.4 -6"/>
+        </g>
+      </g>
+
+      <!-- 7. 22:00 달 -->
+      <g transform="translate(423 900)">
+        <use href="#spot"/>
+        <path d="M8 -36.7 A38 38 0 1 0 8 36.7 A40 40 0 0 1 8 -36.7 Z" transform="translate(-4 0)" fill="#F2C94C" stroke="#2F4A3A" stroke-width="4" stroke-linejoin="round"/>
+        <path d="M24 -32 L26 -24 L34 -22 L26 -20 L24 -12 L22 -20 L14 -22 L22 -24 Z" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="2.5" stroke-linejoin="round"/>
+        <path d="M30 6 L31.5 12 L37 13.5 L31.5 15 L30 21 L28.5 15 L23 13.5 L28.5 12 Z" fill="#FAFBF7" stroke="#2F4A3A" stroke-width="2.5" stroke-linejoin="round"/>
+      </g>
+    </g>
+  </svg>
+
+  <div class="head"><div>영양 노트<span class="no">하루 시간표</span></div><div class="tag">한 장 정리</div></div>
+
+  <div class="ttl">
+    <h1><span class="l1">장이 좋아하는 하루,</span><span class="l2">따라가 볼까요?</span></h1>
+    <p class="lead">No.01~06의 <span class="hl">오늘 해 볼 것</span>을 하루에 모았어요</p>
+  </div>
+
+  <!-- 윗줄 (왼→오): 글 위, 그림 아래 -->
+  <div class="stop up" style="left:72px"><span class="tm">07:00</span><p class="ln">일어나서</p><p class="ln">물 한 잔</p></div>
+  <div class="stop up" style="left:306px"><span class="tm">07:30</span><p class="ln">밥에 잡곡·콩,</p><p class="ln">귀리·보리</p><p class="ln">한 숟가락</p></div>
+  <div class="stop up" style="left:540px"><span class="tm">08:00</span><p class="ln">첫 숟가락,</p><p class="ln">평소보다 천천히</p><p class="ln">꼭꼭 씹기</p></div>
+  <div class="stop up" style="left:774px"><span class="tm">12:30</span><p class="ln">색깔 채소 반찬</p><p class="ln">하나 더 올리기</p></div>
+
+  <!-- 아랫줄 (오→왼): 그림 위, 글 아래 -->
+  <div class="stop down" style="left:774px"><span class="tm">18:30</span><p class="ln">나물 한 가지와</p><p class="ln">김치·된장 같은</p><p class="ln">발효 음식 하나</p></div>
+  <div class="stop down" style="left:540px"><span class="tm">19:30</span><p class="ln">남은 밥은</p><p class="ln">빨리 식혀</p><p class="ln">냉장고에</p></div>
+  <div class="stop down" style="left:306px"><span class="tm">22:00</span><p class="ln">채소·콩·곡물</p><p class="ln">세어 보고</p><p class="ln">내일은 한 가지 더</p></div>
+
+  <!-- 시간은 예시 -->
+  <div class="memo-card"><span class="tape"></span>
+    <p class="a">시간은<br>모두 예시예요</p>
+    <p class="b">내 하루에 맞게<br>옮겨 보세요</p>
+  </div>
+
+  <div class="foot">
+    <p class="dis">진단·치료를 대신하지 않아요. 치료 중이면 담당 의사와 먼저.</p>
+    <p class="brand"><i></i>영양 노트</p>
+  </div>
+</section>
+
+</body>
+</html>
