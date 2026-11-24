@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>슬기로운 요리생활 · 출석 도장</title>
+<link rel="stylesheet" href="style.css">
+<script>
+  /* 휴대폰 미리보기에서 A4가 화면 폭에 맞게 보이도록 (인쇄 크기는 그대로) */
+  (function () {
+    function fit() {
+      var a4 = 210 * 96 / 25.4;
+      var z = Math.min(1, (document.documentElement.clientWidth - 12) / a4);
+      document.documentElement.style.setProperty('--fit', z);
+    }
+    fit();
+    window.addEventListener('resize', fit);
+  })();
+</script>
+</head>
+<body>
+<!-- 아이콘 모음 (한 번 그려 두고 아래에서 불러 씀) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-gift" viewBox="0 0 48 48">
+      <path d="M8 21 H40 V42 H8 Z M5 14 H43 V21 H5 Z M24 14 V42"/>
+      <path d="M24 14 Q14 3 11 9 Q9 15 24 14 Q34 3 37 9 Q39 15 24 14"/>
+    </symbol>
+    <symbol id="i-book" viewBox="0 0 48 48">
+      <path d="M24 13 Q14 6 4 9 V38 Q14 35 24 41 Q34 35 44 38 V9 Q34 6 24 13 Z M24 13 V41"/>
+      <path d="M9 16 Q15 15 19 18 M9 23 Q15 22 19 25 M29 18 Q33 15 39 16 M29 25 Q33 22 39 23"/>
+    </symbol>
+    <symbol id="i-spoon" viewBox="0 0 48 48">
+      <ellipse cx="24" cy="13" rx="8" ry="10"/>
+      <path d="M24 23 V44"/>
+    </symbol>
+    <symbol id="i-pot" viewBox="0 0 200 160">
+      <path d="M78 44 q-7 -8 0 -16 q7 -8 0 -16 M100 40 q-7 -8 0 -16 q7 -8 0 -16 M122 44 q-7 -8 0 -16 q7 -8 0 -16"/>
+      <circle cx="100" cy="60" r="6"/>
+      <path d="M50 80 Q100 50 150 80 M42 80 H158"/>
+      <path d="M46 84 H154 V124 Q154 145 133 145 H67 Q46 145 46 124 Z"/>
+      <path d="M46 96 H31 Q24 96 24 102 Q24 108 31 108 H46 M154 96 H169 Q176 96 176 102 Q176 108 169 108 H154"/>
+    </symbol>
+    <symbol id="i-star" viewBox="0 0 24 24">
+      <path d="M12 2.5 L14.8 8.8 L21.6 9.4 L16.4 13.9 L18 20.6 L12 17 L6 20.6 L7.6 13.9 L2.4 9.4 L9.2 8.8 Z"/>
+    </symbol>
+  </defs>
+</svg>
+
+<main class="sheet stamp-page">
+  <div class="frame" aria-hidden="true"></div>
+
+  <header class="page-head">
+    <svg class="pot-mini line-icon" aria-hidden="true"><use href="#i-pot"/></svg>
+    <h1>출석 도장</h1>
+    <p class="owner-mini">이름 <span class="blank"></span></p>
+  </header>
+
+  <!-- 도장 칸 2줄 × 5칸. 칸 지름 32mm -->
+  <section class="stamps">
+    <div class="stamp"><div class="no">1</div><div class="circle"></div><div class="date">__ / __</div><div class="label"></div></div>
+    <div class="stamp"><div class="no">2</div><div class="circle"></div><div class="date">__ / __</div><div class="label"></div></div>
+    <div class="stamp"><div class="no">3</div><div class="circle"></div><div class="date">__ / __</div><div class="label"></div></div>
+    <div class="stamp"><div class="no">4</div><div class="circle"></div><div class="date">__ / __</div><div class="label"></div></div>
+    <div class="stamp gift">
+      <div class="no">5</div>
+      <div class="circle"><svg class="ghost line-icon" viewBox="0 0 48 48" aria-hidden="true"><use href="#i-gift"/></svg></div>
+      <div class="date">__ / __</div>
+      <div class="label">작은 선물</div>
+    </div>
+
+    <div class="stamp"><div class="no">6</div><div class="circle"></div><div class="date">__ / __</div><div class="label"></div></div>
+    <div class="stamp"><div class="no">7</div><div class="circle"></div><div class="date">__ / __</div><div class="label"></div></div>
+    <div class="stamp"><div class="no">8</div><div class="circle"></div><div class="date">__ / __</div><div class="label"></div></div>
+    <div class="stamp"><div class="no">9</div><div class="circle"></div><div class="date">__ / __</div><div class="label"></div></div>
+    <div class="stamp gift">
+      <div class="no">10</div>
+      <div class="circle"><svg class="ghost line-icon" viewBox="0 0 48 48" aria-hidden="true"><use href="#i-book"/></svg></div>
+      <div class="date">__ / __</div>
+      <div class="label">사인 책 선물</div>
+    </div>
+  </section>
+
+  <p class="legend">
+    <span><svg class="line-icon" viewBox="0 0 48 48" aria-hidden="true"><use href="#i-gift"/></svg>5번: 작은 선물</span>
+    <span><svg class="line-icon" viewBox="0 0 48 48" aria-hidden="true"><use href="#i-book"/></svg>10번: 『슬기로운 요리생활』 사인 책 선물</span>
+  </p>
+
+  <h2 class="recipes-title">
+    <svg class="line-icon" viewBox="0 0 48 48" aria-hidden="true"><use href="#i-spoon"/></svg>
+    모은 레시피
+  </h2>
+
+  <table class="recipes">
+    <thead>
+      <tr><th class="c-no">회차</th><th>요리 이름</th><th class="c-date">해 본 날</th><th class="c-stars">가족 반응</th></tr>
+    </thead>
+    <tbody>
+      <tr><td class="c-no">1</td><td></td><td class="c-date">__ / __</td><td class="c-stars"><span class="stars"><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg></span></td></tr>
+      <tr><td class="c-no">2</td><td></td><td class="c-date">__ / __</td><td class="c-stars"><span class="stars"><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg></span></td></tr>
+      <tr><td class="c-no">3</td><td></td><td class="c-date">__ / __</td><td class="c-stars"><span class="stars"><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg></span></td></tr>
+      <tr><td class="c-no">4</td><td></td><td class="c-date">__ / __</td><td class="c-stars"><span class="stars"><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg></span></td></tr>
+      <tr><td class="c-no">5</td><td></td><td class="c-date">__ / __</td><td class="c-stars"><span class="stars"><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg></span></td></tr>
+      <tr><td class="c-no">6</td><td></td><td class="c-date">__ / __</td><td class="c-stars"><span class="stars"><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg></span></td></tr>
+      <tr><td class="c-no">7</td><td></td><td class="c-date">__ / __</td><td class="c-stars"><span class="stars"><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg></span></td></tr>
+      <tr><td class="c-no">8</td><td></td><td class="c-date">__ / __</td><td class="c-stars"><span class="stars"><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg></span></td></tr>
+      <tr><td class="c-no">9</td><td></td><td class="c-date">__ / __</td><td class="c-stars"><span class="stars"><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg></span></td></tr>
+      <tr><td class="c-no">10</td><td></td><td class="c-date">__ / __</td><td class="c-stars"><span class="stars"><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg></span></td></tr>
+    </tbody>
+  </table>
+
+  <p class="foot">10번 함께 요리하면 사인한 책을 드려요</p>
+</main>
+</body>
+</html>
